@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V15 RWD行動版)</title>
+    <title>全維度戰情室 (V18 爆倉雷達版)</title>
     <style>
         :root {
             --bg: #0b0e11;
@@ -16,6 +16,8 @@
             --red-bg: rgba(246, 70, 93, 0.15);
             --yellow: #fcd535;
             --yellow-bg: rgba(252, 213, 53, 0.1);
+            --purple: #a855f7;
+            --purple-bg: rgba(168, 85, 247, 0.15);
             --border: #2b3139;
         }
         body {
@@ -23,7 +25,7 @@
             color: var(--text-main);
             font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
             margin: 0;
-            padding: 10px; /* 手機版邊距縮小 */
+            padding: 10px;
             font-size: 13px;
         }
         
@@ -34,96 +36,86 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap; /* 允許標題換行 */
+            flex-wrap: wrap;
             gap: 10px;
         }
-        .header h1 { margin: 0; font-size: 20px; }
 
-        /* --- 核心佈局：Grid --- */
         .symbol-row {
             display: grid;
-            /* 預設桌面版：4欄佈局 */
-            grid-template-columns: 160px 1fr 1fr 1fr;
-            gap: 10px; /* 這裡控制欄間距，原本是0，改成 gap 分開 */
+            grid-template-columns: 220px 1fr 1fr 1fr; /* 加寬左側給爆倉數據 */
+            gap: 10px;
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 8px;
             margin-bottom: 15px;
             overflow: hidden;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: border-color 0.2s;
         }
 
-        /* 1. 左側：幣種資訊 */
+        /* 爆倉特效邊框 */
+        .exploding-long { border-color: var(--red); box-shadow: 0 0 15px rgba(246, 70, 93, 0.4); }
+        .exploding-short { border-color: var(--green); box-shadow: 0 0 15px rgba(14, 203, 129, 0.4); }
+
         .col-info {
             background: #1e2329;
-            padding: 15px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            gap: 8px;
             border-right: 1px solid var(--border);
         }
+        .sym-header { display: flex; justify-content: space-between; align-items: baseline; }
         .sym-name { font-size: 20px; font-weight: 900; color: #fff; }
-        .sym-price { font-size: 16px; font-family: 'Roboto Mono'; font-weight: bold; margin-top: 5px; }
+        .sym-price { font-size: 16px; font-family: 'Roboto Mono'; font-weight: bold; }
         .up { color: var(--green); } .down { color: var(--red); }
 
-        /* 2. 時區區塊 */
-        .col-tf {
-            padding: 8px;
-            border-right: 1px dashed #333;
-            display: flex;
-            flex-direction: column;
-            min-width: 0; /* 防止內容撐爆 grid */
+        /* 爆倉監控區 (新增) */
+        .liq-box {
+            margin-top: 5px; padding: 6px; border-radius: 4px;
+            background: #111; border: 1px solid #333;
         }
+        .liq-title { font-size: 11px; color: #aaa; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        .liq-val { font-family: 'Roboto Mono'; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; }
+        .liq-tag { font-size: 10px; padding: 1px 4px; border-radius: 2px; display: none; }
+        .show-tag { display: inline-block; animation: blink 0.5s infinite alternate; }
+        
+        .l-long { color: var(--red); } /* 多單爆倉 -> 價格跌 */
+        .l-short { color: var(--green); } /* 空單爆倉 -> 價格漲 */
+
+        /* 訂單流 & 量能 */
+        .flow-box { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; }
+        .flow-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px;}
+        .flow-buy { height: 100%; background: var(--green); }
+        .flow-sell { height: 100%; background: var(--red); }
+        .mini-stat { display: flex; justify-content: space-between; font-size: 10px; color: #888; }
+
+        /* 右側時區 */
+        .col-tf { padding: 8px; border-right: 1px dashed #333; display: flex; flex-direction: column; }
         .col-tf:last-child { border-right: none; }
 
-        .tf-header {
-            margin-bottom: 8px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 6px;
-        }
+        .tf-header { margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 6px; }
         .tf-title-row { display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center; }
         .tf-title { font-weight: bold; font-size: 14px; color: #fff; }
         
-        /* 勝率條 */
         .wr-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; }
         .wr-bar-long { height: 100%; background: var(--green); transition: width 0.5s; }
         .wr-bar-short { height: 100%; background: var(--red); transition: width 0.5s; }
         .wr-text { font-size: 10px; display: flex; justify-content: space-between; color: #888; margin-top: 2px; }
 
-        /* 指標列表 */
-        .ind-list {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 4px;
-            margin-bottom: 8px;
-        }
-        .ind-item {
-            font-size: 11px;
-            display: flex; 
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255,255,255,0.03); 
-            padding: 5px 8px; 
-            border-radius: 3px;
-        }
+        .ind-list { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 8px; }
+        .ind-item { font-size: 11px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 6px; border-radius: 3px; }
         .ind-left { display: flex; flex-direction: column; }
         .ind-right { text-align: right; }
         .ind-name { color: #aaa; font-size: 10px; }
-        .ind-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; font-size: 12px; }
+        .ind-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
         
-        .win-dual { font-size: 10px; font-family: 'Roboto Mono'; display: flex; gap: 6px; }
+        .win-dual { font-size: 10px; font-family: 'Roboto Mono'; display: flex; gap: 5px; }
         .w-l { color: var(--green); opacity: 0.5; }
         .w-s { color: var(--red); opacity: 0.5; }
         .active-side { opacity: 1; font-weight: bold; text-decoration: underline; }
 
-        /* 策略區塊 */
-        .strat-box {
-            margin-top: auto;
-            padding: 8px;
-            border-radius: 4px;
-            text-align: center;
-            border: 1px solid transparent;
-        }
+        .strat-box { margin-top: auto; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid transparent; }
         .strat-long { background: var(--green-bg); border-color: var(--green); }
         .strat-short { background: var(--red-bg); border-color: var(--red); }
         .strat-chop { background: var(--yellow-bg); border-color: var(--yellow); border-style: dashed; color: var(--yellow); }
@@ -132,13 +124,7 @@
         .strat-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
         .s-long { color: var(--green); } .s-short { color: var(--red); } .s-chop { color: var(--yellow); }
 
-        .strat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr; 
-            gap: 6px 10px;
-            font-size: 11px;
-            text-align: left;
-        }
+        .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 11px; text-align: left; }
         .sg-item { display: flex; flex-direction: column; }
         .sg-label { color: var(--text-sub); scale: 0.9; transform-origin: left; }
         .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
@@ -147,54 +133,17 @@
         .loading-bar { text-align: center; color: var(--yellow); padding: 20px; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* =========================================
-           RWD 響應式設計 (針對手機)
-           ========================================= */
         @media (max-width: 900px) {
             body { padding: 5px; }
             .header { flex-direction: column; align-items: flex-start; gap: 5px; }
-            
-            /* 1. 改為垂直堆疊佈局 */
-            .symbol-row {
-                display: flex;
-                flex-direction: column;
-                gap: 0; /* 卡片內部無縫 */
-                margin-bottom: 20px;
-                border: 1px solid #444;
-            }
-
-            /* 2. 幣種標題列變成橫幅 */
-            .col-info {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-                padding: 10px 15px;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
-                background: #252a30; /* 稍微亮一點區分標題 */
-            }
-            .sym-price { margin-top: 0; font-size: 18px; }
-
-            /* 3. 時區區塊 */
-            .col-tf {
-                border-right: none;
-                border-bottom: 1px dashed #333;
-                padding: 15px;
-            }
+            .symbol-row { display: flex; flex-direction: column; gap: 0; margin-bottom: 20px; border: 1px solid #444; }
+            .col-info { flex-direction: column; gap: 10px; padding: 15px; border-right: none; border-bottom: 1px solid var(--border); background: #252a30; }
+            .sym-header { width: 100%; }
+            .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 15px; }
             .col-tf:last-child { border-bottom: none; }
-
-            /* 4. 手機版指標列表改為 2 欄顯示以節省空間 */
-            .ind-list {
-                grid-template-columns: 1fr 1fr; 
-                gap: 8px;
-            }
-            .ind-item {
-                flex-direction: column; /* 上下排列 */
-                align-items: flex-start;
-                gap: 4px;
-            }
+            .ind-list { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .ind-item { flex-direction: column; align-items: flex-start; gap: 4px; }
             .ind-right { width: 100%; text-align: left; }
-            .win-dual { justify-content: space-between; width: 100%; }
         }
     </style>
 </head>
@@ -202,9 +151,9 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0;">戰情室 V15 (手機版)</h1>
+        <h1 style="margin:0; font-size:20px;">戰情室 V18 (爆倉雷達版)</h1>
         <span style="color:#888; font-size:11px;">
-            雙向勝率回測 | 盤整過濾 | 手機最佳化
+            新增：實時強平監控 (Liquidations) | 捕捉連環爆插針 | 數據源: Binance WSS
         </span>
     </div>
     <div id="sys-status" style="color:var(--yellow); font-weight:bold; font-size:12px;">連線中...</div>
@@ -212,8 +161,8 @@
 
 <div id="grid-container">
     <div class="loading-bar">
-        正在啟動大數據運算引擎...<br>
-        (手機版已優化：卡片式垂直堆疊)
+        正在連接 Binance Force Order Stream (即時爆倉流)...<br>
+        系統將監聽市場上的「慘叫聲」(Margin Calls)。
     </div>
 </div>
 
@@ -223,17 +172,15 @@
     const LIMIT = 500; 
     
     const TRANS = {
-        '15m': '15分鐘 (短線)',
-        '1h': '1小時 (波段)',
-        '4h': '4小時 (趨勢)',
-        'RSI': 'RSI',
-        'EMA': 'EMA',
-        'MACD': 'MACD',
-        'VWAP': 'VWAP',
-        'BOLL': 'BOLL'
+        '15m': '15分鐘', '1h': '1小時', '4h': '4小時',
+        'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL'
     };
 
     const store = {}; 
+    const liqData = {}; // 存儲爆倉數據
+
+    // 初始化數據結構
+    SYMBOLS.forEach(s => liqData[s] = { long: 0, short: 0, lastUpdate: Date.now() });
 
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
@@ -292,8 +239,32 @@
             let html = `
             <div class="symbol-row" id="row-${sym}">
                 <div class="col-info">
-                    <div class="sym-name">${sym.toUpperCase().replace('USDT','')}</div>
-                    <div class="sym-price" id="price-${sym}">---.--</div>
+                    <div class="sym-header">
+                        <div class="sym-name">${sym.toUpperCase().replace('USDT','')}</div>
+                        <div class="sym-price" id="price-${sym}">---.--</div>
+                    </div>
+                    
+                    <div class="liq-box">
+                        <div class="liq-title">
+                            <span>🔥 1m爆倉 (強平)</span>
+                            <span id="liq-alert-${sym}" class="liq-tag" style="background:var(--red); color:#fff;">💥 連環爆</span>
+                        </div>
+                        <div class="liq-val">
+                            <span class="l-long" id="liq-l-${sym}">多: $0</span>
+                            <span class="l-short" id="liq-s-${sym}">空: $0</span>
+                        </div>
+                    </div>
+
+                    <div class="flow-box">
+                        <div class="flow-bar-bg">
+                            <div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div>
+                            <div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div>
+                        </div>
+                        <div class="mini-stat">
+                            <span id="flow-bv-${sym}">主動買 --%</span>
+                            <span id="flow-sv-${sym}">主動賣 --%</span>
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -316,7 +287,7 @@
                     </div>
                     
                     <div class="ind-list" id="list-${sym}-${tf}">
-                        <div style="color:#444;">下載中...</div>
+                        <div style="color:#444;">運算中...</div>
                     </div>
 
                     <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
@@ -324,8 +295,8 @@
                         <div class="strat-grid">
                             <div class="sg-item"><span class="sg-label">進場</span><span class="sg-val" id="en-${sym}-${tf}">---</span></div>
                             <div class="sg-item"><span class="sg-label">止損</span><span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
-                            <div class="sg-item"><span class="sg-label">止盈1</span><span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
-                            <div class="sg-item"><span class="sg-label">止盈2</span><span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
+                            <div class="sg-item"><span class="sg-label">TP1</span><span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
+                            <div class="sg-item"><span class="sg-label">TP2</span><span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
                         </div>
                     </div>
                 </div>`;
@@ -353,13 +324,30 @@
                     const tf = TFS[i];
                     data.pop(); 
                     processTimeframe(sym, tf, data);
+                    if (tf === '1h') calculateFlow(sym, data);
                 });
             } catch(e) { console.error(e); markInvalid(sym); }
         }
 
-        document.getElementById('sys-status').textContent = '● 運行中';
+        document.getElementById('sys-status').textContent = '● 監控中';
         document.getElementById('sys-status').style.color = '#0ecb81';
         connectWSS();
+    }
+
+    function calculateFlow(sym, klines) {
+        const recent = klines.slice(-24);
+        let totalVol = 0, buyVol = 0;
+        recent.forEach(k => {
+            const vol = parseFloat(k[5]);
+            const takerBuy = parseFloat(k[9]);
+            totalVol += vol; buyVol += takerBuy;
+        });
+        const buyPct = (buyVol / totalVol) * 100;
+        const sellPct = 100 - buyPct;
+        document.getElementById(`flow-b-${sym}`).style.width = `${buyPct}%`;
+        document.getElementById(`flow-s-${sym}`).style.width = `${sellPct}%`;
+        document.getElementById(`flow-bv-${sym}`).textContent = `買 ${buyPct.toFixed(0)}%`;
+        document.getElementById(`flow-sv-${sym}`).textContent = `賣 ${sellPct.toFixed(0)}%`;
     }
 
     function processTimeframe(sym, tf, klines) {
@@ -486,7 +474,6 @@
         const sgVals = stratBox.querySelectorAll('.sg-val');
 
         let decision = 'wait';
-        
         if (avgLong >= 53 && avgLong > avgShort) decision = 'long';
         else if (avgShort >= 53 && avgShort > avgLong) decision = 'short';
         else if (avgLong < 50 && avgShort < 50) decision = 'chop';
@@ -524,22 +511,86 @@
     }
 
     function markInvalid(sym) {
-        document.getElementById(`row-${sym}`).style.display = 'none'; // 無效幣種直接隱藏，節省空間
+        document.getElementById(`row-${sym}`).style.display = 'none';
+    }
+
+    // 更新爆倉 UI
+    function updateLiqUI(sym) {
+        const d = liqData[sym];
+        // 格式化數字 (例如 1.2k, 1.5M)
+        const fK = (v) => v > 1000000 ? (v/1000000).toFixed(1)+'M' : (v > 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(0));
+        
+        document.getElementById(`liq-l-${sym}`).textContent = `多: $${fK(d.long)}`;
+        document.getElementById(`liq-s-${sym}`).textContent = `空: $${fK(d.short)}`;
+
+        const alertEl = document.getElementById(`liq-alert-${sym}`);
+        const rowEl = document.getElementById(`row-${sym}`);
+        
+        // 觸發條件: 1分鐘內爆倉超過 50k (可調整)
+        const threshold = 50000; 
+        
+        if (d.long > threshold) {
+            alertEl.style.display = 'inline-block';
+            alertEl.textContent = "💥 多軍連環爆";
+            alertEl.style.background = "var(--red)";
+            rowEl.classList.add('exploding-long');
+            setTimeout(() => rowEl.classList.remove('exploding-long'), 500);
+        } else if (d.short > threshold) {
+            alertEl.style.display = 'inline-block';
+            alertEl.textContent = "🚀 空軍連環爆";
+            alertEl.style.background = "var(--green)";
+            rowEl.classList.add('exploding-short');
+            setTimeout(() => rowEl.classList.remove('exploding-short'), 500);
+        } else {
+            alertEl.style.display = 'none';
+        }
     }
 
     function connectWSS() {
-        const streams = SYMBOLS.map(s => `${s}@ticker`).join('/');
-        const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
-        ws.onmessage = (e) => {
+        // 1. Ticker Stream (價格)
+        const tickerStreams = SYMBOLS.map(s => `${s}@ticker`).join('/');
+        const wsTicker = new WebSocket(`wss://fstream.binance.com/stream?streams=${tickerStreams}`);
+        
+        wsTicker.onmessage = (e) => {
             const msg = JSON.parse(e.data);
             const sym = msg.data.s.toLowerCase();
             const price = parseFloat(msg.data.c);
-            
             const el = document.getElementById(`price-${sym}`);
             if(el) {
                 el.textContent = price;
                 el.className = `sym-price ${parseFloat(msg.data.P)>=0?'up':'down'}`;
             }
+        };
+
+        // 2. Force Order Stream (即時爆倉)
+        const wsLiq = new WebSocket(`wss://fstream.binance.com/ws/!forceOrder@arr`);
+        
+        wsLiq.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            // 處理批次爆倉訊息
+            const orders = Array.isArray(msg) ? msg : [msg];
+            
+            orders.forEach(o => {
+                const order = o.o;
+                const sym = order.s.toLowerCase();
+                if (!store[sym]) return; // 過濾掉不在列表的幣
+
+                const amount = parseFloat(order.q) * parseFloat(order.p); // 爆倉金額 USDT
+                const side = order.S; // SELL = 多單被強平, BUY = 空單被強平
+
+                // 累加數據
+                if (side === 'SELL') liqData[sym].long += amount; // 多單爆倉 (賣出平倉)
+                else liqData[sym].short += amount; // 空單爆倉 (買入平倉)
+
+                // 重置計時器 (每分鐘歸零一次，顯示即時動能)
+                if (Date.now() - liqData[sym].lastUpdate > 60000) {
+                    liqData[sym].long = 0;
+                    liqData[sym].short = 0;
+                    liqData[sym].lastUpdate = Date.now();
+                }
+
+                updateLiqUI(sym);
+            });
         };
     }
 
