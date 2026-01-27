@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V21 預設十大幣種版)</title>
+    <title>全維度戰情室 (V22 摺疊版)</title>
     <style>
-        /* (保留 V20 所有的 CSS 樣式，完全不變) */
         :root {
             --bg: #0b0e11;
             --card: #161a1e;
@@ -19,6 +18,7 @@
             --yellow-bg: rgba(252, 213, 53, 0.1);
             --border: #2b3139;
             --modal-bg: #1e2329;
+            --header-hover: #20252b;
         }
         body {
             background-color: var(--bg);
@@ -29,185 +29,118 @@
             font-size: 13px;
         }
         
+        /* 頂部控制列 */
         .header {
             border-bottom: 2px solid var(--border);
             padding-bottom: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
         .btn-filter {
-            background: #2b3139;
-            color: #fff;
-            border: 1px solid #444;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.2s;
-        }
-        .btn-filter:hover { background: #3a4149; border-color: #666; }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background: var(--modal-bg);
-            width: 90%; max-width: 600px;
-            max-height: 80vh;
-            border-radius: 8px;
-            border: 1px solid #444;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .modal-header {
-            padding: 15px; border-bottom: 1px solid #333;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .modal-body {
-            padding: 15px;
-            overflow-y: auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 10px;
-        }
-        .modal-footer {
-            padding: 15px; border-top: 1px solid #333;
-            text-align: right;
-        }
-        
-        .search-input {
-            background: #0b0e11; border: 1px solid #444; color: #fff;
-            padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box;
-            margin-bottom: 10px;
+            background: #2b3139; color: #fff; border: 1px solid #444;
+            padding: 8px 16px; border-radius: 4px; cursor: pointer;
+            font-weight: bold; display: flex; align-items: center; gap: 5px;
         }
 
-        .coin-option {
-            background: #0b0e11;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #333;
-            cursor: pointer;
-            text-align: center;
-            font-family: 'Roboto Mono';
-            font-size: 12px;
-            user-select: none;
-        }
-        .coin-option:hover { border-color: #666; }
-        .coin-option.selected {
-            background: var(--green-bg);
-            border-color: var(--green);
-            color: var(--green);
-            font-weight: bold;
-        }
-        
-        .btn-confirm {
-            background: var(--green); color: #000; border: none;
-            padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;
-        }
-
-        /* Symbol Row */
-        .symbol-row {
-            display: grid;
-            grid-template-columns: 200px 1fr 1fr 1fr;
-            gap: 10px;
+        /* --- 卡片核心樣式 (重點修改) --- */
+        .coin-card {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            position: relative;
+            transition: all 0.3s ease;
         }
-        
-        .close-card {
-            position: absolute; top: 5px; right: 5px;
-            color: #444; cursor: pointer; font-size: 16px; z-index: 10;
-            padding: 0 5px;
-        }
-        .close-card:hover { color: var(--red); }
 
-        .col-info { background: #1e2329; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-right: 1px solid var(--border); }
-        .sym-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .sym-name { font-size: 20px; font-weight: 900; color: #fff; }
-        .sym-price { font-size: 16px; font-family: 'Roboto Mono'; font-weight: bold; }
+        /* 1. 卡片頭部 (收合時顯示) */
+        .card-header {
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: #1e2329;
+            border-bottom: 1px solid transparent; /* 預留邊框 */
+        }
+        .card-header:hover { background: var(--header-hover); }
+        
+        /* 左側：幣名與價格 */
+        .ch-left { display: flex; align-items: center; gap: 10px; }
+        .sym-name { font-size: 16px; font-weight: 900; color: #fff; width: 80px; }
+        .sym-price { font-family: 'Roboto Mono'; font-weight: bold; font-size: 15px; width: 80px; }
         .up { color: var(--green); } .down { color: var(--red); }
 
-        .vol-box { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; font-size: 11px; }
-        .vol-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-        .vol-tag { padding: 1px 4px; border-radius: 2px; font-weight: bold; }
-        .v-high { background: var(--yellow); color: #000; } 
-        .v-norm { background: #444; color: #ccc; }
-        .v-low { background: #222; color: #666; }
-
-        .flow-box { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; }
-        .flow-title { font-size: 11px; color: #aaa; margin-bottom: 3px; display: flex; justify-content: space-between; }
-        .flow-bar-bg { width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden; display: flex; }
-        .flow-buy { height: 100%; background: var(--green); }
-        .flow-sell { height: 100%; background: var(--red); }
-        .flow-val { font-size: 10px; display: flex; justify-content: space-between; margin-top: 2px; font-family: 'Roboto Mono'; }
+        /* 右側：15m 訊號摘要 */
+        .ch-right { display: flex; align-items: center; gap: 10px; }
+        .signal-badge {
+            font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold;
+            min-width: 80px; text-align: center;
+        }
+        .sb-long { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+        .sb-short { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+        .sb-chop { background: var(--yellow-bg); color: var(--yellow); border: 1px dashed var(--yellow); }
+        .sb-wait { background: #333; color: #888; border: 1px solid #555; }
         
-        .col-tf { padding: 8px; border-right: 1px dashed #333; display: flex; flex-direction: column; }
+        .arrow-icon { font-size: 10px; color: #666; transition: transform 0.3s; }
+        
+        /* 展開狀態樣式 */
+        .coin-card.expanded { border-color: #555; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .coin-card.expanded .card-header { border-bottom: 1px solid var(--border); background: #252a30; }
+        .coin-card.expanded .arrow-icon { transform: rotate(180deg); }
+        .coin-card.expanded .card-body { display: grid; } /* 展開時顯示 */
+
+        /* 2. 卡片內容 (展開後顯示 - 沿用 V20 的 Grid) */
+        .card-body {
+            display: none; /* 預設隱藏 */
+            grid-template-columns: 200px 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            background: #111;
+        }
+
+        /* --- 內部組件樣式 (V20) --- */
+        .col-info { padding: 10px; border-right: 1px dashed #333; }
+        .vol-box, .flow-box { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; font-size: 11px; }
+        .flow-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px; }
+        .flow-buy { height: 100%; background: var(--green); } .flow-sell { height: 100%; background: var(--red); }
+        
+        .col-tf { padding: 5px; border-right: 1px dashed #333; }
         .col-tf:last-child { border-right: none; }
-
-        .tf-header { margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 6px; }
-        .tf-title-row { display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center; }
-        .tf-title { font-weight: bold; font-size: 14px; color: #fff; }
+        .tf-header { margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 3px; }
+        .tf-title { font-weight: bold; font-size: 13px; color: #fff; }
         
-        .wr-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; }
-        .wr-bar-long { height: 100%; background: var(--green); transition: width 0.5s; }
-        .wr-bar-short { height: 100%; background: var(--red); transition: width 0.5s; }
-        .wr-text { font-size: 10px; display: flex; justify-content: space-between; color: #888; margin-top: 2px; }
-
-        .ind-list { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 8px; }
-        .ind-item { font-size: 11px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 6px; border-radius: 3px; }
-        .ind-left { display: flex; flex-direction: column; }
-        .ind-right { text-align: right; }
-        .ind-name { color: #aaa; font-size: 10px; }
-        .ind-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
-        
-        .win-dual { font-size: 10px; font-family: 'Roboto Mono'; display: flex; gap: 5px; }
-        .w-l { color: var(--green); opacity: 0.5; }
-        .w-s { color: var(--red); opacity: 0.5; }
+        .ind-item { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 5px; background: rgba(255,255,255,0.03); margin-bottom: 2px; border-radius: 3px; }
+        .win-dual { font-family: 'Roboto Mono'; font-size: 10px; }
+        .w-l { color: var(--green); opacity: 0.5; } .w-s { color: var(--red); opacity: 0.5; }
         .active-side { opacity: 1; font-weight: bold; text-decoration: underline; }
 
-        .strat-box { margin-top: auto; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid transparent; }
+        .strat-box { margin-top: 8px; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid transparent; }
         .strat-long { background: var(--green-bg); border-color: var(--green); }
         .strat-short { background: var(--red-bg); border-color: var(--red); }
         .strat-chop { background: var(--yellow-bg); border-color: var(--yellow); border-style: dashed; color: var(--yellow); }
         .strat-wait { background: #2b3139; border-color: #444; color: #888; }
-
-        .strat-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
-        .s-long { color: var(--green); } .s-short { color: var(--red); } .s-chop { color: var(--yellow); }
-
-        .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 11px; text-align: left; }
-        .sg-item { display: flex; flex-direction: column; }
-        .sg-label { color: var(--text-sub); scale: 0.9; transform-origin: left; }
+        .strat-title { font-weight: bold; display: block; margin-bottom: 4px; font-size: 12px;}
+        .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; text-align: left; }
         .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
         .blur-text { filter: blur(4px); opacity: 0.5; }
 
+        /* Modal & Loading (V20) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: var(--modal-bg); width: 90%; max-width: 600px; max-height: 80vh; border-radius: 8px; border: 1px solid #444; display: flex; flex-direction: column; }
+        .modal-body { padding: 15px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+        .coin-option { background: #0b0e11; padding: 8px; border-radius: 4px; border: 1px solid #333; cursor: pointer; text-align: center; font-family: 'Roboto Mono'; font-size: 12px; }
+        .coin-option.selected { background: var(--green-bg); border-color: var(--green); color: var(--green); font-weight: bold; }
+        .search-input { background: #0b0e11; border: 1px solid #444; color: #fff; padding: 8px; width: 90%; margin: 10px 5%; }
         .loading-text { text-align: center; color: #666; margin-top: 50px; font-size: 16px; }
 
+        /* RWD */
         @media (max-width: 900px) {
-            .symbol-row { display: flex; flex-direction: column; gap: 0; margin-bottom: 20px; border: 1px solid #444; }
-            .col-info { flex-direction: column; gap: 10px; padding: 15px; border-right: none; border-bottom: 1px solid var(--border); background: #252a30; }
-            .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 15px; }
+            .card-body { grid-template-columns: 1fr; gap: 0; }
+            .col-info { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 10px; }
+            .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 15px 5px; }
             .col-tf:last-child { border-bottom: none; }
-            .ind-list { grid-template-columns: 1fr 1fr; gap: 8px; }
-            .ind-item { flex-direction: column; align-items: flex-start; gap: 4px; }
-            .ind-right { width: 100%; text-align: left; }
         }
     </style>
 </head>
@@ -215,456 +148,290 @@
 
 <div class="modal-overlay" id="filterModal">
     <div class="modal-content">
-        <div class="modal-header">
-            <span style="font-size:16px; font-weight:bold;">選擇監控幣種</span>
+        <div style="padding:15px; border-bottom:1px solid #333; display:flex; justify-content:space-between;">
+            <span style="font-weight:bold;">選擇幣種</span>
             <span style="cursor:pointer;" onclick="closeModal()">✕</span>
         </div>
-        <div style="padding: 0 15px; margin-top:15px;">
-            <input type="text" class="search-input" id="coinSearch" placeholder="搜尋幣種 (如: BTC, SOL)..." onkeyup="filterCoins()">
-        </div>
-        <div class="modal-body" id="coinList">
-            <div style="color:#888;">正在從 Binance 獲取合約清單...</div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-confirm" onclick="applyFilter()">確認並更新</button>
+        <input type="text" class="search-input" id="coinSearch" placeholder="搜尋..." onkeyup="filterCoins()">
+        <div class="modal-body" id="coinList">載入中...</div>
+        <div style="padding:15px; text-align:right; border-top:1px solid #333;">
+            <button onclick="applyFilter()" style="background:var(--green); border:none; padding:8px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">確認</button>
         </div>
     </div>
 </div>
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">戰情室 V21 (十大幣種預設版)</h1>
-        <span style="color:#888; font-size:11px;">
-            V17核心 | 預設Top10 | 自選擴充
-        </span>
+        <h1 style="margin:0; font-size:20px;">戰情室 V22 (摺疊版)</h1>
+        <span style="color:#888; font-size:11px;">預設Top10 | 15m快篩 | 點擊展開</span>
     </div>
-    <div>
-        <button class="btn-filter" onclick="openModal()">
-            <span>➕</span> 篩選幣種
-        </button>
-    </div>
+    <button class="btn-filter" onclick="openModal()"><span>➕</span> 篩選</button>
 </div>
 
 <div id="grid-container">
-    <div class="loading-text" style="color:var(--yellow)">
-        正在載入市場前 10 大熱門幣種數據...
-    </div>
+    <div class="loading-text">正在載入 Top 10 幣種數據...</div>
 </div>
 
 <script>
-    // 全域配置
     const TFS = ['15m', '1h', '4h'];
     const LIMIT = 500; 
-    
-    // 預設 10 大幣種 (可自行增減)
-    const DEFAULT_COINS = [
-        'btcusdt', 'ethusdt', 'solusdt', 'bnbusdt', 'xrpusdt', 
-        'dogeusdt', 'adausdt', 'trxusdt', 'linkusdt', 'shibusdt'
-    ];
+    const DEFAULT_COINS = ['btcusdt', 'ethusdt', 'solusdt', 'bnbusdt', 'xrpusdt', 'dogeusdt', 'adausdt', 'trxusdt', 'linkusdt', 'shibusdt'];
+    const TRANS = { '15m': '15m (短)', '1h': '1H (波)', '4h': '4H (趨)', 'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL' };
 
-    const TRANS = {
-        '15m': '15分鐘 (短線)', '1h': '1小時 (波段)', '4h': '4小時 (趨勢)',
-        'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL'
-    };
-
-    // 狀態管理
     let allSymbols = []; 
-    let activeSymbols = new Set(DEFAULT_COINS); // 初始化時直接加入預設幣種
+    let activeSymbols = new Set(DEFAULT_COINS); 
     let wss = null; 
     let store = {}; 
 
-    // --- 1. 系統啟動 (Entry Point) ---
+    // --- System Start ---
     async function initSystem() {
-        // 1. 先把預設幣種跑起來
-        await applyFilter(false); // false 代表不需經過 Modal 確認，直接跑
-        
-        // 2. 背景去抓完整的幣安清單，為了給 Filter 用
+        await applyFilter(false); 
         fetchExchangeInfo();
     }
 
-    // --- 2. API 與清單 ---
     async function fetchExchangeInfo() {
         try {
             const res = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
             const data = await res.json();
-            allSymbols = data.symbols
-                .filter(s => s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL' && s.status === 'TRADING')
-                .map(s => s.symbol.replace('USDT', ''))
-                .sort();
-        } catch (e) {
-            console.error("API Error");
-        }
+            allSymbols = data.symbols.filter(s => s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL' && s.status === 'TRADING').map(s => s.symbol.replace('USDT', '')).sort();
+        } catch (e) {}
     }
 
-    function openModal() {
-        renderCoinList(); // 每次打開重新渲染，確保勾選狀態正確
-        document.getElementById('filterModal').style.display = 'flex';
-    }
-
-    function closeModal() {
-        document.getElementById('filterModal').style.display = 'none';
-    }
-
+    // --- UI Logic ---
+    function openModal() { renderCoinList(); document.getElementById('filterModal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('filterModal').style.display = 'none'; }
     function renderCoinList() {
-        const container = document.getElementById('coinList');
-        container.innerHTML = '';
-        if(allSymbols.length === 0) {
-            container.innerHTML = '載入中...';
-            return;
-        }
+        const container = document.getElementById('coinList'); container.innerHTML = '';
         allSymbols.forEach(sym => {
             const code = sym.toLowerCase() + 'usdt';
             const div = document.createElement('div');
-            // 如果在 activeSymbols 裡，就預設勾選
             div.className = `coin-option ${activeSymbols.has(code) ? 'selected' : ''}`;
-            div.textContent = sym;
-            div.dataset.sym = code;
-            div.onclick = () => toggleSelect(div);
+            div.textContent = sym; div.dataset.sym = code;
+            div.onclick = () => div.classList.toggle('selected');
             container.appendChild(div);
         });
     }
-
-    function toggleSelect(el) {
-        el.classList.toggle('selected');
-    }
-
     function filterCoins() {
         const txt = document.getElementById('coinSearch').value.toUpperCase();
-        const opts = document.querySelectorAll('.coin-option');
-        opts.forEach(opt => {
-            opt.style.display = opt.textContent.includes(txt) ? 'block' : 'none';
-        });
+        document.querySelectorAll('.coin-option').forEach(opt => opt.style.display = opt.textContent.includes(txt) ? 'block' : 'none');
     }
 
-    // --- 3. 應用篩選 (核心流程) ---
     async function applyFilter(fromModal = true) {
         let selected = [];
-        
         if (fromModal) {
-            // 從 Modal 讀取使用者勾選的
-            selected = Array.from(document.querySelectorAll('.coin-option.selected'))
-                            .map(el => el.dataset.sym);
+            selected = Array.from(document.querySelectorAll('.coin-option.selected')).map(el => el.dataset.sym);
             closeModal();
-        } else {
-            // 初始啟動，使用預設值
-            selected = Array.from(activeSymbols);
-        }
+        } else { selected = Array.from(activeSymbols); }
         
         activeSymbols = new Set(selected);
         const container = document.getElementById('grid-container');
-        container.innerHTML = ''; // 重繪
+        container.innerHTML = ''; 
 
-        if(selected.length === 0) {
-            container.innerHTML = '<div class="loading-text">未選擇任何幣種。</div>';
-            if(wss) wss.close();
-            return;
-        }
+        if(selected.length === 0) { container.innerHTML = '<div class="loading-text">未選擇幣種</div>'; if(wss) wss.close(); return; }
+        if(wss) wss.close(); store = {}; 
 
-        // 2. 關閉舊連線
-        if(wss) wss.close();
-        store = {}; 
-
-        // 3. 依序初始化
         for (const sym of selected) {
             await initSymbol(sym);
-            await new Promise(r => setTimeout(r, 150)); // 稍微縮短間隔
+            await new Promise(r => setTimeout(r, 100));
         }
-
-        // 4. 啟動 WSS
         connectWSS(selected);
     }
 
-    // --- 4. 單一幣種初始化 ---
+    // --- Card Generation (New Structure) ---
     async function initSymbol(sym) {
         store[sym] = {}; 
         const container = document.getElementById('grid-container');
-        
         if(container.querySelector('.loading-text')) container.innerHTML = '';
 
+        // 卡片結構：Header (可見) + Body (隱藏)
         let html = `
-        <div class="symbol-row" id="row-${sym}">
-            <div class="close-card" onclick="removeCard('${sym}')">✕</div>
-            <div class="col-info">
-                <div class="sym-header">
-                    <div class="sym-name">${sym.toUpperCase().replace('USDT','')}</div>
-                    <div class="sym-price" id="price-${sym}">--.--</div>
+        <div class="coin-card" id="card-${sym}">
+            <div class="card-header" onclick="toggleCard('${sym}')">
+                <div class="ch-left">
+                    <span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span>
+                    <span class="sym-price" id="price-${sym}">--.--</span>
                 </div>
-                <div class="vol-box">
-                    <div class="vol-row" style="color:#aaa;">量能 (1h)</div>
-                    <div class="vol-row">
+                <div class="ch-right">
+                    <span class="signal-badge sb-wait" id="badge-15m-${sym}">分析中...</span>
+                    <span class="arrow-icon">▼</span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="col-info">
+                    <div class="close-card" style="text-align:right; margin-bottom:5px; cursor:pointer; color:#666;" onclick="event.stopPropagation(); removeCard('${sym}')">移除 ✕</div>
+                    <div class="vol-box">
+                        <div style="color:#aaa; display:flex; justify-content:space-between;"><span>量能(1H)</span><span id="vol-ratio-${sym}">x1.0</span></div>
                         <span id="vol-status-${sym}" class="vol-tag v-norm">...</span>
-                        <span id="vol-ratio-${sym}" style="font-family:Roboto Mono;">x1.0</span>
+                    </div>
+                    <div class="flow-box">
+                        <div style="color:#aaa; margin-bottom:2px;">Taker(1H)</div>
+                        <div class="flow-bar-bg"><div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div><div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div></div>
+                        <div style="display:flex; justify-content:space-between; font-size:10px;"><span id="flow-bv-${sym}" style="color:var(--green)">--%</span><span id="flow-sv-${sym}" style="color:var(--red)">--%</span></div>
                     </div>
                 </div>
-                <div class="flow-box">
-                    <div class="flow-title"><span>Taker Flow (1h)</span></div>
-                    <div class="flow-bar-bg">
-                        <div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div>
-                        <div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div>
-                    </div>
-                    <div class="flow-val">
-                        <span style="color:var(--green)" id="flow-bv-${sym}">--%</span>
-                        <span style="color:var(--red)" id="flow-sv-${sym}">--%</span>
-                    </div>
-                </div>
-            </div>`;
+        `;
 
         TFS.forEach(tf => {
             store[sym][tf] = {}; 
             html += `
             <div class="col-tf">
-                <div class="tf-header">
-                    <div class="tf-title-row"><span class="tf-title">${TRANS[tf]}</span></div>
-                    <div class="wr-bar-bg">
-                        <div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div>
-                        <div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div>
-                    </div>
-                    <div class="wr-text"><span id="wr-l-${sym}-${tf}">多 --%</span><span id="wr-s-${sym}-${tf}">空 --%</span></div>
+                <div class="tf-header"><span class="tf-title">${TRANS[tf]}</span></div>
+                <div style="margin-bottom:5px;">
+                    <div class="wr-bar-bg"><div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div><div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div></div>
+                    <div class="wr-text"><span id="wr-l-${sym}-${tf}">多--%</span><span id="wr-s-${sym}-${tf}">空--%</span></div>
                 </div>
                 <div class="ind-list" id="list-${sym}-${tf}"><div style="color:#444;">下載中...</div></div>
                 <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
                     <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
                     <div class="strat-grid">
-                        <div class="sg-item"><span class="sg-label">進場</span><span class="sg-val" id="en-${sym}-${tf}">---</span></div>
-                        <div class="sg-item"><span class="sg-label">止損</span><span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
-                        <div class="sg-item"><span class="sg-label">止盈1</span><span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
-                        <div class="sg-item"><span class="sg-label">止盈2</span><span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
+                        <div>Entry <span class="sg-val" id="en-${sym}-${tf}">---</span></div>
+                        <div>SL <span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
+                        <div>TP1 <span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
+                        <div>TP2 <span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
                     </div>
                 </div>
             </div>`;
         });
-        html += `</div>`;
+        html += `</div></div>`; // End Body & Card
         container.insertAdjacentHTML('beforeend', html);
 
+        // Fetch Data
         try {
-            const promises = TFS.map(tf => 
-                fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`)
-                .then(res => res.json())
-            );
+            const promises = TFS.map(tf => fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`).then(r=>r.json()));
             const results = await Promise.all(promises);
-            
             results.forEach((data, i) => {
-                const tf = TFS[i];
-                data.pop(); 
+                const tf = TFS[i]; data.pop();
                 processTimeframe(sym, tf, data);
-                if(tf === '1h') {
-                    calculateFlow(sym, data);
-                    calculateVolume(sym, data);
-                }
+                if(tf === '1h') { calculateFlow(sym, data); calculateVolume(sym, data); }
             });
-        } catch(e) { console.error(sym, e); }
+        } catch(e) {}
     }
+
+    // Toggle Card Function
+    window.toggleCard = function(sym) {
+        document.getElementById(`card-${sym}`).classList.toggle('expanded');
+    };
 
     function removeCard(sym) {
         activeSymbols.delete(sym);
-        document.getElementById(`row-${sym}`).remove();
+        document.getElementById(`card-${sym}`).remove();
     }
 
-    // --- 5. 數據運算 (V17 Logic) ---
+    // --- Math & Process ---
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
-        emaArray: (data, period) => {
-            let k = 2 / (period + 1);
-            let ema = [data[0]];
-            for (let i = 1; i < data.length; i++) ema.push(data[i] * k + ema[i-1] * (1 - k));
-            return ema;
-        },
-        rsiArray: (closes) => {
-            let rsi = [];
-            let gains = 0, losses = 0;
-            for(let i=1; i<=14; i++) {
-                let diff = closes[i] - closes[i-1];
-                if(diff>0) gains+=diff; else losses-=diff;
-            }
-            let avgGain = gains/14; let avgLoss = losses/14;
-            rsi[14] = 100 - (100/(1+avgGain/avgLoss));
-            for(let i=15; i<closes.length; i++) {
-                let diff = closes[i] - closes[i-1];
-                if(diff>0) { avgGain=(avgGain*13+diff)/14; avgLoss=(avgLoss*13)/14; }
-                else { avgGain=(avgGain*13)/14; avgLoss=(avgLoss*13-diff)/14; }
-                rsi[i] = avgLoss===0 ? 100 : 100 - (100/(1+avgGain/avgLoss));
-            }
+        emaArray: (d, p) => { let k=2/(p+1), ema=[d[0]]; for(let i=1;i<d.length;i++) ema.push(d[i]*k+ema[i-1]*(1-k)); return ema; },
+        rsiArray: (c) => { 
+            let rsi=[], g=0, l=0; for(let i=1;i<=14;i++){ let d=c[i]-c[i-1]; d>0?g+=d:l-=d; }
+            let ag=g/14, al=l/14; rsi[14]=100-(100/(1+ag/al));
+            for(let i=15;i<c.length;i++){ let d=c[i]-c[i-1]; d>0?ag=(ag*13+d)/14:al=(al*13-d)/14; rsi[i]=al===0?100:100-(100/(1+ag/al)); }
             return rsi;
         },
-        atr: (h, l, c, p=14) => {
-            if(h.length < p) return 0;
-            let trs = [];
-            for(let i=1; i<h.length; i++) trs.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
-            return trs.slice(-p).reduce((a,b)=>a+b,0)/p;
-        },
-        getWinRate: (signals, closes, type) => {
-            let wins = 0, total = 0;
-            const lookahead = 5; 
-            for(let i=50; i<signals.length-lookahead; i++) {
-                if(signals[i]) {
-                    total++;
-                    const entry = closes[i];
-                    const exit = closes[i+lookahead];
-                    if(type === 'long' && exit > entry * 1.001) wins++;
-                    else if(type === 'short' && exit < entry * 0.999) wins++;
-                }
-            }
-            return total === 0 ? 0 : Math.round((wins/total)*100);
-        }
+        atr: (h,l,c,p=14) => { if(h.length<p)return 0; let trs=[]; for(let i=1;i<h.length;i++) trs.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1]))); return trs.slice(-p).reduce((a,b)=>a+b,0)/p; },
+        getWinRate: (s,c,t) => { let w=0, tot=0; for(let i=50;i<s.length-5;i++){ if(s[i]){ tot++; let e=c[i], x=c[i+5]; if((t=='long'&&x>e*1.001)||(t=='short'&&x<e*0.999)) w++; } } return tot===0?0:Math.round((w/tot)*100); }
     };
 
-    function calculateVolume(sym, klines) {
-        const len = klines.length;
-        const currentVol = parseFloat(klines[len-1][5]);
-        let sumVol = 0;
-        for(let i=len-21; i<len-1; i++) sumVol += parseFloat(klines[i][5]);
-        const avgVol = sumVol / 20;
-        const ratio = currentVol / avgVol;
-        const elStatus = document.getElementById(`vol-status-${sym}`);
-        const elRatio = document.getElementById(`vol-ratio-${sym}`);
-        elRatio.textContent = `x${ratio.toFixed(1)}`;
-        if (ratio >= 2.0) { elStatus.textContent = "🔥 爆量"; elStatus.className = "vol-tag v-high"; }
-        else if (ratio >= 1.2) { elStatus.textContent = "📈 放量"; elStatus.className = "vol-tag v-norm"; }
-        else if (ratio <= 0.6) { elStatus.textContent = "💤 縮量"; elStatus.className = "vol-tag v-low"; }
-        else { elStatus.textContent = "⚖️ 正常"; elStatus.className = "vol-tag v-norm"; }
-    }
-
-    function calculateFlow(sym, klines) {
-        const recent = klines.slice(-24);
-        let totalVol = 0, buyVol = 0;
-        recent.forEach(k => { totalVol += parseFloat(k[5]); buyVol += parseFloat(k[9]); });
-        const buyPct = (buyVol / totalVol) * 100;
-        const sellPct = 100 - buyPct;
-        document.getElementById(`flow-b-${sym}`).style.width = `${buyPct}%`;
-        document.getElementById(`flow-s-${sym}`).style.width = `${sellPct}%`;
-        document.getElementById(`flow-bv-${sym}`).textContent = `買${buyPct.toFixed(0)}%`;
-        document.getElementById(`flow-sv-${sym}`).textContent = `賣${sellPct.toFixed(0)}%`;
-    }
-
     function processTimeframe(sym, tf, klines) {
-        const closes = klines.map(d => parseFloat(d[4]));
-        const highs = klines.map(d => parseFloat(d[2]));
-        const lows = klines.map(d => parseFloat(d[3]));
-        const len = closes.length;
-        const last = len - 1;
-        const curPrice = closes[last];
-
-        const atr = MathEngine.atr(highs, lows, closes);
-        const rsiArr = MathEngine.rsiArray(closes);
-        const ema50Arr = MathEngine.emaArray(closes, 50);
-        const vwapArr = MathEngine.emaArray(closes, 90); 
+        const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3]));
+        const last=c.length-1, cur=c[last];
+        const atr = MathEngine.atr(h,l,c);
+        const rsi = MathEngine.rsiArray(c);
+        const ema = MathEngine.emaArray(c, 50);
+        const sma20=MathEngine.sma(c,20), std=Math.sqrt(c.slice(-20).map(x=>Math.pow(x-sma20,2)).reduce((a,b)=>a+b)/20);
+        const upper=sma20+2*std, lower=sma20-2*std;
         
-        let sma20=[], upper=[], lower=[];
-        for(let i=0; i<len; i++) {
-            if(i<20) { sma20.push(0); upper.push(0); lower.push(0); continue; }
-            let slice = closes.slice(i-20, i);
-            let avg = slice.reduce((a,b)=>a+b,0)/20;
-            let std = Math.sqrt(slice.map(x=>Math.pow(x-avg,2)).reduce((a,b)=>a+b,0)/20);
-            sma20.push(avg); upper.push(avg+2*std); lower.push(avg-2*std);
+        // Signals
+        const sigs={ r_b:[], r_s:[], e_b:[], e_s:[], b_b:[], b_s:[] };
+        for(let i=50; i<=last; i++) {
+            sigs.r_b[i]=rsi[i]<40; sigs.r_s[i]=rsi[i]>60;
+            sigs.e_b[i]=c[i]>ema[i]; sigs.e_s[i]=c[i]<ema[i];
+            sigs.b_b[i]=c[i]>upper[i]; sigs.b_s[i]=c[i]<lower[i];
         }
+        
+        const wrR = { l: MathEngine.getWinRate(sigs.r_b,c,'long'), s: MathEngine.getWinRate(sigs.r_s,c,'short') };
+        const wrE = { l: MathEngine.getWinRate(sigs.e_b,c,'long'), s: MathEngine.getWinRate(sigs.e_s,c,'short') };
+        const wrB = { l: MathEngine.getWinRate(sigs.b_b,c,'long'), s: MathEngine.getWinRate(sigs.b_s,c,'short') };
 
-        let ema12 = MathEngine.emaArray(closes, 12);
-        let ema26 = MathEngine.emaArray(closes, 26);
-        let macdArr = ema12.map((v,i) => v - ema26[i]);
-
-        const sigs = { rsi_buy:[], rsi_sell:[], ema_buy:[], ema_sell:[], macd_buy:[], macd_sell:[], vwap_buy:[], vwap_sell:[], bb_buy:[], bb_sell:[] };
-        for(let i=50; i<len; i++) {
-            const c = closes[i];
-            sigs.rsi_buy[i] = rsiArr[i]<40; sigs.rsi_sell[i] = rsiArr[i]>60;
-            sigs.ema_buy[i] = c>ema50Arr[i]; sigs.ema_sell[i] = c<ema50Arr[i];
-            sigs.macd_buy[i] = macdArr[i]>0; sigs.macd_sell[i] = macdArr[i]<0;
-            sigs.vwap_buy[i] = c>vwapArr[i]; sigs.vwap_sell[i] = c<vwapArr[i];
-            sigs.bb_buy[i] = c>upper[i]; sigs.bb_sell[i] = c<lower[i];
-        }
-
-        const calcWR = (b, s) => ({ long: MathEngine.getWinRate(b, closes, 'long'), short: MathEngine.getWinRate(s, closes, 'short') });
-        const wrRSI = calcWR(sigs.rsi_buy, sigs.rsi_sell);
-        const wrEMA = calcWR(sigs.ema_buy, sigs.ema_sell);
-        const wrMACD = calcWR(sigs.macd_buy, sigs.macd_sell);
-        const wrVWAP = calcWR(sigs.vwap_buy, sigs.vwap_sell);
-        const wrBB = calcWR(sigs.bb_buy, sigs.bb_sell);
-
-        const fVal = v => v<10 ? v.toFixed(4) : v.toFixed(2);
-        const getDir = (b, s) => b ? 'long' : s ? 'short' : 'neu';
-
-        const indData = [
-            { id:'RSI', n:TRANS['RSI'], val: rsiArr[last].toFixed(1), dir: getDir(rsiArr[last]>55, rsiArr[last]<45), wr: wrRSI },
-            { id:'EMA', n:TRANS['EMA'], val: fVal(ema50Arr[last]), dir: getDir(curPrice>ema50Arr[last], curPrice<ema50Arr[last]), wr: wrEMA },
-            { id:'MACD', n:TRANS['MACD'], val: macdArr[last].toFixed(4), dir: getDir(macdArr[last]>0, macdArr[last]<0), wr: wrMACD },
-            { id:'VWAP', n:TRANS['VWAP'], val: fVal(vwapArr[last]), dir: getDir(curPrice>vwapArr[last], curPrice<vwapArr[last]), wr: wrVWAP },
-            { id:'BOLL', n:TRANS['BOLL'], val: curPrice>upper[last]?'上破':curPrice<lower[last]?'下破':'區間', dir: getDir(curPrice>upper[last], curPrice<lower[last]), wr: wrBB }
-        ];
-
+        // Render List
         const listEl = document.getElementById(`list-${sym}-${tf}`);
-        let listHtml = '';
-        let sumLongWR = 0, sumShortWR = 0, count = 0;
-        let signalCount = { long: 0, short: 0 };
+        let lW=0, sW=0, cnt=0;
+        const addInd = (n,v,d,w) => {
+            const lc=d=='l'?'active-side':'w-l', sc=d=='s'?'active-side':'w-s', col=d=='l'?'var(--green)':d=='s'?'var(--red)':'#666';
+            if(w.l>0) lW+=w.l; if(w.s>0) sW+=w.s; cnt++;
+            return `<div class="ind-item"><div style="color:#aaa;">${n} <span style="color:${col};font-weight:bold;">${v}</span></div><div class="win-dual"><span class="${lc}">多${w.l}%</span>|<span class="${sc}">空${w.s}%</span></div></div>`;
+        };
+        listEl.innerHTML = 
+            addInd('RSI', rsi[last].toFixed(1), rsi[last]>55?'l':rsi[last]<45?'s':'n', wrR) +
+            addInd('EMA', cur>ema[last]?'上':'下', cur>ema[last]?'l':'s', wrE) +
+            addInd('BOLL', cur>upper?'破':cur<lower?'破':'區', cur>upper?'l':cur<lower?'s':'n', wrB);
 
-        indData.forEach(ind => {
-            if(ind.wr.long > 0) sumLongWR += ind.wr.long;
-            if(ind.wr.short > 0) sumShortWR += ind.wr.short;
-            count++;
-            if(ind.dir === 'long') signalCount.long++;
-            if(ind.dir === 'short') signalCount.short++;
+        const avgL=Math.round(lW/cnt), avgS=Math.round(sW/cnt);
+        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${(avgL/(avgL+avgS))*100}%`;
+        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${(avgS/(avgL+avgS))*100}%`;
+        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${avgL}%`;
+        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${avgS}%`;
 
-            const isLong = ind.dir === 'long';
-            const isShort = ind.dir === 'short';
-            const color = isLong ? 'var(--green)' : isShort ? 'var(--red)' : '#666';
-            const lClass = isLong ? 'w-l active-side' : 'w-l';
-            const sClass = isShort ? 'w-s active-side' : 'w-s';
+        // Strategy
+        const box = document.getElementById(`strat-${sym}-${tf}`);
+        const title = document.getElementById(`act-${sym}-${tf}`);
+        const f = v => v<10?v.toFixed(4):v.toFixed(2);
+        
+        let dec = 'wait';
+        if(avgL>=53 && avgL>avgS) dec='long';
+        else if(avgS>=53 && avgS>avgL) dec='short';
+        else if(avgL<50 && avgS<50) dec='chop';
 
-            listHtml += `
-                <div class="ind-item">
-                    <div class="ind-left">
-                        <span class="ind-name">${ind.n} <span style="font-family:Arial; opacity:0.5">(${ind.id})</span></span>
-                        <span class="ind-val" style="color:${color}">${ind.val}</span>
-                    </div>
-                    <div class="ind-right">
-                        <div class="win-dual">
-                            <span class="${lClass}">多${ind.wr.long}%</span> | <span class="${sClass}">空${ind.wr.short}%</span>
-                        </div>
-                    </div>
-                </div>`;
-        });
-        listEl.innerHTML = listHtml;
-
-        const avgLong = Math.round(sumLongWR / count);
-        const avgShort = Math.round(sumShortWR / count);
-        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${(avgLong/(avgLong+avgShort))*100}%`;
-        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${(avgShort/(avgLong+avgShort))*100}%`;
-        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${avgLong}%`;
-        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${avgShort}%`;
-
-        // 策略邏輯
-        const stratBox = document.getElementById(`strat-${sym}-${tf}`);
-        const actTitle = document.getElementById(`act-${sym}-${tf}`);
-        const enEl = document.getElementById(`en-${sym}-${tf}`);
-        const slEl = document.getElementById(`sl-${sym}-${tf}`);
-        const tp1El = document.getElementById(`tp1-${sym}-${tf}`);
-        const tp2El = document.getElementById(`tp2-${sym}-${tf}`);
-        const sgVals = stratBox.querySelectorAll('.sg-val');
-
-        let decision = 'wait';
-        if (avgLong >= 53 && avgLong > avgShort) decision = 'long';
-        else if (avgShort >= 53 && avgShort > avgLong) decision = 'short';
-        else if (avgLong < 50 && avgShort < 50) decision = 'chop';
-
-        if (decision === 'long') {
-            stratBox.className = 'strat-box strat-long';
-            actTitle.innerHTML = `<span class="s-long">建議做多 (勝率${avgLong}%)</span>`;
-            enEl.textContent = fVal(curPrice); slEl.textContent = fVal(curPrice - atr*1.5);
-            tp1El.textContent = fVal(curPrice + atr*1.2); tp2El.textContent = fVal(curPrice + atr*2.5);
-            sgVals.forEach(el => el.classList.remove('blur-text'));
-        } else if (decision === 'short') {
-            stratBox.className = 'strat-box strat-short';
-            actTitle.innerHTML = `<span class="s-short">建議做空 (勝率${avgShort}%)</span>`;
-            enEl.textContent = fVal(curPrice); slEl.textContent = fVal(curPrice + atr*1.5);
-            tp1El.textContent = fVal(curPrice - atr*1.2); tp2El.textContent = fVal(curPrice - atr*2.5);
-            sgVals.forEach(el => el.classList.remove('blur-text'));
-        } else if (decision === 'chop') {
-            stratBox.className = 'strat-box strat-chop';
-            actTitle.innerHTML = `<span class="s-chop">⚠️ 盤整 (雙殺風險)</span>`;
-            sgVals.forEach(el => el.classList.add('blur-text'));
-        } else {
-            stratBox.className = 'strat-box strat-wait';
-            actTitle.innerHTML = `<span>觀望</span>`;
-            sgVals.forEach(el => el.classList.remove('blur-text'));
+        // Update Card Header Badge (Only for 15m)
+        if(tf === '15m') {
+            const badge = document.getElementById(`badge-15m-${sym}`);
+            if(dec==='long') { badge.className='signal-badge sb-long'; badge.textContent=`建議做多 (${avgL}%)`; }
+            else if(dec==='short') { badge.className='signal-badge sb-short'; badge.textContent=`建議做空 (${avgS}%)`; }
+            else if(dec==='chop') { badge.className='signal-badge sb-chop'; badge.textContent='⚠️ 盤整'; }
+            else { badge.className='signal-badge sb-wait'; badge.textContent='觀望'; }
         }
+
+        const vals = box.querySelectorAll('.sg-val');
+        if(dec==='long') {
+            box.className='strat-box strat-long'; title.innerHTML=`<span class="s-long">建議做多 (${avgL}%)</span>`;
+            document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
+            document.getElementById(`sl-${sym}-${tf}`).textContent=f(cur-atr*1.5);
+            document.getElementById(`tp1-${sym}-${tf}`).textContent=f(cur+atr*1.2);
+            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(cur+atr*2.5);
+            vals.forEach(e=>e.classList.remove('blur-text'));
+        } else if(dec==='short') {
+            box.className='strat-box strat-short'; title.innerHTML=`<span class="s-short">建議做空 (${avgS}%)</span>`;
+            document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
+            document.getElementById(`sl-${sym}-${tf}`).textContent=f(cur+atr*1.5);
+            document.getElementById(`tp1-${sym}-${tf}`).textContent=f(cur-atr*1.2);
+            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(cur-atr*2.5);
+            vals.forEach(e=>e.classList.remove('blur-text'));
+        } else if(dec==='chop') {
+            box.className='strat-box strat-chop'; title.innerHTML=`<span class="s-chop">⚠️ 盤整 (雙殺)</span>`;
+            vals.forEach(e=>e.classList.add('blur-text'));
+        } else {
+            box.className='strat-box strat-wait'; title.innerHTML=`<span>觀望</span>`;
+            vals.forEach(e=>e.classList.remove('blur-text'));
+        }
+    }
+
+    function calculateVolume(sym, klines) { /* Same as V20 */ 
+        const len=klines.length, cur=parseFloat(klines[len-1][5]);
+        let sum=0; for(let i=len-21;i<len-1;i++) sum+=parseFloat(klines[i][5]);
+        const r=cur/(sum/20), el=document.getElementById(`vol-status-${sym}`);
+        document.getElementById(`vol-ratio-${sym}`).textContent = `x${r.toFixed(1)}`;
+        if(r>=2){el.textContent="🔥 爆量";el.className="vol-tag v-high";}
+        else if(r>=1.2){el.textContent="📈 放量";el.className="vol-tag v-norm";}
+        else if(r<=0.6){el.textContent="💤 縮量";el.className="vol-tag v-low";}
+        else{el.textContent="⚖️ 正常";el.className="vol-tag v-norm";}
+    }
+    function calculateFlow(sym, klines) { /* Same as V20 */
+        const rec=klines.slice(-24); let t=0,b=0; rec.forEach(k=>{t+=parseFloat(k[5]);b+=parseFloat(k[9]);});
+        const bp=(b/t)*100; 
+        document.getElementById(`flow-b-${sym}`).style.width=`${bp}%`;
+        document.getElementById(`flow-s-${sym}`).style.width=`${100-bp}%`;
+        document.getElementById(`flow-bv-${sym}`).textContent=`買${bp.toFixed(0)}%`;
+        document.getElementById(`flow-sv-${sym}`).textContent=`賣${(100-bp).toFixed(0)}%`;
     }
 
     function connectWSS(symbols) {
@@ -673,16 +440,14 @@
         wss.onmessage = (e) => {
             const msg = JSON.parse(e.data);
             const sym = msg.data.s.toLowerCase();
-            const price = parseFloat(msg.data.c);
             const el = document.getElementById(`price-${sym}`);
             if(el) {
-                el.textContent = price;
+                el.textContent = parseFloat(msg.data.c);
                 el.className = `sym-price ${parseFloat(msg.data.P)>=0?'up':'down'}`;
             }
         };
     }
 
-    // 啟動
     initSystem();
 </script>
 </body>
