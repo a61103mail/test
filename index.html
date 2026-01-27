@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全維度戰情室 (V12 完整戰略版)</title>
+    <style>
+        :root {
+            --bg: #0b0e11;
+            --card: #161a1e;
+            --text-main: #eaecef;
+            --text-sub: #848e9c;
+            --green: #0ecb81;
+            --green-bg: rgba(14, 203, 129, 0.15);
+            --red: #f6465d;
+            --red-bg: rgba(246, 70, 93, 0.15);
+            --yellow: #fcd535;
+            --border: #2b3139;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 13px;
+        }
+        
+        .header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .symbol-row {
+            display: grid;
+            grid-template-columns: 160px 1fr 1fr 1fr;
+            gap: 10px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .col-info {
+            background: #1e2329;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px solid var(--border);
+        }
+        .sym-name { font-size: 20px; font-weight: 900; color: #fff; }
+        .sym-price { font-size: 16px; font-family: 'Roboto Mono'; font-weight: bold; margin-top: 5px; }
+        .up { color: var(--green); } .down { color: var(--red); }
+
+        .col-tf {
+            padding: 8px;
+            border-right: 1px dashed #333;
+            display: flex;
+            flex-direction: column;
+        }
+        .col-tf:last-child { border-right: none; }
+
+        .tf-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+        .tf-title { font-weight: bold; font-size: 14px; color: #fff; }
+        .tf-win-rate { 
+            font-family: 'Roboto Mono'; font-weight: bold; font-size: 12px;
+            padding: 1px 5px; border-radius: 4px; background: #222;
+        }
+        .win-high { color: var(--green); border: 1px solid var(--green); }
+        .win-mid { color: var(--yellow); border: 1px solid var(--yellow); }
+        .win-low { color: var(--red); border: 1px solid var(--red); }
+
+        .ind-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .ind-item {
+            font-size: 10px;
+            display: flex; 
+            flex-direction: column;
+            background: rgba(255,255,255,0.03); 
+            padding: 5px; 
+            border-radius: 3px;
+        }
+        .ind-top { 
+            display: flex; justify-content: space-between; color: #aaa; margin-bottom: 3px; 
+        }
+        .ind-bot { display: flex; justify-content: space-between; align-items: center; }
+        
+        .raw-val { font-family: 'Roboto Mono'; color: #fff; font-weight: bold; }
+        .win-txt { font-weight: bold; }
+        .eng-tag { font-family: 'Arial'; opacity: 0.6; font-size: 9px; margin-left: 2px; }
+
+        /* --- 策略區塊 (重點修改) --- */
+        .strat-box {
+            margin-top: auto;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .strat-long { background: var(--green-bg); border: 1px solid var(--green); }
+        .strat-short { background: var(--red-bg); border: 1px solid var(--red); }
+        .strat-wait { background: #2b3139; border: 1px solid #444; color: #888; }
+
+        .strat-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
+        .s-long { color: var(--green); } .s-short { color: var(--red); }
+
+        /* 田字型佈局：2行2列 */
+        .strat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; 
+            gap: 6px 10px; /* 行距 列距 */
+            font-size: 11px;
+            text-align: left;
+        }
+        .sg-item { display: flex; flex-direction: column; }
+        .sg-label { color: var(--text-sub); scale: 0.9; transform-origin: left; margin-bottom: 1px; }
+        .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; font-size: 12px; }
+
+        .c-bull { color: var(--green); }
+        .c-bear { color: var(--red); }
+        .c-neu { color: #555; }
+        
+        .loading-bar { text-align: center; color: var(--yellow); padding: 20px; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <h1 style="margin:0; font-size:22px;">全維度戰情室 (V12 完整戰略版)</h1>
+        <span style="color:#888; font-size:12px;">
+            特色：TP1/TP2 獨立顯示 | 中英對照指標 | 獨立時區回測 | 數據源: 幣安合約
+        </span>
+    </div>
+    <div id="sys-status" style="color:var(--yellow); font-weight:bold;">初始化中...</div>
+</div>
+
+<div id="grid-container">
+    <div class="loading-bar">
+        正在運算：7 個幣種 x 3 個時區 x 5 組指標...<br>
+        系統正在下載 1000 根 K 線進行數值計算與回測，請稍候。
+    </div>
+</div>
+
+<script>
+    const SYMBOLS = ['btcusdt', 'ethusdt', 'adausdt', 'solusdt', 'xrpusdt', 'riverusdt', 'nxpcusdt'];
+    const TFS = ['15m', '1h', '4h'];
+    const LIMIT = 500; 
+    
+    const TRANS = {
+        '15m': '15分鐘 (短線)',
+        '1h': '1小時 (波段)',
+        '4h': '4小時 (趨勢)',
+        'RSI': '相對強弱',
+        'EMA': '趨勢均線',
+        'MACD': '動能指標',
+        'VWAP': '成交均價',
+        'BOLL': '布林通道'
+    };
+
+    const store = {}; 
+    const livePrices = {};
+
+    const MathEngine = {
+        sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
+        emaArray: (data, period) => {
+            let k = 2 / (period + 1);
+            let ema = [data[0]];
+            for (let i = 1; i < data.length; i++) ema.push(data[i] * k + ema[i-1] * (1 - k));
+            return ema;
+        },
+        rsiArray: (closes) => {
+            let rsi = [];
+            let gains = 0, losses = 0;
+            for(let i=1; i<=14; i++) {
+                let diff = closes[i] - closes[i-1];
+                if(diff>0) gains+=diff; else losses-=diff;
+            }
+            let avgGain = gains/14; let avgLoss = losses/14;
+            rsi[14] = 100 - (100/(1+avgGain/avgLoss));
+            for(let i=15; i<closes.length; i++) {
+                let diff = closes[i] - closes[i-1];
+                if(diff>0) { avgGain=(avgGain*13+diff)/14; avgLoss=(avgLoss*13)/14; }
+                else { avgGain=(avgGain*13)/14; avgLoss=(avgLoss*13-diff)/14; }
+                rsi[i] = avgLoss===0 ? 100 : 100 - (100/(1+avgGain/avgLoss));
+            }
+            return rsi;
+        },
+        atr: (h, l, c, p=14) => {
+            if(h.length < p) return 0;
+            let trs = [];
+            for(let i=1; i<h.length; i++) trs.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
+            return trs.slice(-p).reduce((a,b)=>a+b,0)/p;
+        },
+        getWinRate: (signals, closes, type) => {
+            let wins = 0, total = 0;
+            const lookahead = 5; 
+            for(let i=50; i<signals.length-lookahead; i++) {
+                if(signals[i]) {
+                    total++;
+                    const entry = closes[i];
+                    const exit = closes[i+lookahead];
+                    if(type === 'long' && exit > entry * 1.001) wins++;
+                    else if(type === 'short' && exit < entry * 0.999) wins++;
+                }
+            }
+            return total === 0 ? 0 : Math.round((wins/total)*100);
+        }
+    };
+
+    function initUI() {
+        const container = document.getElementById('grid-container');
+        container.innerHTML = ''; 
+
+        SYMBOLS.forEach(sym => {
+            store[sym] = {}; 
+            
+            let html = `
+            <div class="symbol-row" id="row-${sym}">
+                <div class="col-info">
+                    <div class="sym-name">${sym.toUpperCase().replace('USDT','')}</div>
+                    <div class="sym-price" id="price-${sym}">---.--</div>
+                </div>
+            `;
+
+            TFS.forEach(tf => {
+                store[sym][tf] = {}; 
+                html += `
+                <div class="col-tf">
+                    <div class="tf-header">
+                        <span class="tf-title">${TRANS[tf]}</span>
+                        <span class="tf-win-rate" id="win-${sym}-${tf}">--%</span>
+                    </div>
+                    
+                    <div class="ind-list" id="list-${sym}-${tf}">
+                        <div style="color:#444;">下載中...</div>
+                    </div>
+
+                    <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
+                        <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
+                        <div class="strat-grid">
+                            <div class="sg-item"><span class="sg-label">進場 (Entry)</span><span class="sg-val" id="en-${sym}-${tf}">---</span></div>
+                            <div class="sg-item"><span class="sg-label">止損 (SL)</span><span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
+                            <div class="sg-item"><span class="sg-label">止盈1 (TP1)</span><span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
+                            <div class="sg-item"><span class="sg-label">止盈2 (TP2)</span><span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            html += `</div>`;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    async function runAnalysis() {
+        initUI();
+        
+        for(const sym of SYMBOLS) {
+            try {
+                const promises = TFS.map(tf => 
+                    fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`)
+                    .then(res => res.json())
+                );
+                const results = await Promise.all(promises);
+
+                if(results[0].code) { markInvalid(sym); continue; }
+
+                results.forEach((data, i) => {
+                    const tf = TFS[i];
+                    data.pop(); 
+                    processTimeframe(sym, tf, data);
+                });
+            } catch(e) { console.error(e); markInvalid(sym); }
+        }
+
+        document.getElementById('sys-status').textContent = '● 系統運行中 (Websocket)';
+        document.getElementById('sys-status').style.color = '#0ecb81';
+        connectWSS();
+    }
+
+    function processTimeframe(sym, tf, klines) {
+        const closes = klines.map(d => parseFloat(d[4]));
+        const highs = klines.map(d => parseFloat(d[2]));
+        const lows = klines.map(d => parseFloat(d[3]));
+        const len = closes.length;
+        const last = len - 1;
+        const curPrice = closes[last];
+
+        const atr = MathEngine.atr(highs, lows, closes);
+        const rsiArr = MathEngine.rsiArray(closes);
+        const ema50Arr = MathEngine.emaArray(closes, 50);
+        const vwapArr = MathEngine.emaArray(closes, 90); 
+        
+        let sma20=[], upper=[], lower=[];
+        for(let i=0; i<len; i++) {
+            if(i<20) { sma20.push(0); upper.push(0); lower.push(0); continue; }
+            let slice = closes.slice(i-20, i);
+            let avg = slice.reduce((a,b)=>a+b,0)/20;
+            let std = Math.sqrt(slice.map(x=>Math.pow(x-avg,2)).reduce((a,b)=>a+b,0)/20);
+            sma20.push(avg); upper.push(avg+2*std); lower.push(avg-2*std);
+        }
+
+        let ema12 = MathEngine.emaArray(closes, 12);
+        let ema26 = MathEngine.emaArray(closes, 26);
+        let macdArr = ema12.map((v,i) => v - ema26[i]);
+
+        const sigs = {
+            rsi_buy: [], rsi_sell: [], ema_buy: [], ema_sell: [],
+            macd_buy: [], macd_sell: [], vwap_buy: [], vwap_sell: [],
+            bb_buy: [], bb_sell: []
+        };
+
+        for(let i=50; i<len; i++) {
+            const c = closes[i];
+            sigs.rsi_buy[i] = rsiArr[i] < 40; sigs.rsi_sell[i] = rsiArr[i] > 60;
+            sigs.ema_buy[i] = c > ema50Arr[i]; sigs.ema_sell[i] = c < ema50Arr[i];
+            sigs.macd_buy[i] = macdArr[i] > 0; sigs.macd_sell[i] = macdArr[i] < 0;
+            sigs.vwap_buy[i] = c > vwapArr[i]; sigs.vwap_sell[i] = c < vwapArr[i];
+            sigs.bb_buy[i] = c > upper[i]; sigs.bb_sell[i] = c < lower[i];
+        }
+
+        const getWR = (buySig, sellSig, isBull) => isBull ? MathEngine.getWinRate(buySig, closes, 'long') : MathEngine.getWinRate(sellSig, closes, 'short');
+        const fVal = (v) => v < 10 ? v.toFixed(4) : v.toFixed(2);
+        
+        const indData = [
+            { id:'RSI', n: TRANS['RSI'], val: rsiArr[last].toFixed(1), bull: rsiArr[last]>55, bear: rsiArr[last]<45, wr: getWR(sigs.rsi_buy, sigs.rsi_sell, rsiArr[last]<45) },
+            { id:'EMA', n: TRANS['EMA'], val: fVal(ema50Arr[last]), bull: curPrice>ema50Arr[last], bear: curPrice<ema50Arr[last], wr: getWR(sigs.ema_buy, sigs.ema_sell, curPrice>ema50Arr[last]) },
+            { id:'MACD', n: TRANS['MACD'], val: macdArr[last].toFixed(curPrice<10?4:2), bull: macdArr[last]>0, bear: macdArr[last]<0, wr: getWR(sigs.macd_buy, sigs.macd_sell, macdArr[last]>0) },
+            { id:'VWAP', n: TRANS['VWAP'], val: fVal(vwapArr[last]), bull: curPrice>vwapArr[last], bear: curPrice<vwapArr[last], wr: getWR(sigs.vwap_buy, sigs.vwap_sell, curPrice>vwapArr[last]) },
+            { id:'BOLL', n: TRANS['BOLL'], val: curPrice>upper[last]?'上破':curPrice<lower[last]?'下破':'區間', bull: curPrice>upper[last], bear: curPrice<lower[last], wr: getWR(sigs.bb_buy, sigs.bb_sell, curPrice>upper[last]) }
+        ];
+
+        const listEl = document.getElementById(`list-${sym}-${tf}`);
+        let listHtml = '';
+        let totalWin = 0;
+        let count = 0;
+        let bullCount = 0;
+        let bearCount = 0;
+
+        indData.forEach(ind => {
+            const status = ind.bull ? '多' : ind.bear ? '空' : '盤';
+            const color = ind.bull ? 'c-bull' : ind.bear ? 'c-bear' : 'c-neu';
+            if(ind.wr > 0) { totalWin += ind.wr; count++; }
+            if(ind.bull) bullCount++;
+            if(ind.bear) bearCount++;
+
+            listHtml += `
+                <div class="ind-item">
+                    <div class="ind-top">
+                        <span>${ind.n} <span class="eng-tag">(${ind.id})</span></span>
+                        <span class="raw-val">${ind.val}</span>
+                    </div>
+                    <div class="ind-bot">
+                        <span class="win-txt ${color}">${status}</span>
+                        <span style="color:#666; scale:0.9;">(${ind.wr}%)</span>
+                    </div>
+                </div>
+            `;
+        });
+        listEl.innerHTML = listHtml;
+
+        const avgWin = count > 0 ? Math.round(totalWin / count) : 0;
+        const winEl = document.getElementById(`win-${sym}-${tf}`);
+        winEl.textContent = avgWin + '%';
+        winEl.className = `tf-win-rate ${avgWin >= 55 ? 'win-high' : avgWin <= 45 ? 'win-low' : 'win-mid'}`;
+
+        // --- 策略渲染 (Entry, SL, TP1, TP2) ---
+        const stratBox = document.getElementById(`strat-${sym}-${tf}`);
+        const actTitle = document.getElementById(`act-${sym}-${tf}`);
+        const enEl = document.getElementById(`en-${sym}-${tf}`);
+        const slEl = document.getElementById(`sl-${sym}-${tf}`);
+        const tp1El = document.getElementById(`tp1-${sym}-${tf}`);
+        const tp2El = document.getElementById(`tp2-${sym}-${tf}`);
+
+        let dir = 'wait';
+        if (avgWin > 50 && bullCount >= 3) dir = 'long';
+        else if (avgWin > 50 && bearCount >= 3) dir = 'short';
+
+        if (dir === 'long') {
+            stratBox.className = 'strat-box strat-long';
+            actTitle.innerHTML = `<span class="s-long">建議做多</span>`;
+            enEl.textContent = fVal(curPrice);
+            slEl.textContent = fVal(curPrice - (atr * 1.5));
+            tp1El.textContent = fVal(curPrice + (atr * 1.2));
+            tp2El.textContent = fVal(curPrice + (atr * 2.5));
+        } else if (dir === 'short') {
+            stratBox.className = 'strat-box strat-short';
+            actTitle.innerHTML = `<span class="s-short">建議做空</span>`;
+            enEl.textContent = fVal(curPrice);
+            slEl.textContent = fVal(curPrice + (atr * 1.5));
+            tp1El.textContent = fVal(curPrice - (atr * 1.2));
+            tp2El.textContent = fVal(curPrice - (atr * 2.5));
+        } else {
+            stratBox.className = 'strat-box strat-wait';
+            actTitle.innerHTML = `<span>觀望</span>`;
+            enEl.textContent = '---';
+            slEl.textContent = '---';
+            tp1El.textContent = '---';
+            tp2El.textContent = '---';
+        }
+    }
+
+    function markInvalid(sym) {
+        document.getElementById(`row-${sym}`).style.opacity = '0.4';
+    }
+
+    function connectWSS() {
+        const streams = SYMBOLS.map(s => `${s}@ticker`).join('/');
+        const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
+        ws.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            const sym = msg.data.s.toLowerCase();
+            const price = parseFloat(msg.data.c);
+            
+            const el = document.getElementById(`price-${sym}`);
+            if(el) {
+                el.textContent = price;
+                el.className = `sym-price ${parseFloat(msg.data.P)>=0?'up':'down'}`;
+            }
+        };
+    }
+
+    runAnalysis();
+</script>
+</body>
+</html>
