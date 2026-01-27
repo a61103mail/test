@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V20 自選濾鏡版)</title>
+    <title>全維度戰情室 (V21 預設十大幣種版)</title>
     <style>
+        /* (保留 V20 所有的 CSS 樣式，完全不變) */
         :root {
             --bg: #0b0e11;
             --card: #161a1e;
@@ -28,7 +29,6 @@
             font-size: 13px;
         }
         
-        /* 頂部導航 */
         .header {
             border-bottom: 2px solid var(--border);
             padding-bottom: 15px;
@@ -53,12 +53,12 @@
         }
         .btn-filter:hover { background: #3a4149; border-color: #666; }
 
-        /* --- 模態框 (Filter Modal) --- */
+        /* Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.7);
             z-index: 1000;
-            display: none; /* 預設隱藏 */
+            display: none;
             justify-content: center;
             align-items: center;
         }
@@ -88,14 +88,12 @@
             text-align: right;
         }
         
-        /* 搜尋框 */
         .search-input {
             background: #0b0e11; border: 1px solid #444; color: #fff;
             padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box;
             margin-bottom: 10px;
         }
 
-        /* 幣種選項 */
         .coin-option {
             background: #0b0e11;
             padding: 8px;
@@ -120,7 +118,7 @@
             padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;
         }
 
-        /* --- 主內容 (V17 樣式) --- */
+        /* Symbol Row */
         .symbol-row {
             display: grid;
             grid-template-columns: 200px 1fr 1fr 1fr;
@@ -228,16 +226,16 @@
             <div style="color:#888;">正在從 Binance 獲取合約清單...</div>
         </div>
         <div class="modal-footer">
-            <button class="btn-confirm" onclick="applyFilter()">確認並載入數據</button>
+            <button class="btn-confirm" onclick="applyFilter()">確認並更新</button>
         </div>
     </div>
 </div>
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">戰情室 V20 (自選濾鏡版)</h1>
+        <h1 style="margin:0; font-size:20px;">戰情室 V21 (十大幣種預設版)</h1>
         <span style="color:#888; font-size:11px;">
-            V17核心 | 真實Taker | 量價結構 | 雙向回測
+            V17核心 | 預設Top10 | 自選擴充
         </span>
     </div>
     <div>
@@ -248,8 +246,8 @@
 </div>
 
 <div id="grid-container">
-    <div class="loading-text">
-        👋 歡迎使用！請點擊右上角 <b>[➕ 篩選幣種]</b> 開始建立你的戰情室。
+    <div class="loading-text" style="color:var(--yellow)">
+        正在載入市場前 10 大熱門幣種數據...
     </div>
 </div>
 
@@ -258,37 +256,48 @@
     const TFS = ['15m', '1h', '4h'];
     const LIMIT = 500; 
     
+    // 預設 10 大幣種 (可自行增減)
+    const DEFAULT_COINS = [
+        'btcusdt', 'ethusdt', 'solusdt', 'bnbusdt', 'xrpusdt', 
+        'dogeusdt', 'adausdt', 'trxusdt', 'linkusdt', 'shibusdt'
+    ];
+
     const TRANS = {
         '15m': '15分鐘 (短線)', '1h': '1小時 (波段)', '4h': '4小時 (趨勢)',
         'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL'
     };
 
     // 狀態管理
-    let allSymbols = []; // 幣安所有合約
-    let activeSymbols = new Set(); // 使用者選中的
-    let wss = null; // WebSocket 連線
-    let store = {}; // 數據緩存
+    let allSymbols = []; 
+    let activeSymbols = new Set(DEFAULT_COINS); // 初始化時直接加入預設幣種
+    let wss = null; 
+    let store = {}; 
 
-    // --- 1. 系統初始化與 API ---
+    // --- 1. 系統啟動 (Entry Point) ---
+    async function initSystem() {
+        // 1. 先把預設幣種跑起來
+        await applyFilter(false); // false 代表不需經過 Modal 確認，直接跑
+        
+        // 2. 背景去抓完整的幣安清單，為了給 Filter 用
+        fetchExchangeInfo();
+    }
+
+    // --- 2. API 與清單 ---
     async function fetchExchangeInfo() {
         try {
             const res = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
             const data = await res.json();
-            // 過濾出 USDT 永續合約
             allSymbols = data.symbols
                 .filter(s => s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL' && s.status === 'TRADING')
                 .map(s => s.symbol.replace('USDT', ''))
                 .sort();
-            
-            renderCoinList();
         } catch (e) {
-            document.getElementById('coinList').innerHTML = `<span style="color:red">API連線失敗，請檢查網路</span>`;
+            console.error("API Error");
         }
     }
 
-    // --- 2. 模態框邏輯 ---
     function openModal() {
-        if(allSymbols.length === 0) fetchExchangeInfo();
+        renderCoinList(); // 每次打開重新渲染，確保勾選狀態正確
         document.getElementById('filterModal').style.display = 'flex';
     }
 
@@ -299,11 +308,17 @@
     function renderCoinList() {
         const container = document.getElementById('coinList');
         container.innerHTML = '';
+        if(allSymbols.length === 0) {
+            container.innerHTML = '載入中...';
+            return;
+        }
         allSymbols.forEach(sym => {
+            const code = sym.toLowerCase() + 'usdt';
             const div = document.createElement('div');
-            div.className = `coin-option ${activeSymbols.has(sym.toLowerCase() + 'usdt') ? 'selected' : ''}`;
+            // 如果在 activeSymbols 裡，就預設勾選
+            div.className = `coin-option ${activeSymbols.has(code) ? 'selected' : ''}`;
             div.textContent = sym;
-            div.dataset.sym = sym.toLowerCase() + 'usdt'; // 存完整代碼
+            div.dataset.sym = code;
             div.onclick = () => toggleSelect(div);
             container.appendChild(div);
         });
@@ -322,16 +337,22 @@
     }
 
     // --- 3. 應用篩選 (核心流程) ---
-    async function applyFilter() {
-        // 1. 獲取選中的幣種
-        const selected = Array.from(document.querySelectorAll('.coin-option.selected'))
-                              .map(el => el.dataset.sym);
+    async function applyFilter(fromModal = true) {
+        let selected = [];
+        
+        if (fromModal) {
+            // 從 Modal 讀取使用者勾選的
+            selected = Array.from(document.querySelectorAll('.coin-option.selected'))
+                            .map(el => el.dataset.sym);
+            closeModal();
+        } else {
+            // 初始啟動，使用預設值
+            selected = Array.from(activeSymbols);
+        }
         
         activeSymbols = new Set(selected);
-        closeModal();
-
         const container = document.getElementById('grid-container');
-        container.innerHTML = ''; // 清空畫面
+        container.innerHTML = ''; // 重繪
 
         if(selected.length === 0) {
             container.innerHTML = '<div class="loading-text">未選擇任何幣種。</div>';
@@ -339,32 +360,27 @@
             return;
         }
 
-        container.innerHTML = '<div class="loading-text" style="color:var(--yellow)">正在初始化數據引擎...<br>請稍候，避免 API 速率限制。</div>';
-
         // 2. 關閉舊連線
         if(wss) wss.close();
-        store = {}; // 重置數據
+        store = {}; 
 
-        // 3. 依序初始化 (避免併發過高)
+        // 3. 依序初始化
         for (const sym of selected) {
             await initSymbol(sym);
-            // 簡單延遲 200ms
-            await new Promise(r => setTimeout(r, 200));
+            await new Promise(r => setTimeout(r, 150)); // 稍微縮短間隔
         }
 
-        // 4. 啟動 WSS (只訂閱選中的)
+        // 4. 啟動 WSS
         connectWSS(selected);
     }
 
-    // --- 4. 單一幣種初始化 (繪製卡片 + 拉取歷史) ---
+    // --- 4. 單一幣種初始化 ---
     async function initSymbol(sym) {
-        store[sym] = {}; // Init store
+        store[sym] = {}; 
         const container = document.getElementById('grid-container');
         
-        // 移除 Loading (如果是第一個)
         if(container.querySelector('.loading-text')) container.innerHTML = '';
 
-        // 繪製骨架 (V17 結構)
         let html = `
         <div class="symbol-row" id="row-${sym}">
             <div class="close-card" onclick="removeCard('${sym}')">✕</div>
@@ -420,7 +436,6 @@
         html += `</div>`;
         container.insertAdjacentHTML('beforeend', html);
 
-        // 拉取歷史數據 (Promise.all)
         try {
             const promises = TFS.map(tf => 
                 fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`)
@@ -430,7 +445,7 @@
             
             results.forEach((data, i) => {
                 const tf = TFS[i];
-                data.pop(); // 移除未完成
+                data.pop(); 
                 processTimeframe(sym, tf, data);
                 if(tf === '1h') {
                     calculateFlow(sym, data);
@@ -443,7 +458,6 @@
     function removeCard(sym) {
         activeSymbols.delete(sym);
         document.getElementById(`row-${sym}`).remove();
-        // 這裡暫時不重連 WSS 以節省資源，讓他在背景跑沒關係，反正沒有 UI 更新
     }
 
     // --- 5. 數據運算 (V17 Logic) ---
@@ -616,7 +630,7 @@
         document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${avgLong}%`;
         document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${avgShort}%`;
 
-        // 策略邏輯 (V17 Logic)
+        // 策略邏輯
         const stratBox = document.getElementById(`strat-${sym}-${tf}`);
         const actTitle = document.getElementById(`act-${sym}-${tf}`);
         const enEl = document.getElementById(`en-${sym}-${tf}`);
@@ -667,6 +681,9 @@
             }
         };
     }
+
+    // 啟動
+    initSystem();
 </script>
 </body>
 </html>
