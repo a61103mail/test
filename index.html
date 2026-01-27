@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全維度戰情室 (V13 多空勝率對決版)</title>
+    <title>全維度戰情室 (雙向驗證版)</title>
     <style>
         :root {
             --bg: #0b0e11;
@@ -11,11 +11,12 @@
             --text-main: #eaecef;
             --text-sub: #848e9c;
             --green: #0ecb81;
-            --green-dim: rgba(14, 203, 129, 0.1);
+            --green-bg: rgba(14, 203, 129, 0.15);
             --red: #f6465d;
-            --red-dim: rgba(246, 70, 93, 0.1);
-            --border: #2b3139;
+            --red-bg: rgba(246, 70, 93, 0.15);
             --yellow: #fcd535;
+            --yellow-bg: rgba(252, 213, 53, 0.1);
+            --border: #2b3139;
         }
         body {
             background-color: var(--bg);
@@ -67,7 +68,6 @@
         }
         .col-tf:last-child { border-right: none; }
 
-        /* 頂部：標題與多空條 */
         .tf-header {
             margin-bottom: 8px;
             border-bottom: 1px solid #333;
@@ -76,16 +76,15 @@
         .tf-title-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
         .tf-title { font-weight: bold; font-size: 14px; color: #fff; }
         
-        /* 多空勝率條 */
+        /* 雙向勝率條 (核心修改) */
         .wr-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; }
-        .wr-bar-long { height: 100%; background: var(--green); }
-        .wr-bar-short { height: 100%; background: var(--red); }
+        .wr-bar-long { height: 100%; background: var(--green); transition: width 0.5s; }
+        .wr-bar-short { height: 100%; background: var(--red); transition: width 0.5s; }
         .wr-text { font-size: 10px; display: flex; justify-content: space-between; color: #888; margin-top: 2px; }
 
-        /* 指標列表 */
         .ind-list {
             display: grid;
-            grid-template-columns: 1fr; /* 單列顯示，因為要塞比較多資訊 */
+            grid-template-columns: 1fr;
             gap: 4px;
             margin-bottom: 8px;
         }
@@ -100,15 +99,13 @@
         }
         .ind-left { display: flex; flex-direction: column; }
         .ind-right { text-align: right; }
-        
         .ind-name { color: #aaa; font-size: 10px; }
         .ind-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
         
-        /* 雙勝率顯示 */
         .win-dual { font-size: 10px; font-family: 'Roboto Mono'; display: flex; gap: 5px; }
-        .w-l { color: var(--green); }
-        .w-s { color: var(--red); }
-        .highlight-w { text-decoration: underline; font-weight: bold; } /* 強調當前方向 */
+        .w-l { color: var(--green); opacity: 0.5; }
+        .w-s { color: var(--red); opacity: 0.5; }
+        .active-side { opacity: 1; font-weight: bold; text-decoration: underline; }
 
         /* 策略區塊 */
         .strat-box {
@@ -118,13 +115,20 @@
             text-align: center;
             border: 1px solid transparent;
         }
-        .strat-long { background: var(--green-dim); border-color: var(--green); }
-        .strat-short { background: var(--red-dim); border-color: var(--red); }
-        .strat-wait { background: #2b3139; border-color: #444; }
-        .strat-warn { background: rgba(252, 213, 53, 0.1); border-color: var(--yellow); }
+        .strat-long { background: var(--green-bg); border-color: var(--green); }
+        .strat-short { background: var(--red-bg); border-color: var(--red); }
+        
+        /* 垃圾行情警告樣式 */
+        .strat-chop { 
+            background: var(--yellow-bg); 
+            border-color: var(--yellow); 
+            border-style: dashed;
+            color: var(--yellow);
+        }
+        .strat-wait { background: #2b3139; border-color: #444; color: #888; }
 
         .strat-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
-        .s-long { color: var(--green); } .s-short { color: var(--red); } .s-warn { color: var(--yellow); }
+        .s-long { color: var(--green); } .s-short { color: var(--red); } .s-chop { color: var(--yellow); }
 
         .strat-grid {
             display: grid;
@@ -136,6 +140,7 @@
         .sg-item { display: flex; flex-direction: column; }
         .sg-label { color: var(--text-sub); scale: 0.9; transform-origin: left; }
         .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
+        .blur-text { filter: blur(4px); opacity: 0.5; } /* 隱藏數值用 */
 
         .loading-bar { text-align: center; color: var(--yellow); padding: 20px; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
@@ -145,9 +150,9 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:22px;">全維度戰情室 (V13 多空對決版)</h1>
+        <h1 style="margin:0; font-size:22px;">全維度戰情室 (V14 雙向驗證版)</h1>
         <span style="color:#888; font-size:12px;">
-            更新：同時計算多空歷史勝率 | 識別誘多誘空陷阱 | 數據源: 幣安合約
+            邏輯修正：多空勝率雙重回測 | 垃圾行情過濾 (雙殺盤識別) | 數據源: 幣安合約
         </span>
     </div>
     <div id="sys-status" style="color:var(--yellow); font-weight:bold;">初始化中...</div>
@@ -155,8 +160,11 @@
 
 <div id="grid-container">
     <div class="loading-bar">
-        正在運算：7 個幣種 x 3 個時區 x 雙向回測 (大數據運算中)...<br>
-        系統正在分析歷史上「做多」與「做空」的各自勝率。
+        系統正在執行「雙盲回測」：<br>
+        1. 計算順勢勝率<br>
+        2. 計算反向勝率<br>
+        3. 過濾無效盤整<br>
+        請稍候...
     </div>
 </div>
 
@@ -169,16 +177,15 @@
         '15m': '15分鐘 (短線)',
         '1h': '1小時 (波段)',
         '4h': '4小時 (趨勢)',
-        'RSI': 'RSI',
-        'EMA': 'EMA',
-        'MACD': 'MACD',
-        'VWAP': 'VWAP',
-        'BOLL': 'BOLL'
+        'RSI': '相對強弱',
+        'EMA': '趨勢均線',
+        'MACD': '動能指標',
+        'VWAP': '成交均價',
+        'BOLL': '布林通道'
     };
 
     const store = {}; 
 
-    // --- 數學引擎 ---
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
         emaArray: (data, period) => {
@@ -265,7 +272,7 @@
                     </div>
 
                     <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
-                        <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
+                        <span class="strat-title" id="act-${sym}-${tf}">初始化</span>
                         <div class="strat-grid">
                             <div class="sg-item"><span class="sg-label">進場 (Entry)</span><span class="sg-val" id="en-${sym}-${tf}">---</span></div>
                             <div class="sg-item"><span class="sg-label">止損 (SL)</span><span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
@@ -333,7 +340,7 @@
         let ema26 = MathEngine.emaArray(closes, 26);
         let macdArr = ema12.map((v,i) => v - ema26[i]);
 
-        // 生成信號
+        // 信號生成
         const sigs = {
             rsi_buy: [], rsi_sell: [], ema_buy: [], ema_sell: [],
             macd_buy: [], macd_sell: [], vwap_buy: [], vwap_sell: [],
@@ -349,7 +356,7 @@
             sigs.bb_buy[i] = c > upper[i]; sigs.bb_sell[i] = c < lower[i];
         }
 
-        // 回測函數 (分別計算多空勝率)
+        // 雙向回測
         const calcWR = (buySig, sellSig) => {
             return {
                 long: MathEngine.getWinRate(buySig, closes, 'long'),
@@ -364,8 +371,6 @@
         const wrBB = calcWR(sigs.bb_buy, sigs.bb_sell);
 
         const fVal = (v) => v < 10 ? v.toFixed(4) : v.toFixed(2);
-
-        // 判斷當前指標方向
         const getDir = (bull, bear) => bull ? 'long' : bear ? 'short' : 'neu';
 
         const indData = [
@@ -376,31 +381,33 @@
             { id:'BOLL', n:'布林通道', val: curPrice>upper[last]?'上破':curPrice<lower[last]?'下破':'區間', dir: getDir(curPrice>upper[last], curPrice<lower[last]), wr: wrBB }
         ];
 
-        // 渲染列表
         const listEl = document.getElementById(`list-${sym}-${tf}`);
         let listHtml = '';
         
+        // 統計變數
         let sumLongWR = 0, sumShortWR = 0, count = 0;
-        let signalCount = { long: 0, short: 0 };
-
+        let activeLongWR = 0, activeShortWR = 0;
+        
         indData.forEach(ind => {
-            // 計算總平均勝率
-            if(ind.wr.long > 0) sumLongWR += ind.wr.long;
-            if(ind.wr.short > 0) sumShortWR += ind.wr.short;
+            // 計算「潛在」勝率平均 (不管當前方向，我們想知道這個幣種這個時區，多好做還是空好做)
+            // 這裡取該指標觸發時的勝率
+            const l_wr = ind.wr.long;
+            const s_wr = ind.wr.short;
+            
+            if(l_wr > 0) sumLongWR += l_wr;
+            if(s_wr > 0) sumShortWR += s_wr;
             count++;
 
-            // 當前信號計數
-            if(ind.dir === 'long') signalCount.long++;
-            if(ind.dir === 'short') signalCount.short++;
-
-            // 樣式
             const isLong = ind.dir === 'long';
             const isShort = ind.dir === 'short';
             const color = isLong ? 'var(--green)' : isShort ? 'var(--red)' : '#666';
             
-            // 下劃線強調當前方向的勝率
-            const longClass = isLong ? 'w-l highlight-w' : 'w-l';
-            const shortClass = isShort ? 'w-s highlight-w' : 'w-s';
+            // 累積當前激活方向的勝率 (用於最終決策)
+            if(isLong) activeLongWR += l_wr;
+            if(isShort) activeShortWR += s_wr;
+
+            const longClass = isLong ? 'w-l active-side' : 'w-l';
+            const shortClass = isShort ? 'w-s active-side' : 'w-s';
 
             listHtml += `
                 <div class="ind-item">
@@ -410,9 +417,9 @@
                     </div>
                     <div class="ind-right">
                         <div class="win-dual">
-                            <span class="${longClass}">多${ind.wr.long}%</span>
+                            <span class="${longClass}">多${l_wr}%</span>
                             <span style="color:#444">|</span>
-                            <span class="${shortClass}">空${ind.wr.short}%</span>
+                            <span class="${shortClass}">空${s_wr}%</span>
                         </div>
                     </div>
                 </div>
@@ -420,68 +427,72 @@
         });
         listEl.innerHTML = listHtml;
 
-        // 更新頂部勝率條
         const avgLong = Math.round(sumLongWR / count);
         const avgShort = Math.round(sumShortWR / count);
         
-        // 渲染條形圖
+        // 更新條形圖
         const total = avgLong + avgShort;
         const longPct = total === 0 ? 50 : (avgLong / total) * 100;
         document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${longPct}%`;
         document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${100-longPct}%`;
-        
         document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多 ${avgLong}%`;
         document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空 ${avgShort}%`;
 
-        // --- 策略判定 (關鍵修復) ---
+        // --- 核心邏輯修正：盤整盤過濾 ---
         const stratBox = document.getElementById(`strat-${sym}-${tf}`);
         const actTitle = document.getElementById(`act-${sym}-${tf}`);
         const enEl = document.getElementById(`en-${sym}-${tf}`);
         const slEl = document.getElementById(`sl-${sym}-${tf}`);
         const tp1El = document.getElementById(`tp1-${sym}-${tf}`);
         const tp2El = document.getElementById(`tp2-${sym}-${tf}`);
+        const sgVals = stratBox.querySelectorAll('.sg-val');
 
-        // 邏輯：
-        // 1. 信號方向要一致 (例如大部分指標看空)
-        // 2. 該方向的勝率要 > 50% (避免誘空)
-        
+        // 決策樹
         let decision = 'wait';
-        let reason = '';
-
-        if (signalCount.long >= 3) {
-            if (avgLong > 50) decision = 'long';
-            else decision = 'warn_long'; // 誘多
-        } else if (signalCount.short >= 3) {
-            if (avgShort > 50) decision = 'short';
-            else decision = 'warn_short'; // 誘空 (這就是你遇到的狀況)
-        }
+        
+        // 情況 1: 多方勝率顯著 > 50% 且 > 空方
+        if (avgLong >= 53 && avgLong > avgShort) decision = 'long';
+        
+        // 情況 2: 空方勝率顯著 > 50% 且 > 多方
+        else if (avgShort >= 53 && avgShort > avgLong) decision = 'short';
+        
+        // 情況 3: 雙方勝率都爛 (例如 多42% vs 空38%) -> 垃圾盤
+        else if (avgLong < 50 && avgShort < 50) decision = 'chop';
+        
+        // 情況 4: 雖然勝率高，但沒有明確指標支持 (震盪偏多/空) -> 觀望
+        // 這邊簡化處理，相信勝率
 
         if (decision === 'long') {
             stratBox.className = 'strat-box strat-long';
-            actTitle.innerHTML = `<span class="s-long">建議做多 (勝率優)</span>`;
+            actTitle.innerHTML = `<span class="s-long">建議做多 (歷史勝率${avgLong}%)</span>`;
             enEl.textContent = fVal(curPrice);
             slEl.textContent = fVal(curPrice - (atr * 1.5));
             tp1El.textContent = fVal(curPrice + (atr * 1.2));
             tp2El.textContent = fVal(curPrice + (atr * 2.5));
-        } else if (decision === 'short') {
+            sgVals.forEach(el => el.classList.remove('blur-text'));
+        } 
+        else if (decision === 'short') {
             stratBox.className = 'strat-box strat-short';
-            actTitle.innerHTML = `<span class="s-short">建議做空 (勝率優)</span>`;
+            actTitle.innerHTML = `<span class="s-short">建議做空 (歷史勝率${avgShort}%)</span>`;
             enEl.textContent = fVal(curPrice);
             slEl.textContent = fVal(curPrice + (atr * 1.5));
             tp1El.textContent = fVal(curPrice - (atr * 1.2));
             tp2El.textContent = fVal(curPrice - (atr * 2.5));
-        } else if (decision === 'warn_short') {
-            stratBox.className = 'strat-box strat-warn';
-            actTitle.innerHTML = `<span class="s-warn">⚠️ 誘空風險 (勝率低)</span>`;
+            sgVals.forEach(el => el.classList.remove('blur-text'));
+        } 
+        else if (decision === 'chop') {
+            // 觸發垃圾盤過濾器
+            stratBox.className = 'strat-box strat-chop';
+            actTitle.innerHTML = `<span class="s-chop">⚠️ 盤整 (雙殺風險)</span>`;
+            // 隱藏點位以防手癢
             enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
-        } else if (decision === 'warn_long') {
-            stratBox.className = 'strat-box strat-warn';
-            actTitle.innerHTML = `<span class="s-warn">⚠️ 誘多風險 (勝率低)</span>`;
-            enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
-        } else {
+            sgVals.forEach(el => el.classList.add('blur-text'));
+        } 
+        else {
             stratBox.className = 'strat-box strat-wait';
-            actTitle.innerHTML = `<span>觀望 / 震盪</span>`;
+            actTitle.innerHTML = `<span>觀望 / 方向不明</span>`;
             enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
+            sgVals.forEach(el => el.classList.remove('blur-text'));
         }
     }
 
