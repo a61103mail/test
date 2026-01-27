@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V18 爆倉雷達版)</title>
+    <title>全維度戰情室 (V19 行動預測版)</title>
     <style>
         :root {
             --bg: #0b0e11;
@@ -16,134 +16,117 @@
             --red-bg: rgba(246, 70, 93, 0.15);
             --yellow: #fcd535;
             --yellow-bg: rgba(252, 213, 53, 0.1);
-            --purple: #a855f7;
-            --purple-bg: rgba(168, 85, 247, 0.15);
             --border: #2b3139;
+            --header-bg: #2b3139;
         }
         body {
             background-color: var(--bg);
             color: var(--text-main);
             font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
             margin: 0;
-            padding: 10px;
+            padding: 8px;
             font-size: 13px;
         }
         
         .header {
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 10px; margin-bottom: 10px; border-bottom: 2px solid var(--border);
         }
+        .header h1 { margin: 0; font-size: 18px; }
 
-        .symbol-row {
-            display: grid;
-            grid-template-columns: 220px 1fr 1fr 1fr; /* 加寬左側給爆倉數據 */
-            gap: 10px;
+        /* --- 卡片容器 --- */
+        .card {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            transition: border-color 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
         }
 
-        /* 爆倉特效邊框 */
-        .exploding-long { border-color: var(--red); box-shadow: 0 0 15px rgba(246, 70, 93, 0.4); }
-        .exploding-short { border-color: var(--green); box-shadow: 0 0 15px rgba(14, 203, 129, 0.4); }
-
-        .col-info {
-            background: #1e2329;
+        /* --- 1. 手機版：收合狀態的頭部 (Always Visible) --- */
+        .card-header {
             padding: 12px;
+            background: #20252b;
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-            border-right: 1px solid var(--border);
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer; /* 讓使用者知道可以點 */
         }
-        .sym-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .sym-name { font-size: 20px; font-weight: 900; color: #fff; }
-        .sym-price { font-size: 16px; font-family: 'Roboto Mono'; font-weight: bold; }
+        
+        /* 左側：幣種與價格 */
+        .ch-info { display: flex; flex-direction: column; gap: 2px; }
+        .sym-name { font-size: 18px; font-weight: 900; color: #fff; }
+        .sym-price { font-family: 'Roboto Mono'; font-weight: bold; font-size: 16px; }
         .up { color: var(--green); } .down { color: var(--red); }
 
-        /* 爆倉監控區 (新增) */
-        .liq-box {
-            margin-top: 5px; padding: 6px; border-radius: 4px;
-            background: #111; border: 1px solid #333;
+        /* 中間：15m 重點摘要 (Risk & Signal) */
+        .ch-summary { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .summary-tag { 
+            font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline-block;
         }
-        .liq-title { font-size: 11px; color: #aaa; margin-bottom: 4px; display: flex; justify-content: space-between; }
-        .liq-val { font-family: 'Roboto Mono'; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; }
-        .liq-tag { font-size: 10px; padding: 1px 4px; border-radius: 2px; display: none; }
-        .show-tag { display: inline-block; animation: blink 0.5s infinite alternate; }
+        .st-long { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+        .st-short { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+        .st-wait { background: #333; color: #888; border: 1px solid #555; }
         
-        .l-long { color: var(--red); } /* 多單爆倉 -> 價格跌 */
-        .l-short { color: var(--green); } /* 空單爆倉 -> 價格漲 */
+        /* 爆倉風險預測值 */
+        .risk-val { font-size: 10px; color: #aaa; font-family: 'Roboto Mono'; }
+        .risk-high { color: var(--yellow); font-weight: bold; animation: blink 1s infinite; }
 
-        /* 訂單流 & 量能 */
-        .flow-box { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; }
-        .flow-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px;}
-        .flow-buy { height: 100%; background: var(--green); }
-        .flow-sell { height: 100%; background: var(--red); }
-        .mini-stat { display: flex; justify-content: space-between; font-size: 10px; color: #888; }
+        /* 右側：展開箭頭 */
+        .toggle-icon { margin-left: 10px; color: #666; transition: transform 0.3s; }
+        .card.expanded .toggle-icon { transform: rotate(180deg); }
 
-        /* 右側時區 */
-        .col-tf { padding: 8px; border-right: 1px dashed #333; display: flex; flex-direction: column; }
-        .col-tf:last-child { border-right: none; }
+        /* --- 2. 展開後的內容區 (Hidden by default on mobile) --- */
+        .card-body {
+            display: none; /* 預設隱藏 */
+            padding: 0;
+            border-top: 1px solid var(--border);
+        }
+        .card.expanded .card-body { display: block; animation: slideDown 0.3s ease-out; }
 
-        .tf-header { margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 6px; }
-        .tf-title-row { display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center; }
-        .tf-title { font-weight: bold; font-size: 14px; color: #fff; }
-        
-        .wr-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; }
-        .wr-bar-long { height: 100%; background: var(--green); transition: width 0.5s; }
-        .wr-bar-short { height: 100%; background: var(--red); transition: width 0.5s; }
-        .wr-text { font-size: 10px; display: flex; justify-content: space-between; color: #888; margin-top: 2px; }
-
-        .ind-list { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 8px; }
-        .ind-item { font-size: 11px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 4px 6px; border-radius: 3px; }
-        .ind-left { display: flex; flex-direction: column; }
-        .ind-right { text-align: right; }
-        .ind-name { color: #aaa; font-size: 10px; }
-        .ind-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
-        
-        .win-dual { font-size: 10px; font-family: 'Roboto Mono'; display: flex; gap: 5px; }
-        .w-l { color: var(--green); opacity: 0.5; }
-        .w-s { color: var(--red); opacity: 0.5; }
-        .active-side { opacity: 1; font-weight: bold; text-decoration: underline; }
-
-        .strat-box { margin-top: auto; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid transparent; }
-        .strat-long { background: var(--green-bg); border-color: var(--green); }
-        .strat-short { background: var(--red-bg); border-color: var(--red); }
-        .strat-chop { background: var(--yellow-bg); border-color: var(--yellow); border-style: dashed; color: var(--yellow); }
-        .strat-wait { background: #2b3139; border-color: #444; color: #888; }
-
-        .strat-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
-        .s-long { color: var(--green); } .s-short { color: var(--red); } .s-chop { color: var(--yellow); }
-
-        .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 11px; text-align: left; }
-        .sg-item { display: flex; flex-direction: column; }
-        .sg-label { color: var(--text-sub); scale: 0.9; transform-origin: left; }
-        .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
-        .blur-text { filter: blur(4px); opacity: 0.5; }
-
-        .loading-bar { text-align: center; color: var(--yellow); padding: 20px; animation: blink 1s infinite; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        @media (max-width: 900px) {
-            body { padding: 5px; }
-            .header { flex-direction: column; align-items: flex-start; gap: 5px; }
-            .symbol-row { display: flex; flex-direction: column; gap: 0; margin-bottom: 20px; border: 1px solid #444; }
-            .col-info { flex-direction: column; gap: 10px; padding: 15px; border-right: none; border-bottom: 1px solid var(--border); background: #252a30; }
-            .sym-header { width: 100%; }
-            .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 15px; }
-            .col-tf:last-child { border-bottom: none; }
-            .ind-list { grid-template-columns: 1fr 1fr; gap: 8px; }
-            .ind-item { flex-direction: column; align-items: flex-start; gap: 4px; }
-            .ind-right { width: 100%; text-align: left; }
+        /* 內容網格佈局 */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* 手機單欄 */
+        }
+
+        /* 區塊樣式 */
+        .section { padding: 12px; border-bottom: 1px dashed #333; }
+        .section:last-child { border-bottom: none; }
+        .sec-title { font-size: 11px; color: #888; margin-bottom: 5px; font-weight: bold; display: flex; justify-content: space-between; }
+
+        /* 數據條 */
+        .bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; }
+        .bar-fill { height: 100%; transition: width 0.5s; }
+        .bf-green { background: var(--green); } .bf-red { background: var(--red); }
+
+        /* 指標列表 */
+        .ind-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; padding: 4px; background: rgba(255,255,255,0.03); border-radius: 4px;}
+        .ind-l { color: #aaa; } .ind-r { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
+
+        /* 策略區 */
+        .strat-panel { background: #111; padding: 10px; text-align: center; }
+        .sp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; text-align: left; }
+        .sp-item { display: flex; flex-direction: column; }
+        .sp-lbl { font-size: 10px; color: #666; }
+        .sp-val { font-family: 'Roboto Mono'; font-size: 12px; font-weight: bold; color: #eee; }
+
+        /* 爆倉監控 */
+        .liq-alert { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); padding: 5px; text-align: center; border-radius: 4px; font-weight: bold; margin-bottom: 5px; display: none; }
+
+        /* 電腦版適配 (大於 900px 時強制展開並橫向排列) */
+        @media (min-width: 900px) {
+            .card-header { display: none; } /* 隱藏手機頭部 */
+            .card-body { display: grid !important; grid-template-columns: 200px 1fr 1fr 1fr; } /* 強制展開為4欄 */
+            .section { border-bottom: none; border-right: 1px dashed #333; }
+            .section:last-child { border-right: none; }
+            /* 補充：電腦版需要一個頂部資訊欄，這裡沿用 V18 的邏輯稍微調整 */
+            .detail-grid { grid-template-columns: 200px 1fr 1fr 1fr; }
         }
     </style>
 </head>
@@ -151,18 +134,15 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">戰情室 V18 (爆倉雷達版)</h1>
-        <span style="color:#888; font-size:11px;">
-            新增：實時強平監控 (Liquidations) | 捕捉連環爆插針 | 數據源: Binance WSS
-        </span>
+        <h1 style="margin:0;">V19 爆倉預測模型</h1>
+        <span style="color:#888; font-size:11px;">15m 短線焦點 | 點擊卡片展開詳情</span>
     </div>
     <div id="sys-status" style="color:var(--yellow); font-weight:bold; font-size:12px;">連線中...</div>
 </div>
 
-<div id="grid-container">
-    <div class="loading-bar">
-        正在連接 Binance Force Order Stream (即時爆倉流)...<br>
-        系統將監聽市場上的「慘叫聲」(Margin Calls)。
+<div id="card-container">
+    <div style="text-align:center; padding:20px; color:#666;">
+        正在計算 ATR 波動率與爆倉機率...
     </div>
 </div>
 
@@ -171,17 +151,11 @@
     const TFS = ['15m', '1h', '4h'];
     const LIMIT = 500; 
     
-    const TRANS = {
-        '15m': '15分鐘', '1h': '1小時', '4h': '4小時',
-        'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL'
-    };
-
+    // 翻譯與數據存儲
+    const TRANS = { '15m': '15分 (短)', '1h': '1時 (波)', '4h': '4時 (趨)' };
     const store = {}; 
-    const liqData = {}; // 存儲爆倉數據
 
-    // 初始化數據結構
-    SYMBOLS.forEach(s => liqData[s] = { long: 0, short: 0, lastUpdate: Date.now() });
-
+    // --- 數學引擎 ---
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
         emaArray: (data, period) => {
@@ -229,84 +203,69 @@
         }
     };
 
+    // --- 初始化 UI ---
     function initUI() {
-        const container = document.getElementById('grid-container');
+        const container = document.getElementById('card-container');
         container.innerHTML = ''; 
 
         SYMBOLS.forEach(sym => {
             store[sym] = {}; 
             
+            // 建立卡片結構
             let html = `
-            <div class="symbol-row" id="row-${sym}">
-                <div class="col-info">
-                    <div class="sym-header">
-                        <div class="sym-name">${sym.toUpperCase().replace('USDT','')}</div>
-                        <div class="sym-price" id="price-${sym}">---.--</div>
+            <div class="card" id="card-${sym}" onclick="toggleCard('${sym}')">
+                <div class="card-header">
+                    <div class="ch-info">
+                        <span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span>
+                        <span class="sym-price" id="price-${sym}">---.--</span>
                     </div>
-                    
-                    <div class="liq-box">
-                        <div class="liq-title">
-                            <span>🔥 1m爆倉 (強平)</span>
-                            <span id="liq-alert-${sym}" class="liq-tag" style="background:var(--red); color:#fff;">💥 連環爆</span>
-                        </div>
-                        <div class="liq-val">
-                            <span class="l-long" id="liq-l-${sym}">多: $0</span>
-                            <span class="l-short" id="liq-s-${sym}">空: $0</span>
-                        </div>
+                    <div class="ch-summary">
+                        <span class="summary-tag st-wait" id="head-signal-${sym}">載入中</span>
+                        <span class="risk-val" id="head-risk-${sym}">波動風險: 計算中</span>
                     </div>
-
-                    <div class="flow-box">
-                        <div class="flow-bar-bg">
-                            <div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div>
-                            <div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div>
-                        </div>
-                        <div class="mini-stat">
-                            <span id="flow-bv-${sym}">主動買 --%</span>
-                            <span id="flow-sv-${sym}">主動賣 --%</span>
-                        </div>
-                    </div>
+                    <div class="toggle-icon">▼</div>
                 </div>
-            `;
 
-            TFS.forEach(tf => {
-                store[sym][tf] = {}; 
-                html += `
-                <div class="col-tf">
-                    <div class="tf-header">
-                        <div class="tf-title-row">
-                            <span class="tf-title">${TRANS[tf]}</span>
-                        </div>
-                        <div class="wr-bar-bg">
-                            <div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div>
-                            <div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div>
-                        </div>
-                        <div class="wr-text">
-                            <span id="wr-l-${sym}-${tf}">多 --%</span>
-                            <span id="wr-s-${sym}-${tf}">空 --%</span>
-                        </div>
-                    </div>
+                <div class="card-body detail-grid">
                     
-                    <div class="ind-list" id="list-${sym}-${tf}">
-                        <div style="color:#444;">運算中...</div>
-                    </div>
-
-                    <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
-                        <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
-                        <div class="strat-grid">
-                            <div class="sg-item"><span class="sg-label">進場</span><span class="sg-val" id="en-${sym}-${tf}">---</span></div>
-                            <div class="sg-item"><span class="sg-label">止損</span><span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
-                            <div class="sg-item"><span class="sg-label">TP1</span><span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
-                            <div class="sg-item"><span class="sg-label">TP2</span><span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
+                    <div class="section">
+                        <div class="liq-alert" id="liq-alert-${sym}">💥 監測到連環爆倉</div>
+                        <div class="sec-title"><span>訂單流 (1h Taker)</span></div>
+                        <div class="bar-bg">
+                            <div class="bar-fill bf-green" id="flow-b-${sym}" style="width:50%"></div>
+                            <div class="bar-fill bf-red" id="flow-s-${sym}" style="width:50%"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:2px;">
+                            <span id="flow-bv-${sym}">買 --%</span>
+                            <span id="flow-sv-${sym}">賣 --%</span>
+                        </div>
+                        <div style="margin-top:10px; font-size:11px; color:#aaa;">
+                            爆倉機率(ATR): <span id="atr-risk-${sym}" style="color:#fff; font-weight:bold;">--%</span>
                         </div>
                     </div>
-                </div>`;
-            });
 
-            html += `</div>`;
+                    <div class="section" id="sec-15m-${sym}"></div>
+
+                    <div class="section" id="sec-1h-${sym}"></div>
+
+                    <div class="section" id="sec-4h-${sym}"></div>
+
+                </div>
+            </div>`;
             container.insertAdjacentHTML('beforeend', html);
         });
     }
 
+    // 切換卡片展開/收合
+    window.toggleCard = function(sym) {
+        // 只有在手機版 (寬度 < 900) 才有效
+        if (window.innerWidth < 900) {
+            const card = document.getElementById(`card-${sym}`);
+            card.classList.toggle('expanded');
+        }
+    };
+
+    // --- 運算邏輯 ---
     async function runAnalysis() {
         initUI();
         
@@ -318,7 +277,7 @@
                 );
                 const results = await Promise.all(promises);
 
-                if(results[0].code) { markInvalid(sym); continue; }
+                if(results[0].code) { document.getElementById(`card-${sym}`).style.display='none'; continue; }
 
                 results.forEach((data, i) => {
                     const tf = TFS[i];
@@ -326,7 +285,7 @@
                     processTimeframe(sym, tf, data);
                     if (tf === '1h') calculateFlow(sym, data);
                 });
-            } catch(e) { console.error(e); markInvalid(sym); }
+            } catch(e) { console.error(e); }
         }
 
         document.getElementById('sys-status').textContent = '● 監控中';
@@ -334,264 +293,150 @@
         connectWSS();
     }
 
+    // 計算訂單流
     function calculateFlow(sym, klines) {
         const recent = klines.slice(-24);
-        let totalVol = 0, buyVol = 0;
-        recent.forEach(k => {
-            const vol = parseFloat(k[5]);
-            const takerBuy = parseFloat(k[9]);
-            totalVol += vol; buyVol += takerBuy;
-        });
-        const buyPct = (buyVol / totalVol) * 100;
-        const sellPct = 100 - buyPct;
+        let total = 0, buy = 0;
+        recent.forEach(k => { total += parseFloat(k[5]); buy += parseFloat(k[9]); });
+        const buyPct = (buy/total)*100;
         document.getElementById(`flow-b-${sym}`).style.width = `${buyPct}%`;
-        document.getElementById(`flow-s-${sym}`).style.width = `${sellPct}%`;
-        document.getElementById(`flow-bv-${sym}`).textContent = `買 ${buyPct.toFixed(0)}%`;
-        document.getElementById(`flow-sv-${sym}`).textContent = `賣 ${sellPct.toFixed(0)}%`;
+        document.getElementById(`flow-s-${sym}`).style.width = `${100-buyPct}%`;
+        document.getElementById(`flow-bv-${sym}`).textContent = `買${buyPct.toFixed(0)}%`;
+        document.getElementById(`flow-sv-${sym}`).textContent = `賣${(100-buyPct).toFixed(0)}%`;
     }
 
+    // 處理時區並渲染
     function processTimeframe(sym, tf, klines) {
         const closes = klines.map(d => parseFloat(d[4]));
         const highs = klines.map(d => parseFloat(d[2]));
         const lows = klines.map(d => parseFloat(d[3]));
-        const len = closes.length;
-        const last = len - 1;
+        const last = closes.length - 1;
         const curPrice = closes[last];
 
+        // 計算 ATR 與 風險機率 (Volatility Risk)
         const atr = MathEngine.atr(highs, lows, closes);
+        // 如果當前K線振幅超過 2倍 ATR，視為爆倉高風險
+        const currentRange = highs[last] - lows[last];
+        const riskScore = Math.min(100, Math.round((currentRange / atr) * 50)); 
+
+        // 指標運算
         const rsiArr = MathEngine.rsiArray(closes);
         const ema50Arr = MathEngine.emaArray(closes, 50);
-        const vwapArr = MathEngine.emaArray(closes, 90); 
-        
-        let sma20=[], upper=[], lower=[];
-        for(let i=0; i<len; i++) {
-            if(i<20) { sma20.push(0); upper.push(0); lower.push(0); continue; }
-            let slice = closes.slice(i-20, i);
-            let avg = slice.reduce((a,b)=>a+b,0)/20;
-            let std = Math.sqrt(slice.map(x=>Math.pow(x-avg,2)).reduce((a,b)=>a+b,0)/20);
-            sma20.push(avg); upper.push(avg+2*std); lower.push(avg-2*std);
-        }
+        const sma20 = MathEngine.sma(closes, 20); // BOLL Mid
+        const std = Math.sqrt(closes.slice(-20).map(x=>Math.pow(x-sma20,2)).reduce((a,b)=>a+b)/20);
+        const upper = sma20 + 2*std;
+        const lower = sma20 - 2*std;
 
-        let ema12 = MathEngine.emaArray(closes, 12);
-        let ema26 = MathEngine.emaArray(closes, 26);
-        let macdArr = ema12.map((v,i) => v - ema26[i]);
-
+        // 回測信號
         const sigs = {
-            rsi_buy: [], rsi_sell: [], ema_buy: [], ema_sell: [],
-            macd_buy: [], macd_sell: [], vwap_buy: [], vwap_sell: [],
-            bb_buy: [], bb_sell: []
+            rsi_b: [], rsi_s: [], ema_b: [], ema_s: [], bb_b: [], bb_s: []
         };
-
-        for(let i=50; i<len; i++) {
+        for(let i=50; i<=last; i++) {
             const c = closes[i];
-            sigs.rsi_buy[i] = rsiArr[i] < 40; sigs.rsi_sell[i] = rsiArr[i] > 60;
-            sigs.ema_buy[i] = c > ema50Arr[i]; sigs.ema_sell[i] = c < ema50Arr[i];
-            sigs.macd_buy[i] = macdArr[i] > 0; sigs.macd_sell[i] = macdArr[i] < 0;
-            sigs.vwap_buy[i] = c > vwapArr[i]; sigs.vwap_sell[i] = c < vwapArr[i];
-            sigs.bb_buy[i] = c > upper[i]; sigs.bb_sell[i] = c < lower[i];
+            sigs.rsi_b[i] = rsiArr[i]<40; sigs.rsi_s[i] = rsiArr[i]>60;
+            sigs.ema_b[i] = c>ema50Arr[i]; sigs.ema_s[i] = c<ema50Arr[i];
+            sigs.bb_b[i] = c>upper; sigs.bb_s[i] = c<lower; // 簡化處理
         }
 
-        const calcWR = (buySig, sellSig) => {
-            return {
-                long: MathEngine.getWinRate(buySig, closes, 'long'),
-                short: MathEngine.getWinRate(sellSig, closes, 'short')
-            };
+        const getWR = (b, s, isLong) => isLong ? MathEngine.getWinRate(b, closes, 'long') : MathEngine.getWinRate(s, closes, 'short');
+        
+        // 渲染指標
+        const isBull = {
+            rsi: rsiArr[last] > 50,
+            ema: curPrice > ema50Arr[last],
+            bb: curPrice > sma20
         };
 
-        const wrRSI = calcWR(sigs.rsi_buy, sigs.rsi_sell);
-        const wrEMA = calcWR(sigs.ema_buy, sigs.ema_sell);
-        const wrMACD = calcWR(sigs.macd_buy, sigs.macd_sell);
-        const wrVWAP = calcWR(sigs.vwap_buy, sigs.vwap_sell);
-        const wrBB = calcWR(sigs.bb_buy, sigs.bb_sell);
+        const wr = {
+            rsi: getWR(sigs.rsi_b, sigs.rsi_s, isBull.rsi),
+            ema: getWR(sigs.ema_b, sigs.ema_s, isBull.ema)
+        };
 
-        const fVal = (v) => v < 10 ? v.toFixed(4) : v.toFixed(2);
-        const getDir = (bull, bear) => bull ? 'long' : bear ? 'short' : 'neu';
+        const fVal = v => v<10 ? v.toFixed(4) : v.toFixed(2);
 
-        const indData = [
-            { id:'RSI', n:'相對強弱', val: rsiArr[last].toFixed(1), dir: getDir(rsiArr[last]>55, rsiArr[last]<45), wr: wrRSI },
-            { id:'EMA', n:'趨勢均線', val: fVal(ema50Arr[last]), dir: getDir(curPrice>ema50Arr[last], curPrice<ema50Arr[last]), wr: wrEMA },
-            { id:'MACD', n:'動能指標', val: macdArr[last].toFixed(4), dir: getDir(macdArr[last]>0, macdArr[last]<0), wr: wrMACD },
-            { id:'VWAP', n:'成交均價', val: fVal(vwapArr[last]), dir: getDir(curPrice>vwapArr[last], curPrice<vwapArr[last]), wr: wrVWAP },
-            { id:'BOLL', n:'布林通道', val: curPrice>upper[last]?'上破':curPrice<lower[last]?'下破':'區間', dir: getDir(curPrice>upper[last], curPrice<lower[last]), wr: wrBB }
-        ];
+        // 生成 HTML
+        let html = `
+            <div class="sec-title">
+                <span>${TRANS[tf]}</span>
+                <span style="font-family:Roboto Mono; color:#fff;">${wr.rsi}% 勝率</span>
+            </div>
+            <div class="ind-row"><span class="ind-l">RSI</span><span class="ind-r" style="color:${isBull.rsi?'var(--green)':'var(--red)'}">${rsiArr[last].toFixed(1)}</span></div>
+            <div class="ind-row"><span class="ind-l">EMA</span><span class="ind-r" style="color:${isBull.ema?'var(--green)':'var(--red)'}">${fVal(ema50Arr[last])}</span></div>
+            <div class="ind-row"><span class="ind-l">BOLL</span><span class="ind-r">${curPrice>upper?'上破':curPrice<lower?'下破':'區間'}</span></div>
+        `;
 
-        const listEl = document.getElementById(`list-${sym}-${tf}`);
-        let listHtml = '';
-        
-        let sumLongWR = 0, sumShortWR = 0, count = 0;
-        let signalCount = { long: 0, short: 0 };
+        // 策略建議 (包含在區塊內)
+        let signal = 'wait';
+        let sigText = '觀望';
+        let sigClass = 'st-wait';
 
-        indData.forEach(ind => {
-            if(ind.wr.long > 0) sumLongWR += ind.wr.long;
-            if(ind.wr.short > 0) sumShortWR += ind.wr.short;
-            count++;
+        // 簡單策略：勝率高且方向一致
+        if (isBull.rsi && isBull.ema && wr.rsi > 50) { signal='long'; sigText='做多'; sigClass='st-long'; }
+        else if (!isBull.rsi && !isBull.ema && wr.rsi > 50) { signal='short'; sigText='做空'; sigClass='st-short'; }
 
-            if(ind.dir === 'long') signalCount.long++;
-            if(ind.dir === 'short') signalCount.short++;
-
-            const isLong = ind.dir === 'long';
-            const isShort = ind.dir === 'short';
-            const color = isLong ? 'var(--green)' : isShort ? 'var(--red)' : '#666';
-            
-            const longClass = isLong ? 'w-l active-side' : 'w-l';
-            const shortClass = isShort ? 'w-s active-side' : 'w-s';
-
-            listHtml += `
-                <div class="ind-item">
-                    <div class="ind-left">
-                        <span class="ind-name">${ind.n} <span style="font-family:Arial; opacity:0.5">(${ind.id})</span></span>
-                        <span class="ind-val" style="color:${color}">${ind.val}</span>
-                    </div>
-                    <div class="ind-right">
-                        <div class="win-dual">
-                            <span class="${longClass}">多${ind.wr.long}%</span>
-                            <span style="color:#444">|</span>
-                            <span class="${shortClass}">空${ind.wr.short}%</span>
-                        </div>
-                    </div>
+        // 渲染策略區
+        if (signal !== 'wait') {
+            const sl = signal=='long' ? curPrice - atr*1.5 : curPrice + atr*1.5;
+            const tp = signal=='long' ? curPrice + atr*2 : curPrice - atr*2;
+            html += `
+            <div class="strat-panel" style="border:1px solid ${signal=='long'?'var(--green)':'var(--red)'}">
+                <div style="font-weight:bold; color:${signal=='long'?'var(--green)':'var(--red)'}">建議${sigText}</div>
+                <div class="sp-grid">
+                    <div class="sp-item"><span class="sp-lbl">進場</span><span class="sp-val">${fVal(curPrice)}</span></div>
+                    <div class="sp-item"><span class="sp-lbl">止損</span><span class="sp-val">${fVal(sl)}</span></div>
                 </div>
-            `;
-        });
-        listEl.innerHTML = listHtml;
-
-        const avgLong = Math.round(sumLongWR / count);
-        const avgShort = Math.round(sumShortWR / count);
-        
-        const total = avgLong + avgShort;
-        const longPct = total === 0 ? 50 : (avgLong / total) * 100;
-        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${longPct}%`;
-        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${100-longPct}%`;
-        
-        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多 ${avgLong}%`;
-        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空 ${avgShort}%`;
-
-        const stratBox = document.getElementById(`strat-${sym}-${tf}`);
-        const actTitle = document.getElementById(`act-${sym}-${tf}`);
-        const enEl = document.getElementById(`en-${sym}-${tf}`);
-        const slEl = document.getElementById(`sl-${sym}-${tf}`);
-        const tp1El = document.getElementById(`tp1-${sym}-${tf}`);
-        const tp2El = document.getElementById(`tp2-${sym}-${tf}`);
-        const sgVals = stratBox.querySelectorAll('.sg-val');
-
-        let decision = 'wait';
-        if (avgLong >= 53 && avgLong > avgShort) decision = 'long';
-        else if (avgShort >= 53 && avgShort > avgLong) decision = 'short';
-        else if (avgLong < 50 && avgShort < 50) decision = 'chop';
-
-        if (decision === 'long') {
-            stratBox.className = 'strat-box strat-long';
-            actTitle.innerHTML = `<span class="s-long">建議做多 (勝率${avgLong}%)</span>`;
-            enEl.textContent = fVal(curPrice);
-            slEl.textContent = fVal(curPrice - (atr * 1.5));
-            tp1El.textContent = fVal(curPrice + (atr * 1.2));
-            tp2El.textContent = fVal(curPrice + (atr * 2.5));
-            sgVals.forEach(el => el.classList.remove('blur-text'));
-        } 
-        else if (decision === 'short') {
-            stratBox.className = 'strat-box strat-short';
-            actTitle.innerHTML = `<span class="s-short">建議做空 (勝率${avgShort}%)</span>`;
-            enEl.textContent = fVal(curPrice);
-            slEl.textContent = fVal(curPrice + (atr * 1.5));
-            tp1El.textContent = fVal(curPrice - (atr * 1.2));
-            tp2El.textContent = fVal(curPrice - (atr * 2.5));
-            sgVals.forEach(el => el.classList.remove('blur-text'));
-        } 
-        else if (decision === 'chop') {
-            stratBox.className = 'strat-box strat-chop';
-            actTitle.innerHTML = `<span class="s-chop">⚠️ 盤整 (雙殺風險)</span>`;
-            enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
-            sgVals.forEach(el => el.classList.add('blur-text'));
-        } 
-        else {
-            stratBox.className = 'strat-box strat-wait';
-            actTitle.innerHTML = `<span>觀望</span>`;
-            enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
-            sgVals.forEach(el => el.classList.remove('blur-text'));
-        }
-    }
-
-    function markInvalid(sym) {
-        document.getElementById(`row-${sym}`).style.display = 'none';
-    }
-
-    // 更新爆倉 UI
-    function updateLiqUI(sym) {
-        const d = liqData[sym];
-        // 格式化數字 (例如 1.2k, 1.5M)
-        const fK = (v) => v > 1000000 ? (v/1000000).toFixed(1)+'M' : (v > 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(0));
-        
-        document.getElementById(`liq-l-${sym}`).textContent = `多: $${fK(d.long)}`;
-        document.getElementById(`liq-s-${sym}`).textContent = `空: $${fK(d.short)}`;
-
-        const alertEl = document.getElementById(`liq-alert-${sym}`);
-        const rowEl = document.getElementById(`row-${sym}`);
-        
-        // 觸發條件: 1分鐘內爆倉超過 50k (可調整)
-        const threshold = 50000; 
-        
-        if (d.long > threshold) {
-            alertEl.style.display = 'inline-block';
-            alertEl.textContent = "💥 多軍連環爆";
-            alertEl.style.background = "var(--red)";
-            rowEl.classList.add('exploding-long');
-            setTimeout(() => rowEl.classList.remove('exploding-long'), 500);
-        } else if (d.short > threshold) {
-            alertEl.style.display = 'inline-block';
-            alertEl.textContent = "🚀 空軍連環爆";
-            alertEl.style.background = "var(--green)";
-            rowEl.classList.add('exploding-short');
-            setTimeout(() => rowEl.classList.remove('exploding-short'), 500);
+            </div>`;
         } else {
-            alertEl.style.display = 'none';
+            html += `<div class="strat-panel" style="color:#666;">數據盤整中 (勝率低)</div>`;
+        }
+
+        // 注入內容到對應區塊
+        document.getElementById(`sec-${tf}-${sym}`).innerHTML = html;
+
+        // --- 關鍵：更新手機版收合頭部 (只用15m數據) ---
+        if (tf === '15m') {
+            const headSignal = document.getElementById(`head-signal-${sym}`);
+            const headRisk = document.getElementById(`head-risk-${sym}`);
+            
+            headSignal.className = `summary-tag ${sigClass}`;
+            headSignal.textContent = sigText + (signal!=='wait' ? ` (${wr.rsi}%)` : '');
+            
+            headRisk.textContent = `爆倉風險: ${riskScore}%`;
+            headRisk.className = `risk-val ${riskScore>70 ? 'risk-high' : ''}`;
+            
+            // 同步更新左側欄位的 ATR 風險值
+            document.getElementById(`atr-risk-${sym}`).textContent = riskScore + '%';
         }
     }
 
     function connectWSS() {
-        // 1. Ticker Stream (價格)
-        const tickerStreams = SYMBOLS.map(s => `${s}@ticker`).join('/');
-        const wsTicker = new WebSocket(`wss://fstream.binance.com/stream?streams=${tickerStreams}`);
-        
-        wsTicker.onmessage = (e) => {
+        const streams = SYMBOLS.map(s => `${s}@ticker`).join('/');
+        const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
+        ws.onmessage = (e) => {
             const msg = JSON.parse(e.data);
             const sym = msg.data.s.toLowerCase();
             const price = parseFloat(msg.data.c);
+            
             const el = document.getElementById(`price-${sym}`);
             if(el) {
                 el.textContent = price;
                 el.className = `sym-price ${parseFloat(msg.data.P)>=0?'up':'down'}`;
             }
         };
-
-        // 2. Force Order Stream (即時爆倉)
+        // 爆倉監控流
         const wsLiq = new WebSocket(`wss://fstream.binance.com/ws/!forceOrder@arr`);
-        
         wsLiq.onmessage = (e) => {
             const msg = JSON.parse(e.data);
-            // 處理批次爆倉訊息
-            const orders = Array.isArray(msg) ? msg : [msg];
-            
-            orders.forEach(o => {
-                const order = o.o;
-                const sym = order.s.toLowerCase();
-                if (!store[sym]) return; // 過濾掉不在列表的幣
-
-                const amount = parseFloat(order.q) * parseFloat(order.p); // 爆倉金額 USDT
-                const side = order.S; // SELL = 多單被強平, BUY = 空單被強平
-
-                // 累加數據
-                if (side === 'SELL') liqData[sym].long += amount; // 多單爆倉 (賣出平倉)
-                else liqData[sym].short += amount; // 空單爆倉 (買入平倉)
-
-                // 重置計時器 (每分鐘歸零一次，顯示即時動能)
-                if (Date.now() - liqData[sym].lastUpdate > 60000) {
-                    liqData[sym].long = 0;
-                    liqData[sym].short = 0;
-                    liqData[sym].lastUpdate = Date.now();
-                }
-
-                updateLiqUI(sym);
-            });
-        };
+            const o = msg.o;
+            const sym = o.s.toLowerCase();
+            const amt = parseFloat(o.q) * parseFloat(o.p);
+            if (store[sym] && amt > 10000) { // 大額爆倉才警報
+                const alert = document.getElementById(`liq-alert-${sym}`);
+                alert.style.display = 'block';
+                alert.textContent = `💥 ${o.S} 爆倉 $${(amt/1000).toFixed(1)}k`;
+                setTimeout(()=>alert.style.display='none', 3000);
+            }
+        }
     }
 
     runAnalysis();
