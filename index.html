@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V17 量價結構版)</title>
+    <title>全維度戰情室 (V20 自選濾鏡版)</title>
     <style>
         :root {
             --bg: #0b0e11;
@@ -17,16 +17,18 @@
             --yellow: #fcd535;
             --yellow-bg: rgba(252, 213, 53, 0.1);
             --border: #2b3139;
+            --modal-bg: #1e2329;
         }
         body {
             background-color: var(--bg);
             color: var(--text-main);
             font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
             margin: 0;
-            padding: 10px;
+            padding: 15px;
             font-size: 13px;
         }
         
+        /* 頂部導航 */
         .header {
             border-bottom: 2px solid var(--border);
             padding-bottom: 15px;
@@ -34,10 +36,91 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
+        }
+        
+        .btn-filter {
+            background: #2b3139;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        .btn-filter:hover { background: #3a4149; border-color: #666; }
+
+        /* --- 模態框 (Filter Modal) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: none; /* 預設隱藏 */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: var(--modal-bg);
+            width: 90%; max-width: 600px;
+            max-height: 80vh;
+            border-radius: 8px;
+            border: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            padding: 15px; border-bottom: 1px solid #333;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-body {
+            padding: 15px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 10px;
         }
+        .modal-footer {
+            padding: 15px; border-top: 1px solid #333;
+            text-align: right;
+        }
+        
+        /* 搜尋框 */
+        .search-input {
+            background: #0b0e11; border: 1px solid #444; color: #fff;
+            padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box;
+            margin-bottom: 10px;
+        }
 
+        /* 幣種選項 */
+        .coin-option {
+            background: #0b0e11;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            cursor: pointer;
+            text-align: center;
+            font-family: 'Roboto Mono';
+            font-size: 12px;
+            user-select: none;
+        }
+        .coin-option:hover { border-color: #666; }
+        .coin-option.selected {
+            background: var(--green-bg);
+            border-color: var(--green);
+            color: var(--green);
+            font-weight: bold;
+        }
+        
+        .btn-confirm {
+            background: var(--green); color: #000; border: none;
+            padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;
+        }
+
+        /* --- 主內容 (V17 樣式) --- */
         .symbol-row {
             display: grid;
             grid-template-columns: 200px 1fr 1fr 1fr;
@@ -48,34 +131,29 @@
             margin-bottom: 15px;
             overflow: hidden;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            position: relative;
         }
+        
+        .close-card {
+            position: absolute; top: 5px; right: 5px;
+            color: #444; cursor: pointer; font-size: 16px; z-index: 10;
+            padding: 0 5px;
+        }
+        .close-card:hover { color: var(--red); }
 
-        /* 左側資訊欄 */
-        .col-info {
-            background: #1e2329;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            border-right: 1px solid var(--border);
-        }
+        .col-info { background: #1e2329; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-right: 1px solid var(--border); }
         .sym-header { display: flex; justify-content: space-between; align-items: baseline; }
         .sym-name { font-size: 20px; font-weight: 900; color: #fff; }
         .sym-price { font-size: 16px; font-family: 'Roboto Mono'; font-weight: bold; }
         .up { color: var(--green); } .down { color: var(--red); }
 
-        /* 量能監控區 (新增) */
-        .vol-box { 
-            margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; 
-            font-size: 11px;
-        }
+        .vol-box { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; font-size: 11px; }
         .vol-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
         .vol-tag { padding: 1px 4px; border-radius: 2px; font-weight: bold; }
-        .v-high { background: var(--yellow); color: #000; } /* 爆量 */
+        .v-high { background: var(--yellow); color: #000; } 
         .v-norm { background: #444; color: #ccc; }
         .v-low { background: #222; color: #666; }
 
-        /* 訂單流條 */
         .flow-box { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; }
         .flow-title { font-size: 11px; color: #aaa; margin-bottom: 3px; display: flex; justify-content: space-between; }
         .flow-bar-bg { width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden; display: flex; }
@@ -122,15 +200,11 @@
         .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
         .blur-text { filter: blur(4px); opacity: 0.5; }
 
-        .loading-bar { text-align: center; color: var(--yellow); padding: 20px; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
+        .loading-text { text-align: center; color: #666; margin-top: 50px; font-size: 16px; }
 
         @media (max-width: 900px) {
-            body { padding: 5px; }
-            .header { flex-direction: column; align-items: flex-start; gap: 5px; }
             .symbol-row { display: flex; flex-direction: column; gap: 0; margin-bottom: 20px; border: 1px solid #444; }
             .col-info { flex-direction: column; gap: 10px; padding: 15px; border-right: none; border-bottom: 1px solid var(--border); background: #252a30; }
-            .sym-header { width: 100%; }
             .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 15px; }
             .col-tf:last-child { border-bottom: none; }
             .ind-list { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -141,41 +215,238 @@
 </head>
 <body>
 
+<div class="modal-overlay" id="filterModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span style="font-size:16px; font-weight:bold;">選擇監控幣種</span>
+            <span style="cursor:pointer;" onclick="closeModal()">✕</span>
+        </div>
+        <div style="padding: 0 15px; margin-top:15px;">
+            <input type="text" class="search-input" id="coinSearch" placeholder="搜尋幣種 (如: BTC, SOL)..." onkeyup="filterCoins()">
+        </div>
+        <div class="modal-body" id="coinList">
+            <div style="color:#888;">正在從 Binance 獲取合約清單...</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-confirm" onclick="applyFilter()">確認並載入數據</button>
+        </div>
+    </div>
+</div>
+
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">戰情室 V17 (量價結構版)</h1>
+        <h1 style="margin:0; font-size:20px;">戰情室 V20 (自選濾鏡版)</h1>
         <span style="color:#888; font-size:11px;">
-            邏輯：真實Taker數據 (API欄位9) | 量能狀態監控 (爆量/縮量)
+            V17核心 | 真實Taker | 量價結構 | 雙向回測
         </span>
     </div>
-    <div id="sys-status" style="color:var(--yellow); font-weight:bold; font-size:12px;">連線中...</div>
+    <div>
+        <button class="btn-filter" onclick="openModal()">
+            <span>➕</span> 篩選幣種
+        </button>
+    </div>
 </div>
 
 <div id="grid-container">
-    <div class="loading-bar">
-        正在獲取真實 Taker Buy/Sell 數據與量能計算...<br>
-        (數據來源: Binance Futures Klines [5] & [9])
+    <div class="loading-text">
+        👋 歡迎使用！請點擊右上角 <b>[➕ 篩選幣種]</b> 開始建立你的戰情室。
     </div>
 </div>
 
 <script>
-    const SYMBOLS = ['btcusdt', 'ethusdt', 'adausdt', 'solusdt', 'xrpusdt', 'riverusdt', 'nxpcusdt'];
+    // 全域配置
     const TFS = ['15m', '1h', '4h'];
     const LIMIT = 500; 
     
     const TRANS = {
-        '15m': '15分鐘 (短線)',
-        '1h': '1小時 (波段)',
-        '4h': '4小時 (趨勢)',
-        'RSI': 'RSI',
-        'EMA': 'EMA',
-        'MACD': 'MACD',
-        'VWAP': 'VWAP',
-        'BOLL': 'BOLL'
+        '15m': '15分鐘 (短線)', '1h': '1小時 (波段)', '4h': '4小時 (趨勢)',
+        'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL'
     };
 
-    const store = {}; 
+    // 狀態管理
+    let allSymbols = []; // 幣安所有合約
+    let activeSymbols = new Set(); // 使用者選中的
+    let wss = null; // WebSocket 連線
+    let store = {}; // 數據緩存
 
+    // --- 1. 系統初始化與 API ---
+    async function fetchExchangeInfo() {
+        try {
+            const res = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
+            const data = await res.json();
+            // 過濾出 USDT 永續合約
+            allSymbols = data.symbols
+                .filter(s => s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL' && s.status === 'TRADING')
+                .map(s => s.symbol.replace('USDT', ''))
+                .sort();
+            
+            renderCoinList();
+        } catch (e) {
+            document.getElementById('coinList').innerHTML = `<span style="color:red">API連線失敗，請檢查網路</span>`;
+        }
+    }
+
+    // --- 2. 模態框邏輯 ---
+    function openModal() {
+        if(allSymbols.length === 0) fetchExchangeInfo();
+        document.getElementById('filterModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('filterModal').style.display = 'none';
+    }
+
+    function renderCoinList() {
+        const container = document.getElementById('coinList');
+        container.innerHTML = '';
+        allSymbols.forEach(sym => {
+            const div = document.createElement('div');
+            div.className = `coin-option ${activeSymbols.has(sym.toLowerCase() + 'usdt') ? 'selected' : ''}`;
+            div.textContent = sym;
+            div.dataset.sym = sym.toLowerCase() + 'usdt'; // 存完整代碼
+            div.onclick = () => toggleSelect(div);
+            container.appendChild(div);
+        });
+    }
+
+    function toggleSelect(el) {
+        el.classList.toggle('selected');
+    }
+
+    function filterCoins() {
+        const txt = document.getElementById('coinSearch').value.toUpperCase();
+        const opts = document.querySelectorAll('.coin-option');
+        opts.forEach(opt => {
+            opt.style.display = opt.textContent.includes(txt) ? 'block' : 'none';
+        });
+    }
+
+    // --- 3. 應用篩選 (核心流程) ---
+    async function applyFilter() {
+        // 1. 獲取選中的幣種
+        const selected = Array.from(document.querySelectorAll('.coin-option.selected'))
+                              .map(el => el.dataset.sym);
+        
+        activeSymbols = new Set(selected);
+        closeModal();
+
+        const container = document.getElementById('grid-container');
+        container.innerHTML = ''; // 清空畫面
+
+        if(selected.length === 0) {
+            container.innerHTML = '<div class="loading-text">未選擇任何幣種。</div>';
+            if(wss) wss.close();
+            return;
+        }
+
+        container.innerHTML = '<div class="loading-text" style="color:var(--yellow)">正在初始化數據引擎...<br>請稍候，避免 API 速率限制。</div>';
+
+        // 2. 關閉舊連線
+        if(wss) wss.close();
+        store = {}; // 重置數據
+
+        // 3. 依序初始化 (避免併發過高)
+        for (const sym of selected) {
+            await initSymbol(sym);
+            // 簡單延遲 200ms
+            await new Promise(r => setTimeout(r, 200));
+        }
+
+        // 4. 啟動 WSS (只訂閱選中的)
+        connectWSS(selected);
+    }
+
+    // --- 4. 單一幣種初始化 (繪製卡片 + 拉取歷史) ---
+    async function initSymbol(sym) {
+        store[sym] = {}; // Init store
+        const container = document.getElementById('grid-container');
+        
+        // 移除 Loading (如果是第一個)
+        if(container.querySelector('.loading-text')) container.innerHTML = '';
+
+        // 繪製骨架 (V17 結構)
+        let html = `
+        <div class="symbol-row" id="row-${sym}">
+            <div class="close-card" onclick="removeCard('${sym}')">✕</div>
+            <div class="col-info">
+                <div class="sym-header">
+                    <div class="sym-name">${sym.toUpperCase().replace('USDT','')}</div>
+                    <div class="sym-price" id="price-${sym}">--.--</div>
+                </div>
+                <div class="vol-box">
+                    <div class="vol-row" style="color:#aaa;">量能 (1h)</div>
+                    <div class="vol-row">
+                        <span id="vol-status-${sym}" class="vol-tag v-norm">...</span>
+                        <span id="vol-ratio-${sym}" style="font-family:Roboto Mono;">x1.0</span>
+                    </div>
+                </div>
+                <div class="flow-box">
+                    <div class="flow-title"><span>Taker Flow (1h)</span></div>
+                    <div class="flow-bar-bg">
+                        <div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div>
+                        <div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div>
+                    </div>
+                    <div class="flow-val">
+                        <span style="color:var(--green)" id="flow-bv-${sym}">--%</span>
+                        <span style="color:var(--red)" id="flow-sv-${sym}">--%</span>
+                    </div>
+                </div>
+            </div>`;
+
+        TFS.forEach(tf => {
+            store[sym][tf] = {}; 
+            html += `
+            <div class="col-tf">
+                <div class="tf-header">
+                    <div class="tf-title-row"><span class="tf-title">${TRANS[tf]}</span></div>
+                    <div class="wr-bar-bg">
+                        <div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div>
+                        <div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div>
+                    </div>
+                    <div class="wr-text"><span id="wr-l-${sym}-${tf}">多 --%</span><span id="wr-s-${sym}-${tf}">空 --%</span></div>
+                </div>
+                <div class="ind-list" id="list-${sym}-${tf}"><div style="color:#444;">下載中...</div></div>
+                <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
+                    <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
+                    <div class="strat-grid">
+                        <div class="sg-item"><span class="sg-label">進場</span><span class="sg-val" id="en-${sym}-${tf}">---</span></div>
+                        <div class="sg-item"><span class="sg-label">止損</span><span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
+                        <div class="sg-item"><span class="sg-label">止盈1</span><span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
+                        <div class="sg-item"><span class="sg-label">止盈2</span><span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+        container.insertAdjacentHTML('beforeend', html);
+
+        // 拉取歷史數據 (Promise.all)
+        try {
+            const promises = TFS.map(tf => 
+                fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`)
+                .then(res => res.json())
+            );
+            const results = await Promise.all(promises);
+            
+            results.forEach((data, i) => {
+                const tf = TFS[i];
+                data.pop(); // 移除未完成
+                processTimeframe(sym, tf, data);
+                if(tf === '1h') {
+                    calculateFlow(sym, data);
+                    calculateVolume(sym, data);
+                }
+            });
+        } catch(e) { console.error(sym, e); }
+    }
+
+    function removeCard(sym) {
+        activeSymbols.delete(sym);
+        document.getElementById(`row-${sym}`).remove();
+        // 這裡暫時不重連 WSS 以節省資源，讓他在背景跑沒關係，反正沒有 UI 更新
+    }
+
+    // --- 5. 數據運算 (V17 Logic) ---
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
         emaArray: (data, period) => {
@@ -223,166 +494,32 @@
         }
     };
 
-    function initUI() {
-        const container = document.getElementById('grid-container');
-        container.innerHTML = ''; 
-
-        SYMBOLS.forEach(sym => {
-            store[sym] = {}; 
-            
-            let html = `
-            <div class="symbol-row" id="row-${sym}">
-                <div class="col-info">
-                    <div class="sym-header">
-                        <div class="sym-name">${sym.toUpperCase().replace('USDT','')}</div>
-                        <div class="sym-price" id="price-${sym}">---.--</div>
-                    </div>
-                    
-                    <div class="vol-box">
-                        <div class="vol-row" style="color:#aaa;">量能狀態 (1h)</div>
-                        <div class="vol-row">
-                            <span id="vol-status-${sym}" class="vol-tag v-norm">計算中</span>
-                            <span id="vol-ratio-${sym}" style="font-family:Roboto Mono;">x1.0</span>
-                        </div>
-                    </div>
-
-                    <div class="flow-box">
-                        <div class="flow-title"><span>主動買賣比 (1h)</span></div>
-                        <div class="flow-bar-bg">
-                            <div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div>
-                            <div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div>
-                        </div>
-                        <div class="flow-val">
-                            <span style="color:var(--green)" id="flow-bv-${sym}">買 --%</span>
-                            <span style="color:var(--red)" id="flow-sv-${sym}">賣 --%</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            TFS.forEach(tf => {
-                store[sym][tf] = {}; 
-                html += `
-                <div class="col-tf">
-                    <div class="tf-header">
-                        <div class="tf-title-row">
-                            <span class="tf-title">${TRANS[tf]}</span>
-                        </div>
-                        <div class="wr-bar-bg">
-                            <div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div>
-                            <div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div>
-                        </div>
-                        <div class="wr-text">
-                            <span id="wr-l-${sym}-${tf}">多 --%</span>
-                            <span id="wr-s-${sym}-${tf}">空 --%</span>
-                        </div>
-                    </div>
-                    
-                    <div class="ind-list" id="list-${sym}-${tf}">
-                        <div style="color:#444;">運算中...</div>
-                    </div>
-
-                    <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
-                        <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
-                        <div class="strat-grid">
-                            <div class="sg-item"><span class="sg-label">進場</span><span class="sg-val" id="en-${sym}-${tf}">---</span></div>
-                            <div class="sg-item"><span class="sg-label">止損</span><span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
-                            <div class="sg-item"><span class="sg-label">止盈1</span><span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
-                            <div class="sg-item"><span class="sg-label">止盈2</span><span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
-                        </div>
-                    </div>
-                </div>`;
-            });
-
-            html += `</div>`;
-            container.insertAdjacentHTML('beforeend', html);
-        });
-    }
-
-    async function runAnalysis() {
-        initUI();
-        
-        for(const sym of SYMBOLS) {
-            try {
-                const promises = TFS.map(tf => 
-                    fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`)
-                    .then(res => res.json())
-                );
-                const results = await Promise.all(promises);
-
-                if(results[0].code) { markInvalid(sym); continue; }
-
-                results.forEach((data, i) => {
-                    const tf = TFS[i];
-                    data.pop(); 
-                    processTimeframe(sym, tf, data);
-                    
-                    if (tf === '1h') {
-                        calculateFlow(sym, data);
-                        calculateVolume(sym, data);
-                    }
-                });
-            } catch(e) { console.error(e); markInvalid(sym); }
-        }
-
-        document.getElementById('sys-status').textContent = '● 監控中';
-        document.getElementById('sys-status').style.color = '#0ecb81';
-        connectWSS();
-    }
-
-    // 計算量能狀態
     function calculateVolume(sym, klines) {
         const len = klines.length;
-        const currentVol = parseFloat(klines[len-1][5]); // 最新K棒成交量
-        
-        // 計算過去 20 根的平均量
+        const currentVol = parseFloat(klines[len-1][5]);
         let sumVol = 0;
-        for(let i=len-21; i<len-1; i++) {
-            sumVol += parseFloat(klines[i][5]);
-        }
+        for(let i=len-21; i<len-1; i++) sumVol += parseFloat(klines[i][5]);
         const avgVol = sumVol / 20;
         const ratio = currentVol / avgVol;
-
         const elStatus = document.getElementById(`vol-status-${sym}`);
         const elRatio = document.getElementById(`vol-ratio-${sym}`);
-        
         elRatio.textContent = `x${ratio.toFixed(1)}`;
-
-        if (ratio >= 2.0) {
-            elStatus.textContent = "🔥 爆量攻擊";
-            elStatus.className = "vol-tag v-high";
-        } else if (ratio >= 1.2) {
-            elStatus.textContent = "📈 溫和放量";
-            elStatus.className = "vol-tag v-norm";
-        } else if (ratio <= 0.6) {
-            elStatus.textContent = "💤 嚴重縮量";
-            elStatus.className = "vol-tag v-low";
-        } else {
-            elStatus.textContent = "⚖️ 量能正常";
-            elStatus.className = "vol-tag v-norm";
-        }
+        if (ratio >= 2.0) { elStatus.textContent = "🔥 爆量"; elStatus.className = "vol-tag v-high"; }
+        else if (ratio >= 1.2) { elStatus.textContent = "📈 放量"; elStatus.className = "vol-tag v-norm"; }
+        else if (ratio <= 0.6) { elStatus.textContent = "💤 縮量"; elStatus.className = "vol-tag v-low"; }
+        else { elStatus.textContent = "⚖️ 正常"; elStatus.className = "vol-tag v-norm"; }
     }
 
     function calculateFlow(sym, klines) {
         const recent = klines.slice(-24);
-        let totalVol = 0;
-        let buyVol = 0;
-
-        recent.forEach(k => {
-            const vol = parseFloat(k[5]); // API [5] Volume
-            const takerBuy = parseFloat(k[9]); // API [9] Taker Buy Volume
-            totalVol += vol;
-            buyVol += takerBuy;
-        });
-
-        // 賣盤 = 總量 - 買盤 (精確算式)
+        let totalVol = 0, buyVol = 0;
+        recent.forEach(k => { totalVol += parseFloat(k[5]); buyVol += parseFloat(k[9]); });
         const buyPct = (buyVol / totalVol) * 100;
         const sellPct = 100 - buyPct;
-
         document.getElementById(`flow-b-${sym}`).style.width = `${buyPct}%`;
         document.getElementById(`flow-s-${sym}`).style.width = `${sellPct}%`;
-        document.getElementById(`flow-bv-${sym}`).textContent = `買 ${buyPct.toFixed(1)}%`;
-        document.getElementById(`flow-sv-${sym}`).textContent = `賣 ${sellPct.toFixed(1)}%`;
+        document.getElementById(`flow-bv-${sym}`).textContent = `買${buyPct.toFixed(0)}%`;
+        document.getElementById(`flow-sv-${sym}`).textContent = `賣${sellPct.toFixed(0)}%`;
     }
 
     function processTimeframe(sym, tf, klines) {
@@ -411,48 +548,36 @@
         let ema26 = MathEngine.emaArray(closes, 26);
         let macdArr = ema12.map((v,i) => v - ema26[i]);
 
-        const sigs = {
-            rsi_buy: [], rsi_sell: [], ema_buy: [], ema_sell: [],
-            macd_buy: [], macd_sell: [], vwap_buy: [], vwap_sell: [],
-            bb_buy: [], bb_sell: []
-        };
-
+        const sigs = { rsi_buy:[], rsi_sell:[], ema_buy:[], ema_sell:[], macd_buy:[], macd_sell:[], vwap_buy:[], vwap_sell:[], bb_buy:[], bb_sell:[] };
         for(let i=50; i<len; i++) {
             const c = closes[i];
-            sigs.rsi_buy[i] = rsiArr[i] < 40; sigs.rsi_sell[i] = rsiArr[i] > 60;
-            sigs.ema_buy[i] = c > ema50Arr[i]; sigs.ema_sell[i] = c < ema50Arr[i];
-            sigs.macd_buy[i] = macdArr[i] > 0; sigs.macd_sell[i] = macdArr[i] < 0;
-            sigs.vwap_buy[i] = c > vwapArr[i]; sigs.vwap_sell[i] = c < vwapArr[i];
-            sigs.bb_buy[i] = c > upper[i]; sigs.bb_sell[i] = c < lower[i];
+            sigs.rsi_buy[i] = rsiArr[i]<40; sigs.rsi_sell[i] = rsiArr[i]>60;
+            sigs.ema_buy[i] = c>ema50Arr[i]; sigs.ema_sell[i] = c<ema50Arr[i];
+            sigs.macd_buy[i] = macdArr[i]>0; sigs.macd_sell[i] = macdArr[i]<0;
+            sigs.vwap_buy[i] = c>vwapArr[i]; sigs.vwap_sell[i] = c<vwapArr[i];
+            sigs.bb_buy[i] = c>upper[i]; sigs.bb_sell[i] = c<lower[i];
         }
 
-        const calcWR = (buySig, sellSig) => {
-            return {
-                long: MathEngine.getWinRate(buySig, closes, 'long'),
-                short: MathEngine.getWinRate(sellSig, closes, 'short')
-            };
-        };
-
+        const calcWR = (b, s) => ({ long: MathEngine.getWinRate(b, closes, 'long'), short: MathEngine.getWinRate(s, closes, 'short') });
         const wrRSI = calcWR(sigs.rsi_buy, sigs.rsi_sell);
         const wrEMA = calcWR(sigs.ema_buy, sigs.ema_sell);
         const wrMACD = calcWR(sigs.macd_buy, sigs.macd_sell);
         const wrVWAP = calcWR(sigs.vwap_buy, sigs.vwap_sell);
         const wrBB = calcWR(sigs.bb_buy, sigs.bb_sell);
 
-        const fVal = (v) => v < 10 ? v.toFixed(4) : v.toFixed(2);
-        const getDir = (bull, bear) => bull ? 'long' : bear ? 'short' : 'neu';
+        const fVal = v => v<10 ? v.toFixed(4) : v.toFixed(2);
+        const getDir = (b, s) => b ? 'long' : s ? 'short' : 'neu';
 
         const indData = [
-            { id:'RSI', n:'相對強弱', val: rsiArr[last].toFixed(1), dir: getDir(rsiArr[last]>55, rsiArr[last]<45), wr: wrRSI },
-            { id:'EMA', n:'趨勢均線', val: fVal(ema50Arr[last]), dir: getDir(curPrice>ema50Arr[last], curPrice<ema50Arr[last]), wr: wrEMA },
-            { id:'MACD', n:'動能指標', val: macdArr[last].toFixed(4), dir: getDir(macdArr[last]>0, macdArr[last]<0), wr: wrMACD },
-            { id:'VWAP', n:'成交均價', val: fVal(vwapArr[last]), dir: getDir(curPrice>vwapArr[last], curPrice<vwapArr[last]), wr: wrVWAP },
-            { id:'BOLL', n:'布林通道', val: curPrice>upper[last]?'上破':curPrice<lower[last]?'下破':'區間', dir: getDir(curPrice>upper[last], curPrice<lower[last]), wr: wrBB }
+            { id:'RSI', n:TRANS['RSI'], val: rsiArr[last].toFixed(1), dir: getDir(rsiArr[last]>55, rsiArr[last]<45), wr: wrRSI },
+            { id:'EMA', n:TRANS['EMA'], val: fVal(ema50Arr[last]), dir: getDir(curPrice>ema50Arr[last], curPrice<ema50Arr[last]), wr: wrEMA },
+            { id:'MACD', n:TRANS['MACD'], val: macdArr[last].toFixed(4), dir: getDir(macdArr[last]>0, macdArr[last]<0), wr: wrMACD },
+            { id:'VWAP', n:TRANS['VWAP'], val: fVal(vwapArr[last]), dir: getDir(curPrice>vwapArr[last], curPrice<vwapArr[last]), wr: wrVWAP },
+            { id:'BOLL', n:TRANS['BOLL'], val: curPrice>upper[last]?'上破':curPrice<lower[last]?'下破':'區間', dir: getDir(curPrice>upper[last], curPrice<lower[last]), wr: wrBB }
         ];
 
         const listEl = document.getElementById(`list-${sym}-${tf}`);
         let listHtml = '';
-        
         let sumLongWR = 0, sumShortWR = 0, count = 0;
         let signalCount = { long: 0, short: 0 };
 
@@ -460,16 +585,14 @@
             if(ind.wr.long > 0) sumLongWR += ind.wr.long;
             if(ind.wr.short > 0) sumShortWR += ind.wr.short;
             count++;
-
             if(ind.dir === 'long') signalCount.long++;
             if(ind.dir === 'short') signalCount.short++;
 
             const isLong = ind.dir === 'long';
             const isShort = ind.dir === 'short';
             const color = isLong ? 'var(--green)' : isShort ? 'var(--red)' : '#666';
-            
-            const longClass = isLong ? 'w-l active-side' : 'w-l';
-            const shortClass = isShort ? 'w-s active-side' : 'w-s';
+            const lClass = isLong ? 'w-l active-side' : 'w-l';
+            const sClass = isShort ? 'w-s active-side' : 'w-s';
 
             listHtml += `
                 <div class="ind-item">
@@ -479,27 +602,21 @@
                     </div>
                     <div class="ind-right">
                         <div class="win-dual">
-                            <span class="${longClass}">多${ind.wr.long}%</span>
-                            <span style="color:#444">|</span>
-                            <span class="${shortClass}">空${ind.wr.short}%</span>
+                            <span class="${lClass}">多${ind.wr.long}%</span> | <span class="${sClass}">空${ind.wr.short}%</span>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
         listEl.innerHTML = listHtml;
 
         const avgLong = Math.round(sumLongWR / count);
         const avgShort = Math.round(sumShortWR / count);
-        
-        const total = avgLong + avgShort;
-        const longPct = total === 0 ? 50 : (avgLong / total) * 100;
-        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${longPct}%`;
-        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${100-longPct}%`;
-        
-        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多 ${avgLong}%`;
-        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空 ${avgShort}%`;
+        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${(avgLong/(avgLong+avgShort))*100}%`;
+        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${(avgShort/(avgLong+avgShort))*100}%`;
+        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${avgLong}%`;
+        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${avgShort}%`;
 
+        // 策略邏輯 (V17 Logic)
         const stratBox = document.getElementById(`strat-${sym}-${tf}`);
         const actTitle = document.getElementById(`act-${sym}-${tf}`);
         const enEl = document.getElementById(`en-${sym}-${tf}`);
@@ -509,7 +626,6 @@
         const sgVals = stratBox.querySelectorAll('.sg-val');
 
         let decision = 'wait';
-        
         if (avgLong >= 53 && avgLong > avgShort) decision = 'long';
         else if (avgShort >= 53 && avgShort > avgLong) decision = 'short';
         else if (avgLong < 50 && avgShort < 50) decision = 'chop';
@@ -517,47 +633,33 @@
         if (decision === 'long') {
             stratBox.className = 'strat-box strat-long';
             actTitle.innerHTML = `<span class="s-long">建議做多 (勝率${avgLong}%)</span>`;
-            enEl.textContent = fVal(curPrice);
-            slEl.textContent = fVal(curPrice - (atr * 1.5));
-            tp1El.textContent = fVal(curPrice + (atr * 1.2));
-            tp2El.textContent = fVal(curPrice + (atr * 2.5));
+            enEl.textContent = fVal(curPrice); slEl.textContent = fVal(curPrice - atr*1.5);
+            tp1El.textContent = fVal(curPrice + atr*1.2); tp2El.textContent = fVal(curPrice + atr*2.5);
             sgVals.forEach(el => el.classList.remove('blur-text'));
-        } 
-        else if (decision === 'short') {
+        } else if (decision === 'short') {
             stratBox.className = 'strat-box strat-short';
             actTitle.innerHTML = `<span class="s-short">建議做空 (勝率${avgShort}%)</span>`;
-            enEl.textContent = fVal(curPrice);
-            slEl.textContent = fVal(curPrice + (atr * 1.5));
-            tp1El.textContent = fVal(curPrice - (atr * 1.2));
-            tp2El.textContent = fVal(curPrice - (atr * 2.5));
+            enEl.textContent = fVal(curPrice); slEl.textContent = fVal(curPrice + atr*1.5);
+            tp1El.textContent = fVal(curPrice - atr*1.2); tp2El.textContent = fVal(curPrice - atr*2.5);
             sgVals.forEach(el => el.classList.remove('blur-text'));
-        } 
-        else if (decision === 'chop') {
+        } else if (decision === 'chop') {
             stratBox.className = 'strat-box strat-chop';
             actTitle.innerHTML = `<span class="s-chop">⚠️ 盤整 (雙殺風險)</span>`;
-            enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
             sgVals.forEach(el => el.classList.add('blur-text'));
-        } 
-        else {
+        } else {
             stratBox.className = 'strat-box strat-wait';
             actTitle.innerHTML = `<span>觀望</span>`;
-            enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
             sgVals.forEach(el => el.classList.remove('blur-text'));
         }
     }
 
-    function markInvalid(sym) {
-        document.getElementById(`row-${sym}`).style.display = 'none';
-    }
-
-    function connectWSS() {
-        const streams = SYMBOLS.map(s => `${s}@ticker`).join('/');
-        const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
-        ws.onmessage = (e) => {
+    function connectWSS(symbols) {
+        const streams = symbols.map(s => `${s}@ticker`).join('/');
+        wss = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
+        wss.onmessage = (e) => {
             const msg = JSON.parse(e.data);
             const sym = msg.data.s.toLowerCase();
             const price = parseFloat(msg.data.c);
-            
             const el = document.getElementById(`price-${sym}`);
             if(el) {
                 el.textContent = price;
@@ -565,8 +667,6 @@
             }
         };
     }
-
-    runAnalysis();
 </script>
 </body>
 </html>
