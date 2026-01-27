@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全維度戰情室 (V12 完整戰略版)</title>
+    <title>全維度戰情室 (V13 多空勝率對決版)</title>
     <style>
         :root {
             --bg: #0b0e11;
@@ -11,11 +11,11 @@
             --text-main: #eaecef;
             --text-sub: #848e9c;
             --green: #0ecb81;
-            --green-bg: rgba(14, 203, 129, 0.15);
+            --green-dim: rgba(14, 203, 129, 0.1);
             --red: #f6465d;
-            --red-bg: rgba(246, 70, 93, 0.15);
-            --yellow: #fcd535;
+            --red-dim: rgba(246, 70, 93, 0.1);
             --border: #2b3139;
+            --yellow: #fcd535;
         }
         body {
             background-color: var(--bg);
@@ -67,76 +67,76 @@
         }
         .col-tf:last-child { border-right: none; }
 
+        /* 頂部：標題與多空條 */
         .tf-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             border-bottom: 1px solid #333;
-            padding-bottom: 4px;
+            padding-bottom: 6px;
         }
+        .tf-title-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
         .tf-title { font-weight: bold; font-size: 14px; color: #fff; }
-        .tf-win-rate { 
-            font-family: 'Roboto Mono'; font-weight: bold; font-size: 12px;
-            padding: 1px 5px; border-radius: 4px; background: #222;
-        }
-        .win-high { color: var(--green); border: 1px solid var(--green); }
-        .win-mid { color: var(--yellow); border: 1px solid var(--yellow); }
-        .win-low { color: var(--red); border: 1px solid var(--red); }
+        
+        /* 多空勝率條 */
+        .wr-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; }
+        .wr-bar-long { height: 100%; background: var(--green); }
+        .wr-bar-short { height: 100%; background: var(--red); }
+        .wr-text { font-size: 10px; display: flex; justify-content: space-between; color: #888; margin-top: 2px; }
 
+        /* 指標列表 */
         .ind-list {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr; /* 單列顯示，因為要塞比較多資訊 */
             gap: 4px;
             margin-bottom: 8px;
         }
         .ind-item {
-            font-size: 10px;
+            font-size: 11px;
             display: flex; 
-            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
             background: rgba(255,255,255,0.03); 
-            padding: 5px; 
+            padding: 4px 6px; 
             border-radius: 3px;
         }
-        .ind-top { 
-            display: flex; justify-content: space-between; color: #aaa; margin-bottom: 3px; 
-        }
-        .ind-bot { display: flex; justify-content: space-between; align-items: center; }
+        .ind-left { display: flex; flex-direction: column; }
+        .ind-right { text-align: right; }
         
-        .raw-val { font-family: 'Roboto Mono'; color: #fff; font-weight: bold; }
-        .win-txt { font-weight: bold; }
-        .eng-tag { font-family: 'Arial'; opacity: 0.6; font-size: 9px; margin-left: 2px; }
+        .ind-name { color: #aaa; font-size: 10px; }
+        .ind-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
+        
+        /* 雙勝率顯示 */
+        .win-dual { font-size: 10px; font-family: 'Roboto Mono'; display: flex; gap: 5px; }
+        .w-l { color: var(--green); }
+        .w-s { color: var(--red); }
+        .highlight-w { text-decoration: underline; font-weight: bold; } /* 強調當前方向 */
 
-        /* --- 策略區塊 (重點修改) --- */
+        /* 策略區塊 */
         .strat-box {
             margin-top: auto;
             padding: 6px;
             border-radius: 4px;
             text-align: center;
+            border: 1px solid transparent;
         }
-        .strat-long { background: var(--green-bg); border: 1px solid var(--green); }
-        .strat-short { background: var(--red-bg); border: 1px solid var(--red); }
-        .strat-wait { background: #2b3139; border: 1px solid #444; color: #888; }
+        .strat-long { background: var(--green-dim); border-color: var(--green); }
+        .strat-short { background: var(--red-dim); border-color: var(--red); }
+        .strat-wait { background: #2b3139; border-color: #444; }
+        .strat-warn { background: rgba(252, 213, 53, 0.1); border-color: var(--yellow); }
 
         .strat-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
-        .s-long { color: var(--green); } .s-short { color: var(--red); }
+        .s-long { color: var(--green); } .s-short { color: var(--red); } .s-warn { color: var(--yellow); }
 
-        /* 田字型佈局：2行2列 */
         .strat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr; 
-            gap: 6px 10px; /* 行距 列距 */
+            gap: 6px 10px;
             font-size: 11px;
             text-align: left;
         }
         .sg-item { display: flex; flex-direction: column; }
-        .sg-label { color: var(--text-sub); scale: 0.9; transform-origin: left; margin-bottom: 1px; }
-        .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; font-size: 12px; }
+        .sg-label { color: var(--text-sub); scale: 0.9; transform-origin: left; }
+        .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
 
-        .c-bull { color: var(--green); }
-        .c-bear { color: var(--red); }
-        .c-neu { color: #555; }
-        
         .loading-bar { text-align: center; color: var(--yellow); padding: 20px; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
     </style>
@@ -145,9 +145,9 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:22px;">全維度戰情室 (V12 完整戰略版)</h1>
+        <h1 style="margin:0; font-size:22px;">全維度戰情室 (V13 多空對決版)</h1>
         <span style="color:#888; font-size:12px;">
-            特色：TP1/TP2 獨立顯示 | 中英對照指標 | 獨立時區回測 | 數據源: 幣安合約
+            更新：同時計算多空歷史勝率 | 識別誘多誘空陷阱 | 數據源: 幣安合約
         </span>
     </div>
     <div id="sys-status" style="color:var(--yellow); font-weight:bold;">初始化中...</div>
@@ -155,8 +155,8 @@
 
 <div id="grid-container">
     <div class="loading-bar">
-        正在運算：7 個幣種 x 3 個時區 x 5 組指標...<br>
-        系統正在下載 1000 根 K 線進行數值計算與回測，請稍候。
+        正在運算：7 個幣種 x 3 個時區 x 雙向回測 (大數據運算中)...<br>
+        系統正在分析歷史上「做多」與「做空」的各自勝率。
     </div>
 </div>
 
@@ -169,16 +169,16 @@
         '15m': '15分鐘 (短線)',
         '1h': '1小時 (波段)',
         '4h': '4小時 (趨勢)',
-        'RSI': '相對強弱',
-        'EMA': '趨勢均線',
-        'MACD': '動能指標',
-        'VWAP': '成交均價',
-        'BOLL': '布林通道'
+        'RSI': 'RSI',
+        'EMA': 'EMA',
+        'MACD': 'MACD',
+        'VWAP': 'VWAP',
+        'BOLL': 'BOLL'
     };
 
     const store = {}; 
-    const livePrices = {};
 
+    // --- 數學引擎 ---
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
         emaArray: (data, period) => {
@@ -210,6 +210,7 @@
             for(let i=1; i<h.length; i++) trs.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
             return trs.slice(-p).reduce((a,b)=>a+b,0)/p;
         },
+        // 核心回測：計算特定方向的勝率
         getWinRate: (signals, closes, type) => {
             let wins = 0, total = 0;
             const lookahead = 5; 
@@ -246,12 +247,21 @@
                 html += `
                 <div class="col-tf">
                     <div class="tf-header">
-                        <span class="tf-title">${TRANS[tf]}</span>
-                        <span class="tf-win-rate" id="win-${sym}-${tf}">--%</span>
+                        <div class="tf-title-row">
+                            <span class="tf-title">${TRANS[tf]}</span>
+                        </div>
+                        <div class="wr-bar-bg">
+                            <div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div>
+                            <div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div>
+                        </div>
+                        <div class="wr-text">
+                            <span id="wr-l-${sym}-${tf}">多 --%</span>
+                            <span id="wr-s-${sym}-${tf}">空 --%</span>
+                        </div>
                     </div>
                     
                     <div class="ind-list" id="list-${sym}-${tf}">
-                        <div style="color:#444;">下載中...</div>
+                        <div style="color:#444;">運算中...</div>
                     </div>
 
                     <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
@@ -323,6 +333,7 @@
         let ema26 = MathEngine.emaArray(closes, 26);
         let macdArr = ema12.map((v,i) => v - ema26[i]);
 
+        // 生成信號
         const sigs = {
             rsi_buy: [], rsi_sell: [], ema_buy: [], ema_sell: [],
             macd_buy: [], macd_sell: [], vwap_buy: [], vwap_sell: [],
@@ -338,52 +349,91 @@
             sigs.bb_buy[i] = c > upper[i]; sigs.bb_sell[i] = c < lower[i];
         }
 
-        const getWR = (buySig, sellSig, isBull) => isBull ? MathEngine.getWinRate(buySig, closes, 'long') : MathEngine.getWinRate(sellSig, closes, 'short');
+        // 回測函數 (分別計算多空勝率)
+        const calcWR = (buySig, sellSig) => {
+            return {
+                long: MathEngine.getWinRate(buySig, closes, 'long'),
+                short: MathEngine.getWinRate(sellSig, closes, 'short')
+            };
+        };
+
+        const wrRSI = calcWR(sigs.rsi_buy, sigs.rsi_sell);
+        const wrEMA = calcWR(sigs.ema_buy, sigs.ema_sell);
+        const wrMACD = calcWR(sigs.macd_buy, sigs.macd_sell);
+        const wrVWAP = calcWR(sigs.vwap_buy, sigs.vwap_sell);
+        const wrBB = calcWR(sigs.bb_buy, sigs.bb_sell);
+
         const fVal = (v) => v < 10 ? v.toFixed(4) : v.toFixed(2);
-        
+
+        // 判斷當前指標方向
+        const getDir = (bull, bear) => bull ? 'long' : bear ? 'short' : 'neu';
+
         const indData = [
-            { id:'RSI', n: TRANS['RSI'], val: rsiArr[last].toFixed(1), bull: rsiArr[last]>55, bear: rsiArr[last]<45, wr: getWR(sigs.rsi_buy, sigs.rsi_sell, rsiArr[last]<45) },
-            { id:'EMA', n: TRANS['EMA'], val: fVal(ema50Arr[last]), bull: curPrice>ema50Arr[last], bear: curPrice<ema50Arr[last], wr: getWR(sigs.ema_buy, sigs.ema_sell, curPrice>ema50Arr[last]) },
-            { id:'MACD', n: TRANS['MACD'], val: macdArr[last].toFixed(curPrice<10?4:2), bull: macdArr[last]>0, bear: macdArr[last]<0, wr: getWR(sigs.macd_buy, sigs.macd_sell, macdArr[last]>0) },
-            { id:'VWAP', n: TRANS['VWAP'], val: fVal(vwapArr[last]), bull: curPrice>vwapArr[last], bear: curPrice<vwapArr[last], wr: getWR(sigs.vwap_buy, sigs.vwap_sell, curPrice>vwapArr[last]) },
-            { id:'BOLL', n: TRANS['BOLL'], val: curPrice>upper[last]?'上破':curPrice<lower[last]?'下破':'區間', bull: curPrice>upper[last], bear: curPrice<lower[last], wr: getWR(sigs.bb_buy, sigs.bb_sell, curPrice>upper[last]) }
+            { id:'RSI', n:'相對強弱', val: rsiArr[last].toFixed(1), dir: getDir(rsiArr[last]>55, rsiArr[last]<45), wr: wrRSI },
+            { id:'EMA', n:'趨勢均線', val: fVal(ema50Arr[last]), dir: getDir(curPrice>ema50Arr[last], curPrice<ema50Arr[last]), wr: wrEMA },
+            { id:'MACD', n:'動能指標', val: macdArr[last].toFixed(4), dir: getDir(macdArr[last]>0, macdArr[last]<0), wr: wrMACD },
+            { id:'VWAP', n:'成交均價', val: fVal(vwapArr[last]), dir: getDir(curPrice>vwapArr[last], curPrice<vwapArr[last]), wr: wrVWAP },
+            { id:'BOLL', n:'布林通道', val: curPrice>upper[last]?'上破':curPrice<lower[last]?'下破':'區間', dir: getDir(curPrice>upper[last], curPrice<lower[last]), wr: wrBB }
         ];
 
+        // 渲染列表
         const listEl = document.getElementById(`list-${sym}-${tf}`);
         let listHtml = '';
-        let totalWin = 0;
-        let count = 0;
-        let bullCount = 0;
-        let bearCount = 0;
+        
+        let sumLongWR = 0, sumShortWR = 0, count = 0;
+        let signalCount = { long: 0, short: 0 };
 
         indData.forEach(ind => {
-            const status = ind.bull ? '多' : ind.bear ? '空' : '盤';
-            const color = ind.bull ? 'c-bull' : ind.bear ? 'c-bear' : 'c-neu';
-            if(ind.wr > 0) { totalWin += ind.wr; count++; }
-            if(ind.bull) bullCount++;
-            if(ind.bear) bearCount++;
+            // 計算總平均勝率
+            if(ind.wr.long > 0) sumLongWR += ind.wr.long;
+            if(ind.wr.short > 0) sumShortWR += ind.wr.short;
+            count++;
+
+            // 當前信號計數
+            if(ind.dir === 'long') signalCount.long++;
+            if(ind.dir === 'short') signalCount.short++;
+
+            // 樣式
+            const isLong = ind.dir === 'long';
+            const isShort = ind.dir === 'short';
+            const color = isLong ? 'var(--green)' : isShort ? 'var(--red)' : '#666';
+            
+            // 下劃線強調當前方向的勝率
+            const longClass = isLong ? 'w-l highlight-w' : 'w-l';
+            const shortClass = isShort ? 'w-s highlight-w' : 'w-s';
 
             listHtml += `
                 <div class="ind-item">
-                    <div class="ind-top">
-                        <span>${ind.n} <span class="eng-tag">(${ind.id})</span></span>
-                        <span class="raw-val">${ind.val}</span>
+                    <div class="ind-left">
+                        <span class="ind-name">${ind.n} <span style="font-family:Arial; opacity:0.5">(${ind.id})</span></span>
+                        <span class="ind-val" style="color:${color}">${ind.val}</span>
                     </div>
-                    <div class="ind-bot">
-                        <span class="win-txt ${color}">${status}</span>
-                        <span style="color:#666; scale:0.9;">(${ind.wr}%)</span>
+                    <div class="ind-right">
+                        <div class="win-dual">
+                            <span class="${longClass}">多${ind.wr.long}%</span>
+                            <span style="color:#444">|</span>
+                            <span class="${shortClass}">空${ind.wr.short}%</span>
+                        </div>
                     </div>
                 </div>
             `;
         });
         listEl.innerHTML = listHtml;
 
-        const avgWin = count > 0 ? Math.round(totalWin / count) : 0;
-        const winEl = document.getElementById(`win-${sym}-${tf}`);
-        winEl.textContent = avgWin + '%';
-        winEl.className = `tf-win-rate ${avgWin >= 55 ? 'win-high' : avgWin <= 45 ? 'win-low' : 'win-mid'}`;
+        // 更新頂部勝率條
+        const avgLong = Math.round(sumLongWR / count);
+        const avgShort = Math.round(sumShortWR / count);
+        
+        // 渲染條形圖
+        const total = avgLong + avgShort;
+        const longPct = total === 0 ? 50 : (avgLong / total) * 100;
+        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${longPct}%`;
+        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${100-longPct}%`;
+        
+        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多 ${avgLong}%`;
+        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空 ${avgShort}%`;
 
-        // --- 策略渲染 (Entry, SL, TP1, TP2) ---
+        // --- 策略判定 (關鍵修復) ---
         const stratBox = document.getElementById(`strat-${sym}-${tf}`);
         const actTitle = document.getElementById(`act-${sym}-${tf}`);
         const enEl = document.getElementById(`en-${sym}-${tf}`);
@@ -391,31 +441,47 @@
         const tp1El = document.getElementById(`tp1-${sym}-${tf}`);
         const tp2El = document.getElementById(`tp2-${sym}-${tf}`);
 
-        let dir = 'wait';
-        if (avgWin > 50 && bullCount >= 3) dir = 'long';
-        else if (avgWin > 50 && bearCount >= 3) dir = 'short';
+        // 邏輯：
+        // 1. 信號方向要一致 (例如大部分指標看空)
+        // 2. 該方向的勝率要 > 50% (避免誘空)
+        
+        let decision = 'wait';
+        let reason = '';
 
-        if (dir === 'long') {
+        if (signalCount.long >= 3) {
+            if (avgLong > 50) decision = 'long';
+            else decision = 'warn_long'; // 誘多
+        } else if (signalCount.short >= 3) {
+            if (avgShort > 50) decision = 'short';
+            else decision = 'warn_short'; // 誘空 (這就是你遇到的狀況)
+        }
+
+        if (decision === 'long') {
             stratBox.className = 'strat-box strat-long';
-            actTitle.innerHTML = `<span class="s-long">建議做多</span>`;
+            actTitle.innerHTML = `<span class="s-long">建議做多 (勝率優)</span>`;
             enEl.textContent = fVal(curPrice);
             slEl.textContent = fVal(curPrice - (atr * 1.5));
             tp1El.textContent = fVal(curPrice + (atr * 1.2));
             tp2El.textContent = fVal(curPrice + (atr * 2.5));
-        } else if (dir === 'short') {
+        } else if (decision === 'short') {
             stratBox.className = 'strat-box strat-short';
-            actTitle.innerHTML = `<span class="s-short">建議做空</span>`;
+            actTitle.innerHTML = `<span class="s-short">建議做空 (勝率優)</span>`;
             enEl.textContent = fVal(curPrice);
             slEl.textContent = fVal(curPrice + (atr * 1.5));
             tp1El.textContent = fVal(curPrice - (atr * 1.2));
             tp2El.textContent = fVal(curPrice - (atr * 2.5));
+        } else if (decision === 'warn_short') {
+            stratBox.className = 'strat-box strat-warn';
+            actTitle.innerHTML = `<span class="s-warn">⚠️ 誘空風險 (勝率低)</span>`;
+            enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
+        } else if (decision === 'warn_long') {
+            stratBox.className = 'strat-box strat-warn';
+            actTitle.innerHTML = `<span class="s-warn">⚠️ 誘多風險 (勝率低)</span>`;
+            enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
         } else {
             stratBox.className = 'strat-box strat-wait';
-            actTitle.innerHTML = `<span>觀望</span>`;
-            enEl.textContent = '---';
-            slEl.textContent = '---';
-            tp1El.textContent = '---';
-            tp2El.textContent = '---';
+            actTitle.innerHTML = `<span>觀望 / 震盪</span>`;
+            enEl.textContent = '---'; slEl.textContent = '---'; tp1El.textContent = '---'; tp2El.textContent = '---';
         }
     }
 
