@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V33 原廠架構修正版)</title>
+    <title>全維度戰情室 (V37 自動熱點版)</title>
     <style>
-        /* 完全保留 V23/V28 CSS 樣式，一個字都沒改 */
+        /* CSS 完全保留，未更動 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -95,7 +95,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V33 原廠邏輯注入版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V37 自動熱點版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -105,27 +105,49 @@
 </div>
 
 <div id="grid-container">
-    <div class="loading-text">正在載入數據...</div>
+    <div class="loading-text">正在掃描市場成交量前 10 名...</div>
 </div>
 
 <script>
     const TFS = ['15m', '1h', '4h'];
-    const LIMIT = 500; 
-    // 預設清單回歸 (包含您的 NXPC, RIVER)
-    const DEFAULT_COINS = ['btcusdt', 'ethusdt', 'solusdt', 'adausdt', 'xrpusdt', 'riverusdt', 'nxpcusdt'];
+    const LIMIT = 500;
     const TRANS = { '15m': '15m (短)', '1h': '1H (波)', '4h': '4H (趨)', 'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL' };
 
-    let allSymbols = []; 
-    let activeSymbols = new Set(DEFAULT_COINS); 
-    let btcTrendMultiplier = 1.0; 
-    let wss = null; 
-    let store = {}; 
+    let allSymbols = [];
+    let activeSymbols = new Set(); // 初始化為空，等待自動抓取
+    let btcTrendMultiplier = 1.0;
+    let wss = null;
+    let store = {};
+
+    // --- 1. 新增：自動抓取熱門幣種 ---
+    async function fetchTop10Coins() {
+        try {
+            const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
+            const data = await res.json();
+            
+            // 過濾 USDT 合約並排除 USDC (穩定幣)
+            let pairs = data.filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('USDC'));
+            
+            // 依照成交額 (quoteVolume) 排序，取前 10 名
+            pairs.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
+            const top10 = pairs.slice(0, 10).map(t => t.symbol.toLowerCase());
+            
+            return new Set(top10);
+        } catch (e) {
+            console.error("抓取熱門幣失敗，使用預設清單", e);
+            return new Set(['btcusdt', 'ethusdt', 'solusdt', 'dogeusdt', 'xrpusdt', 'adausdt', 'bnbusdt']);
+        }
+    }
 
     // --- System Start ---
     async function initSystem() {
-        await checkBTCAnchor(); // 邏輯注入1: 啟動大盤監控
+        // 1. 先抓熱門幣
+        activeSymbols = await fetchTop10Coins();
+        
+        // 2. 啟動其他功能
+        await checkBTCAnchor();
         await fetchExchangeInfo();
-        await applyFilter(false); 
+        await applyFilter(false);
     }
 
     async function checkBTCAnchor() {
@@ -243,7 +265,6 @@
         try {
             const promises = TFS.map(tf => fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`).then(r=>r.json()));
             const results = await Promise.all(promises);
-            // 崩潰防禦機制
             if(!Array.isArray(results[0]) || results[0].code) {
                 document.getElementById(`badge-15m-${sym}`).textContent = "無數據";
                 document.getElementById(`badge-15m-${sym}`).style.background = "#333";
@@ -270,7 +291,6 @@
             return rsi;
         },
         atr: (h,l,c,p=14) => { if(h.length<p)return 0; let trs=[]; for(let i=1;i<h.length;i++) trs.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1]))); return trs.slice(-p).reduce((a,b)=>a+b,0)/p; },
-        // 邏輯注入 2: 動態權重 (時間衰減)
         getWeightedWinRate: (s,c,t) => { 
             let weightedWins=0, totalWeight=0; 
             for(let i=50;i<s.length-5;i++){ 
@@ -299,7 +319,6 @@
         let ema26 = MathEngine.emaArray(c, 26);
         let macdArr = ema12.map((v,i) => v - ema26[i]);
 
-        // 邏輯注入 4: 插針風險 (更新到您指定的 Header 區域)
         const vwapVal = MathEngine.sma(c, 90);
         const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/atr * 15)));
         if(tf==='15m') { 
@@ -308,7 +327,6 @@
             rEl.className = `risk-tag ${risk>80?'risk-high':''}`; 
         }
         
-        // 籌碼牆邏輯 (1H)
         if(tf==='1h') {
             const v = klines.map(d=>parseFloat(d[5]));
             let maxV=0, wallP=0; 
@@ -316,7 +334,6 @@
             document.getElementById(`wall-${sym}`).textContent = wallP.toFixed(cur<1?4:2);
         }
 
-        // Signals
         const sigs={ r_b:[], r_s:[], e_b:[], e_s:[], m_b:[], m_s:[], v_b:[], v_s:[], b_b:[], b_s:[] };
         for(let i=50; i<=last; i++) {
             sigs.r_b[i]=rsi[i]<40; sigs.r_s[i]=rsi[i]>60;
@@ -326,14 +343,12 @@
             sigs.b_b[i]=c[i]>upper[i]; sigs.b_s[i]=c[i]<lower[i];
         }
         
-        // 使用 getWeightedWinRate
         const wrR = { l: MathEngine.getWeightedWinRate(sigs.r_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.r_s,c,'short') };
         const wrE = { l: MathEngine.getWeightedWinRate(sigs.e_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.e_s,c,'short') };
         const wrM = { l: MathEngine.getWeightedWinRate(sigs.m_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.m_s,c,'short') };
         const wrV = { l: MathEngine.getWeightedWinRate(sigs.v_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.v_s,c,'short') };
         const wrB = { l: MathEngine.getWeightedWinRate(sigs.b_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.b_s,c,'short') };
 
-        // Render List (確保五個指標)
         const listEl = document.getElementById(`list-${sym}-${tf}`);
         let lW=0, sW=0, cnt=0;
         const addInd = (n,v,d,w) => {
@@ -349,7 +364,6 @@
             addInd('VWAP', cur>vwapArr[last]?'上':'下', cur>vwapArr[last]?'l':'s', wrV) +
             addInd('BOLL', cur>upper?'破':cur<lower?'破':'區', cur>upper?'l':cur<lower?'s':'n', wrB);
 
-        // 邏輯注入 1: 應用 BTC Anchor 修正勝率
         let avgL = Math.round(lW/cnt); 
         if(cur > ema[last]) avgL = Math.round(avgL * btcTrendMultiplier);
         
@@ -360,7 +374,6 @@
         document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${avgS}%`;
         document.getElementById(`wr-avg-${sym}-${tf}`).textContent = `${avgL}% / ${avgS}%`;
 
-        // 邏輯注入 3: 結構化止損
         const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
         const low15 = Math.min(...l.slice(-15)), high15 = Math.max(...h.slice(-15));
 
@@ -378,18 +391,16 @@
         }
 
         const vals = box.querySelectorAll('.sg-val');
-        if(dec=='long') {
+        if(dec==='long') {
             box.className='strat-box strat-long'; title.innerHTML=`<span class="s-long">建議做多 (${avgL}%)</span>`;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
-            // 結構化 SL 注入
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(Math.min(cur-atr*1.5, low15*0.999));
             document.getElementById(`tp1-${sym}-${tf}`).textContent=f(cur+atr*1.2);
             document.getElementById(`tp2-${sym}-${tf}`).textContent=f(cur+atr*2.5);
             vals.forEach(e=>e.classList.remove('blur-text'));
-        } else if(dec=='short') {
+        } else if(dec==='short') {
             box.className='strat-box strat-short'; title.innerHTML=`<span class="s-short">建議做空 (${avgS}%)</span>`;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
-            // 結構化 SL 注入
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(Math.max(cur+atr*1.5, high15*1.001));
             document.getElementById(`tp1-${sym}-${tf}`).textContent=f(cur-atr*1.2);
             document.getElementById(`tp2-${sym}-${tf}`).textContent=f(cur-atr*2.5);
