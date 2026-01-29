@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V42 自動戰巡版)</title>
+    <title>全維度戰情室 (V43 乖離防呆版)</title>
     <style>
-        /* CSS 保持不變，新增倒數條樣式 */
+        /* CSS 完全保留 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -97,7 +97,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V42 自動戰巡版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V43 乖離防呆版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -123,8 +123,8 @@
     let wss = null;
     let store = {};
     let fundingRates = {}; 
-    let refreshInterval = null; // [V42] 自動刷新定時器
-    let countdownTimer = null;  // [V42] 倒數條定時器
+    let refreshInterval = null; 
+    let countdownTimer = null;
 
     // --- 1. 自動抓取熱門幣種 ---
     async function fetchTop10Coins() {
@@ -153,27 +153,21 @@
     async function initSystem() {
         activeSymbols = await fetchTop10Coins();
         await fetchExchangeInfo();
-        await startSystemLoop(); // [V42] 改為啟動循環
+        await startSystemLoop(); 
     }
 
-    // [V42] 系統核心循環
     async function startSystemLoop() {
-        // 初次執行
         await runAnalysisCycle();
-        
-        // 設定 60秒 自動刷新
         if(refreshInterval) clearInterval(refreshInterval);
         refreshInterval = setInterval(runAnalysisCycle, 60000);
-
-        // 啟動視覺倒數
         startCountdown();
     }
 
     async function runAnalysisCycle() {
         await checkBTCAnchor();
         await fetchFundingRates();
-        await applyFilter(false); // 重新計算所有指標
-        startCountdown(); // 重置倒數條
+        await applyFilter(false); 
+        startCountdown(); 
     }
 
     function startCountdown() {
@@ -182,7 +176,7 @@
         let width = 100;
         bar.style.width = '100%';
         countdownTimer = setInterval(() => {
-            width -= (100/60); // 60秒倒數
+            width -= (100/60); 
             if(width < 0) width = 0;
             bar.style.width = `${width}%`;
         }, 1000);
@@ -234,18 +228,15 @@
         if (fromModal) {
             activeSymbols = new Set(Array.from(document.querySelectorAll('.coin-option.selected')).map(el => el.dataset.sym));
             closeModal();
-            // 如果是手動觸發，重置自動刷新循環
             startSystemLoop();
             return;
         }
         
-        // 這裡如果是自動刷新，不要清空容器，而是用 DOM Diffing 更新會更好，但為求簡單，我們先清空
         const container = document.getElementById('grid-container');
         container.innerHTML = ''; 
         if(wss) wss.close(); store = {}; 
         
-        // 依序處理
-        for (const sym of activeSymbols) { await initSymbol(sym); await new Promise(r => setTimeout(r, 50)); } // 降低延遲
+        for (const sym of activeSymbols) { await initSymbol(sym); await new Promise(r => setTimeout(r, 50)); } 
         connectWSS(Array.from(activeSymbols));
     }
 
@@ -440,6 +431,9 @@
         }
 
         const ema = MathEngine.emaArray(c, 50);
+        // [V43] 乖離率計算
+        const bias = (cur - ema[last]) / ema[last] * 100;
+
         const sma20=MathEngine.sma(c,20), std=Math.sqrt(c.slice(-20).map(x=>Math.pow(x-sma20,2)).reduce((a,b)=>a+b)/20);
         const upper=sma20+2*std, lower=sma20-2*std;
         const vwapArr = MathEngine.emaArray(c, 90); 
@@ -516,10 +510,8 @@
 
         const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
         
-        // V41: 動態盈虧比 & 震盪盤保護 & 趨勢否決
         let dynamicTP_Mult = curAdx > 25 ? 3.0 : 1.2;
         let dynamicSL_Mult = curAdx > 25 ? 1.5 : 1.0;
-
         let finalAvgL = curAdx < 25 ? avgL * 0.9 : avgL;
         let finalAvgS = curAdx < 25 ? avgS * 0.9 : avgS;
 
@@ -534,50 +526,56 @@
         let dec = 'wait';
         let riskLevel = 'normal';
 
-        // 基礎判定
         if(kellyL > 0 && finalAvgL > 50 && finalAvgL > finalAvgS) dec = 'long';
         else if(kellyS > 0 && finalAvgS > 50 && finalAvgS > finalAvgL) dec = 'short';
 
-        // --- 趨勢否決權 (Trend Veto) ---
-        // 1. ADX 濾網
         if(curAdx < 20) dec = 'chop'; 
 
-        // 2. 逆勢濾網 (做多但價格在均線下)
         if(dec === 'long') {
-            if(cur < ema[last] || macdArr[last] < 0) {
-                riskLevel = 'risky'; 
-                if(tf === '4h') dec = 'wait'; // 大週期嚴格
+            if(cur < ema[last] || macdArr[last] < 0) { riskLevel = 'risky'; if(tf === '4h') dec = 'wait'; }
+            // [V43] 乖離率過大保護：禁止追高
+            if(bias > (tf==='4h'?3.0:1.5)) { 
+                dec = 'wait';
+                riskLevel = 'overbought';
             }
         }
         
-        // 3. 逆勢濾網 (做空但價格在均線上)
         if(dec === 'short') {
-            if(cur > ema[last] || macdArr[last] > 0) {
-                riskLevel = 'risky';
-                if(tf === '4h') dec = 'wait';
+            if(cur > ema[last] || macdArr[last] > 0) { riskLevel = 'risky'; if(tf === '4h') dec = 'wait'; }
+            // [V43] 負乖離過大保護：禁止殺跌
+            if(bias < (tf==='4h'?-3.0:-1.5)) {
+                dec = 'wait';
+                riskLevel = 'oversold';
             }
         }
 
         if(tf === '15m') {
             const badge = document.getElementById(`badge-15m-${sym}`);
-            if(dec==='long') { 
+            if(riskLevel === 'overbought') {
+                badge.className='signal-badge sb-wait'; badge.textContent='⚠️ 超買回調';
+            } else if (riskLevel === 'oversold') {
+                badge.className='signal-badge sb-wait'; badge.textContent='⚠️ 超賣反彈';
+            } else if(dec==='long') { 
                 badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-long';
                 badge.textContent = riskLevel === 'risky' ? `險多 (K:${(kellyL*100).toFixed(0)}%)` : `做多 (K:${(kellyL*100).toFixed(0)}%)`;
-            }
-            else if(dec==='short') { 
+            } else if(dec==='short') { 
                 badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-short';
                 badge.textContent = riskLevel === 'risky' ? `險空 (K:${(kellyS*100).toFixed(0)}%)` : `做空 (K:${(kellyS*100).toFixed(0)}%)`;
-            }
-            else if(dec==='chop') { badge.className='signal-badge sb-chop'; badge.textContent='⚠️ 盤整'; }
+            } else if(dec==='chop') { badge.className='signal-badge sb-chop'; badge.textContent='⚠️ 盤整'; }
             else { badge.className='signal-badge sb-wait'; badge.textContent='觀望'; }
         }
 
         const vals = box.querySelectorAll('.sg-val');
         
-        if(dec==='long') {
+        if(riskLevel === 'overbought' || riskLevel === 'oversold') {
+            // [V43] 顯示觀望狀態
+            box.className='strat-box strat-wait';
+            title.innerHTML = riskLevel === 'overbought' ? '<span>乖離過大 (勿追高)</span>' : '<span>乖離過大 (勿殺跌)</span>';
+            vals.forEach(e=>e.classList.add('blur-text'));
+            document.getElementById(`kelly-${sym}-${tf}`).textContent='Wait';
+        } else if(dec==='long') {
             box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-long';
             let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢反彈 (高風險)</span>` : `<span class="s-long">建議做多</span>`;
-            
             title.innerHTML = titleText;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
             document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyL*100).toFixed(1)+'%';
@@ -587,7 +585,6 @@
         } else if(dec==='short') {
             box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-short';
             let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢回調 (高風險)</span>` : `<span class="s-short">建議做空</span>`;
-
             title.innerHTML = titleText;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
             document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyS*100).toFixed(1)+'%';
