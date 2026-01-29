@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V37 自動熱點版)</title>
+    <title>全維度戰情室 (V38 邏輯真正注入版)</title>
     <style>
-        /* CSS 完全保留 V28，未做任何更動 */
+        /* CSS 完全保留，未更動 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -94,7 +94,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V37 自動熱點版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V38 邏輯注入版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -104,59 +104,53 @@
 </div>
 
 <div id="grid-container">
-    <div class="loading-text">正在掃描全市場成交量前 10 名...</div>
+    <div class="loading-text">正在掃描市場成交量前 10 名...</div>
 </div>
 
 <script>
     const TFS = ['15m', '1h', '4h'];
-    const LIMIT = 500; 
+    const LIMIT = 500;
     const TRANS = { '15m': '15m (短)', '1h': '1H (波)', '4h': '4H (趨)', 'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL' };
 
-    let allSymbols = []; 
-    let activeSymbols = new Set(); // 預設為空，等待自動抓取
-    let btcTrendMultiplier = 1.0; 
-    let wss = null; 
-    let store = {}; 
+    let allSymbols = [];
+    let activeSymbols = new Set();
+    let btcHistory = []; 
+    let btcTrendMultiplier = 1.0;
+    let wss = null;
+    let store = {};
 
-    // --- 1. 新增：自動抓取前 10 大熱門幣 ---
+    // --- 1. 自動抓取熱門幣種 ---
     async function fetchTop10Coins() {
         try {
             const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
             const data = await res.json();
-            // 過濾 USDT 合約，排除 USDC 穩定幣
             let pairs = data.filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('USDC'));
-            // 依照成交額 (quoteVolume) 降序排列
             pairs.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
-            // 取前 10 名
             const top10 = pairs.slice(0, 10).map(t => t.symbol.toLowerCase());
             return new Set(top10);
         } catch (e) {
-            console.error("抓取熱門幣失敗，使用備案", e);
-            // 萬一 API 掛了的備用清單
             return new Set(['btcusdt', 'ethusdt', 'solusdt', 'dogeusdt', 'xrpusdt', 'adausdt', 'bnbusdt']);
         }
     }
 
-    // --- System Start ---
     async function initSystem() {
-        // 1. 先抓熱門幣，取代原本的 DEFAULT_COINS
         activeSymbols = await fetchTop10Coins();
-        
-        // 2. 正常啟動
         await checkBTCAnchor();
         await fetchExchangeInfo();
-        await applyFilter(false); 
+        await applyFilter(false);
     }
 
     async function checkBTCAnchor() {
         try {
-            const res = await fetch('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=4h&limit=2');
+            const res = await fetch('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=100');
             const data = await res.json();
-            const last = parseFloat(data[1][4]), prev = parseFloat(data[0][4]);
+            if(Array.isArray(data)) btcHistory = data.map(d=>parseFloat(d[4]));
+            
+            const last = parseFloat(data[data.length-1][4]), prev = parseFloat(data[data.length-2][4]);
             const change = (last - prev) / prev;
             const tEl = document.getElementById('btc-trend'), wEl = document.getElementById('btc-weight');
-            if (change < -0.01) { btcTrendMultiplier = 0.6; tEl.textContent = "⚠️ 下跌"; tEl.style.color = "#f6465d"; }
-            else if (change > 0.01) { btcTrendMultiplier = 1.3; tEl.textContent = "🚀 上漲"; tEl.style.color = "#0ecb81"; }
+            if (change < -0.005) { btcTrendMultiplier = 0.6; tEl.textContent = "⚠️ 下跌"; tEl.style.color = "#f6465d"; }
+            else if (change > 0.005) { btcTrendMultiplier = 1.3; tEl.textContent = "🚀 上漲"; tEl.style.color = "#0ecb81"; }
             else { btcTrendMultiplier = 1.0; tEl.textContent = "⚖️ 震盪"; tEl.style.color = "#fcd535"; }
             wEl.textContent = `x${btcTrendMultiplier.toFixed(1)}`;
         } catch(e) {}
@@ -170,7 +164,6 @@
         } catch (e) {}
     }
 
-    // --- UI Logic ---
     function openModal() { renderCoinList(); document.getElementById('filterModal').style.display = 'flex'; }
     function closeModal() { document.getElementById('filterModal').style.display = 'none'; }
     function renderCoinList() {
@@ -201,7 +194,6 @@
         connectWSS(Array.from(activeSymbols));
     }
 
-    // --- Card Generation ---
     async function initSymbol(sym) {
         store[sym] = {}; 
         const container = document.getElementById('grid-container');
@@ -265,12 +257,17 @@
             const results = await Promise.all(promises);
             if(!Array.isArray(results[0]) || results[0].code) {
                 document.getElementById(`badge-15m-${sym}`).textContent = "無數據";
-                document.getElementById(`badge-15m-${sym}`).style.background = "#333";
                 return;
             }
+            
+            // 計算 Beta (1H)
+            const closes = results[1].map(d=>parseFloat(d[4]));
+            const beta = MathEngine.correlation(closes, btcHistory);
+            const isHighCorr = beta > 0.7;
+
             results.forEach((data, i) => {
                 const tf = TFS[i]; data.pop();
-                processTimeframe(sym, tf, data);
+                processTimeframe(sym, tf, data, isHighCorr);
                 if(tf === '1h') { calculateFlow(sym, data); calculateVolume(sym, data); }
             });
         } catch(e) {}
@@ -300,10 +297,27 @@
                 } 
             } 
             return totalWeight===0?0:Math.round((weightedWins/totalWeight)*100); 
+        },
+        // [新增] 相關係數
+        correlation: (a, b, len=24) => {
+            if(!b || b.length < len || a.length < len) return 1;
+            const A = a.slice(-len), B = b.slice(-len);
+            const avgA = A.reduce((x,y)=>x+y,0)/len, avgB = B.reduce((x,y)=>x+y,0)/len;
+            let num=0, denA=0, denB=0;
+            for(let i=0;i<len;i++) { let da=A[i]-avgA, db=B[i]-avgB; num+=da*db; denA+=da*da; denB+=db*db; }
+            return denA===0||denB===0 ? 0 : num/Math.sqrt(denA*denB);
+        },
+        // [新增] 智能評分 (排除 0%)
+        calcSmartScore: (metrics) => {
+            let total=0, weight=0;
+            for(let m of metrics) {
+                if(m[0] > 0) { total += m[0]*m[1]; weight += m[1]; }
+            }
+            return weight===0 ? 50 : total/weight;
         }
     };
 
-    function processTimeframe(sym, tf, klines) {
+    function processTimeframe(sym, tf, klines, isHighCorr) {
         const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3]));
         const last=c.length-1, cur=c[last];
         const atr = MathEngine.atr(h,l,c);
@@ -317,13 +331,13 @@
         let ema26 = MathEngine.emaArray(c, 26);
         let macdArr = ema12.map((v,i) => v - ema26[i]);
 
-        // 插針風險 (保留並更新位置)
+        // 插針風險
         const vwapVal = MathEngine.sma(c, 90);
         const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/atr * 15)));
         if(tf==='15m') { 
             const rEl = document.getElementById(`risk-${sym}`); 
             rEl.textContent = `插針風險 ${risk}%`; 
-            rEl.className = `risk-tag ${risk>80?'risk-high':''}`; // 高風險閃爍
+            rEl.className = `risk-tag ${risk>80?'risk-high':''}`; 
         }
         
         if(tf==='1h') {
@@ -363,49 +377,64 @@
             addInd('VWAP', cur>vwapArr[last]?'上':'下', cur>vwapArr[last]?'l':'s', wrV) +
             addInd('BOLL', cur>upper?'破':cur<lower?'破':'區', cur>upper?'l':cur<lower?'s':'n', wrB);
 
-        let avgL = Math.round(lW/cnt); 
-        if(cur > ema[last]) avgL = Math.round(avgL * btcTrendMultiplier);
-        
-        const avgS = Math.round(sW/cnt);
-        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${(avgL/(avgL+avgS))*100}%`;
-        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${(avgS/(avgL+avgS))*100}%`;
-        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${avgL}%`;
-        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${avgS}%`;
-        document.getElementById(`wr-avg-${sym}-${tf}`).textContent = `${avgL}% / ${avgS}%`;
+        // [注入: 智能評分 + Beta修正 + EV計算]
+        // 1. 智能評分 (自動忽略 0%)
+        const metricsL = [[wrR.l,1], [wrE.l,1.5], [wrM.l,1.5], [wrV.l,1], [wrB.l,1]];
+        const metricsS = [[wrR.s,1], [wrE.s,1.5], [wrM.s,1.5], [wrV.s,1], [wrB.s,1]];
+        let avgL = MathEngine.calcSmartScore(metricsL);
+        const avgS = MathEngine.calcSmartScore(metricsS);
+
+        // 2. 大盤與 Beta 修正
+        if(isHighCorr && btcTrendMultiplier < 1.0) avgL *= 0.7; // 大盤跌+高度相關 -> 做多打折
+        else if(cur > ema[last]) avgL *= btcTrendMultiplier;    // 順勢加成
+
+        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${Math.min(100, avgL)}%`;
+        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${Math.min(100, avgS)}%`;
+        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${Math.round(avgL)}%`;
+        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${Math.round(avgS)}%`;
+        document.getElementById(`wr-avg-${sym}-${tf}`).textContent = `${Math.round(avgL)}% / ${Math.round(avgS)}%`;
 
         const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
         const low15 = Math.min(...l.slice(-15)), high15 = Math.max(...h.slice(-15));
 
+        // 3. EV 計算與決策
+        const slL = Math.min(cur - atr*1.5, low15*0.999);
+        const tpL = cur + atr*2.5;
+        const reward = (tpL - cur)/cur, riskSL = (cur - slL)/cur;
+        const ev = (avgL/100 * reward) - ((1-avgL/100) * riskSL);
+
         let dec = 'wait';
-        if(avgL>=53 && avgL>avgS) dec='long';
+        // 決策門檻：勝率 > 53 且 EV > 0
+        if(avgL>=53 && avgL>avgS && ev > 0.002) dec='long';
         else if(avgS>=53 && avgS>avgL) dec='short';
         else if(avgL<50 && avgS<50) dec='chop';
 
         if(tf === '15m') {
             const badge = document.getElementById(`badge-15m-${sym}`);
-            if(dec==='long') { badge.className='signal-badge sb-long'; badge.textContent=`做多 (${avgL}%)`; }
-            else if(dec==='short') { badge.className='signal-badge sb-short'; badge.textContent=`做空 (${avgS}%)`; }
+            if(dec==='long') { badge.className='signal-badge sb-long'; badge.textContent=`做多 (${Math.round(avgL)}%)`; }
+            else if(dec==='short') { badge.className='signal-badge sb-short'; badge.textContent=`做空 (${Math.round(avgS)}%)`; }
             else if(dec==='chop') { badge.className='signal-badge sb-chop'; badge.textContent='⚠️ 盤整'; }
             else { badge.className='signal-badge sb-wait'; badge.textContent='觀望'; }
         }
 
         const vals = box.querySelectorAll('.sg-val');
-        if(dec=='long') {
-            box.className='strat-box strat-long'; title.innerHTML=`<span class="s-long">建議做多 (${avgL}%)</span>`;
+        if(dec==='long') {
+            box.className='strat-box strat-long'; title.innerHTML=`<span class="s-long">建議做多 (EV+)</span>`;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
-            document.getElementById(`sl-${sym}-${tf}`).textContent=f(Math.min(cur-atr*1.5, low15*0.999));
+            document.getElementById(`sl-${sym}-${tf}`).textContent=f(slL);
             document.getElementById(`tp1-${sym}-${tf}`).textContent=f(cur+atr*1.2);
-            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(cur+atr*2.5);
+            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(tpL);
             vals.forEach(e=>e.classList.remove('blur-text'));
-        } else if(dec=='short') {
-            box.className='strat-box strat-short'; title.innerHTML=`<span class="s-short">建議做空 (${avgS}%)</span>`;
+        } else if(dec==='short') {
+            box.className='strat-box strat-short'; title.innerHTML=`<span class="s-short">建議做空</span>`;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(Math.max(cur+atr*1.5, high15*1.001));
             document.getElementById(`tp1-${sym}-${tf}`).textContent=f(cur-atr*1.2);
             document.getElementById(`tp2-${sym}-${tf}`).textContent=f(cur-atr*2.5);
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else {
-            box.className='strat-box '+(dec=='chop'?'strat-chop':'strat-wait'); title.textContent=(dec=='chop'?'⚠️ 盤整':'觀望');
+            box.className='strat-box '+(dec=='chop'?'strat-chop':'strat-wait'); 
+            title.innerHTML = (dec=='chop' ? '<span class="s-chop">⚠️ 盤整</span>' : '<span>觀望 (EV低)</span>');
             vals.forEach(e=>e.classList.add('blur-text'));
         }
     }
@@ -415,18 +444,12 @@
         let sum=0; for(let i=len-21;i<len-1;i++) sum+=parseFloat(klines[i][5]);
         const r=cur/(sum/20), el=document.getElementById(`vol-status-${sym}`);
         document.getElementById(`vol-ratio-${sym}`).textContent = `x${r.toFixed(1)}`;
-        if(r>=2){el.textContent="🔥 爆量";el.className="vol-tag v-high";}
-        else if(r>=1.2){el.textContent="📈 放量";el.className="vol-tag v-norm";}
-        else if(r<=0.6){el.textContent="💤 縮量";el.className="vol-tag v-low";}
-        else{el.textContent="⚖️ 正常";el.className="vol-tag v-norm";}
+        if(r>=2){el.textContent="🔥 爆量";el.className="vol-tag v-high";} else if(r>=1.2){el.textContent="📈 放量";el.className="vol-tag v-norm";} else if(r<=0.6){el.textContent="💤 縮量";el.className="vol-tag v-low";} else{el.textContent="⚖️ 正常";el.className="vol-tag v-norm";}
     }
     function calculateFlow(sym, klines) {
         const rec=klines.slice(-24); let t=0,b=0; rec.forEach(k=>{t+=parseFloat(k[5]);b+=parseFloat(k[9]);});
-        const bp=(b/t)*100; 
-        document.getElementById(`flow-b-${sym}`).style.width=`${bp}%`;
-        document.getElementById(`flow-s-${sym}`).style.width=`${100-bp}%`;
-        document.getElementById(`flow-bv-${sym}`).textContent=`買${bp.toFixed(0)}%`;
-        document.getElementById(`flow-sv-${sym}`).textContent=`賣${(100-bp).toFixed(0)}%`;
+        const bp=(b/t)*100; document.getElementById(`flow-b-${sym}`).style.width=`${bp}%`; document.getElementById(`flow-s-${sym}`).style.width=`${100-bp}%`;
+        document.getElementById(`flow-bv-${sym}`).textContent=`買${bp.toFixed(0)}%`; document.getElementById(`flow-sv-${sym}`).textContent=`賣${(100-bp).toFixed(0)}%`;
     }
 
     window.toggleCard = function(sym) { document.getElementById(`card-${sym}`).classList.toggle('expanded'); };
