@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V41 趨勢否決版)</title>
+    <title>全維度戰情室 (V42 自動戰巡版)</title>
     <style>
-        /* CSS 完全保留 */
+        /* CSS 保持不變，新增倒數條樣式 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -16,7 +16,10 @@
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
         .header { border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         .btn-filter { background: #2b3139; color: #fff; border: 1px solid #444; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; }
-        .btc-bar { background: #1e2329; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--yellow); font-size: 11px; display: flex; gap: 15px; margin-bottom: 10px; }
+        .btc-bar { background: #1e2329; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--yellow); font-size: 11px; display: flex; gap: 15px; margin-bottom: 10px; align-items: center; }
+        .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; margin-left: 15px; overflow: hidden; }
+        .timer-bar-fill { height: 100%; background: var(--yellow); width: 100%; transition: width 1s linear; }
+        
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: none; justify-content: center; align-items: center; }
         .modal-content { background: var(--modal-bg); width: 90%; max-width: 600px; max-height: 80vh; border-radius: 8px; border: 1px solid #444; display: flex; flex-direction: column; }
         .modal-body { padding: 15px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
@@ -94,10 +97,11 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V41 趨勢否決版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V42 自動戰巡版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
+            <div class="timer-bar-bg" title="數據刷新倒數"><div class="timer-bar-fill" id="timer-bar"></div></div>
         </div>
     </div>
     <button class="btn-filter" onclick="openModal()"><span>➕</span> 篩選</button>
@@ -119,6 +123,8 @@
     let wss = null;
     let store = {};
     let fundingRates = {}; 
+    let refreshInterval = null; // [V42] 自動刷新定時器
+    let countdownTimer = null;  // [V42] 倒數條定時器
 
     // --- 1. 自動抓取熱門幣種 ---
     async function fetchTop10Coins() {
@@ -134,7 +140,6 @@
         }
     }
 
-    // [V40] 獲取資金費率
     async function fetchFundingRates() {
         try {
             const res = await fetch('https://fapi.binance.com/fapi/v1/premiumIndex');
@@ -147,10 +152,40 @@
 
     async function initSystem() {
         activeSymbols = await fetchTop10Coins();
-        await checkBTCAnchor();
-        await fetchFundingRates(); 
         await fetchExchangeInfo();
-        await applyFilter(false);
+        await startSystemLoop(); // [V42] 改為啟動循環
+    }
+
+    // [V42] 系統核心循環
+    async function startSystemLoop() {
+        // 初次執行
+        await runAnalysisCycle();
+        
+        // 設定 60秒 自動刷新
+        if(refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(runAnalysisCycle, 60000);
+
+        // 啟動視覺倒數
+        startCountdown();
+    }
+
+    async function runAnalysisCycle() {
+        await checkBTCAnchor();
+        await fetchFundingRates();
+        await applyFilter(false); // 重新計算所有指標
+        startCountdown(); // 重置倒數條
+    }
+
+    function startCountdown() {
+        if(countdownTimer) clearInterval(countdownTimer);
+        const bar = document.getElementById('timer-bar');
+        let width = 100;
+        bar.style.width = '100%';
+        countdownTimer = setInterval(() => {
+            width -= (100/60); // 60秒倒數
+            if(width < 0) width = 0;
+            bar.style.width = `${width}%`;
+        }, 1000);
     }
 
     async function checkBTCAnchor() {
@@ -199,11 +234,18 @@
         if (fromModal) {
             activeSymbols = new Set(Array.from(document.querySelectorAll('.coin-option.selected')).map(el => el.dataset.sym));
             closeModal();
+            // 如果是手動觸發，重置自動刷新循環
+            startSystemLoop();
+            return;
         }
+        
+        // 這裡如果是自動刷新，不要清空容器，而是用 DOM Diffing 更新會更好，但為求簡單，我們先清空
         const container = document.getElementById('grid-container');
         container.innerHTML = ''; 
         if(wss) wss.close(); store = {}; 
-        for (const sym of activeSymbols) { await initSymbol(sym); await new Promise(r => setTimeout(r, 80)); }
+        
+        // 依序處理
+        for (const sym of activeSymbols) { await initSymbol(sym); await new Promise(r => setTimeout(r, 50)); } // 降低延遲
         connectWSS(Array.from(activeSymbols));
     }
 
@@ -389,11 +431,12 @@
         const adx = MathEngine.adx(h,l,c);
         const curAdx = adx[adx.length-1];
 
-        // 顯示 ADX (只在 1H 顯示)
         if(tf === '1h') {
             const adxEl = document.getElementById(`adx-${sym}`);
-            adxEl.textContent = curAdx.toFixed(1);
-            adxEl.style.color = curAdx > 25 ? '#f6465d' : '#848e9c'; 
+            if(adxEl) {
+                adxEl.textContent = curAdx.toFixed(1);
+                adxEl.style.color = curAdx > 25 ? '#f6465d' : '#848e9c'; 
+            }
         }
 
         const ema = MathEngine.emaArray(c, 50);
@@ -409,8 +452,10 @@
         const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/curATR * 15)));
         if(tf==='15m') { 
             const rEl = document.getElementById(`risk-${sym}`); 
-            rEl.textContent = `插針風險 ${risk}%`; 
-            rEl.className = `risk-tag ${risk>80?'risk-high':''}`; 
+            if(rEl) {
+                rEl.textContent = `插針風險 ${risk}%`; 
+                rEl.className = `risk-tag ${risk>80?'risk-high':''}`; 
+            }
         }
         
         if(tf==='1h') {
@@ -471,11 +516,10 @@
 
         const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
         
-        // V41: 動態盈虧比 & 震盪盤保護
+        // V41: 動態盈虧比 & 震盪盤保護 & 趨勢否決
         let dynamicTP_Mult = curAdx > 25 ? 3.0 : 1.2;
         let dynamicSL_Mult = curAdx > 25 ? 1.5 : 1.0;
 
-        // 震盪盤保守估計勝率
         let finalAvgL = curAdx < 25 ? avgL * 0.9 : avgL;
         let finalAvgS = curAdx < 25 ? avgS * 0.9 : avgS;
 
@@ -488,34 +532,25 @@
         const kellyS = MathEngine.kelly(finalAvgS, RR);
 
         let dec = 'wait';
-        let riskLevel = 'normal'; // [V41] 新增風險等級
+        let riskLevel = 'normal';
 
-        // ---------------------------------------------------------
-        // [V41 邏輯修正：加入趨勢否決權]
-        // ---------------------------------------------------------
-        
         // 基礎判定
         if(kellyL > 0 && finalAvgL > 50 && finalAvgL > finalAvgS) dec = 'long';
         else if(kellyS > 0 && finalAvgS > 50 && finalAvgS > finalAvgL) dec = 'short';
 
-        // --- 否決權檢查 (Veto Checks) ---
-        
-        // 1. ADX 濾網：如果 ADX 太低，強制轉為盤整 (Chop)
-        if(curAdx < 20) {
-            dec = 'chop'; 
-        }
+        // --- 趨勢否決權 (Trend Veto) ---
+        // 1. ADX 濾網
+        if(curAdx < 20) dec = 'chop'; 
 
-        // 2. 逆勢濾網：如果想做多，但價格被 EMA 壓著打 (均線下)，且 MACD 動能不足
+        // 2. 逆勢濾網 (做多但價格在均線下)
         if(dec === 'long') {
             if(cur < ema[last] || macdArr[last] < 0) {
-                // 雖然數學期望值高，但屬於「逆勢接刀」，強制降級
-                riskLevel = 'risky'; // 標記為高風險
-                // 如果是 4H 大週期，逆勢直接禁止
-                if(tf === '4h') dec = 'wait'; 
+                riskLevel = 'risky'; 
+                if(tf === '4h') dec = 'wait'; // 大週期嚴格
             }
         }
         
-        // 3. 逆勢濾網：如果想做空，但價格在 EMA 之上 (均線上)
+        // 3. 逆勢濾網 (做空但價格在均線上)
         if(dec === 'short') {
             if(cur > ema[last] || macdArr[last] > 0) {
                 riskLevel = 'risky';
@@ -523,14 +558,10 @@
             }
         }
 
-        // ---------------------------------------------------------
-        // UI 顯示邏輯更新
-        // ---------------------------------------------------------
-
         if(tf === '15m') {
             const badge = document.getElementById(`badge-15m-${sym}`);
             if(dec==='long') { 
-                badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-long'; // 高風險顯示黃色
+                badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-long';
                 badge.textContent = riskLevel === 'risky' ? `險多 (K:${(kellyL*100).toFixed(0)}%)` : `做多 (K:${(kellyL*100).toFixed(0)}%)`;
             }
             else if(dec==='short') { 
@@ -543,9 +574,7 @@
 
         const vals = box.querySelectorAll('.sg-val');
         
-        // 根據 Risk Level 改變樣式
         if(dec==='long') {
-            // 如果是 Risky，用黃色框；如果是 Normal，用綠色框
             box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-long';
             let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢反彈 (高風險)</span>` : `<span class="s-long">建議做多</span>`;
             
@@ -567,7 +596,7 @@
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else {
             box.className='strat-box '+(dec=='chop'?'strat-chop':'strat-wait'); 
-            title.innerHTML = (dec=='chop' ? '<span class="s-chop">⚠️ 盤整 (ADX低)</span>' : '<span>觀望 (趨勢不明)</span>');
+            title.innerHTML = (dec=='chop' ? '<span class="s-chop">⚠️ 盤整 (ADX低)</span>' : '<span>觀望</span>');
             vals.forEach(e=>e.classList.add('blur-text'));
             document.getElementById(`kelly-${sym}-${tf}`).textContent='---';
         }
