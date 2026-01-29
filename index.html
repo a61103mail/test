@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V40 大師版)</title>
+    <title>全維度戰情室 (V41 趨勢否決版)</title>
     <style>
         /* CSS 完全保留 */
         :root {
@@ -94,7 +94,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V40 大師版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V41 趨勢否決版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -118,7 +118,7 @@
     let btcTrendMultiplier = 1.0;
     let wss = null;
     let store = {};
-    let fundingRates = {}; // [V40] 存儲資金費率
+    let fundingRates = {}; 
 
     // --- 1. 自動抓取熱門幣種 ---
     async function fetchTop10Coins() {
@@ -148,7 +148,7 @@
     async function initSystem() {
         activeSymbols = await fetchTop10Coins();
         await checkBTCAnchor();
-        await fetchFundingRates(); // [V40] 獲取費率
+        await fetchFundingRates(); 
         await fetchExchangeInfo();
         await applyFilter(false);
     }
@@ -212,7 +212,6 @@
         const container = document.getElementById('grid-container');
         if(container.querySelector('.loading-text')) container.innerHTML = '';
 
-        // [V40] 準備費率顯示
         const fr = fundingRates[sym] || 0;
         const frColor = fr > 0.03 ? '#f6465d' : (fr < 0 ? '#0ecb81' : '#888');
 
@@ -472,8 +471,7 @@
 
         const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
         
-        // [V40 修改: 動態盈虧比邏輯]
-        // 趨勢盤(ADX>25)貪婪(TP3.0/SL1.5)，震盪盤(ADX<25)保守(TP1.2/SL1.0)
+        // V41: 動態盈虧比 & 震盪盤保護
         let dynamicTP_Mult = curAdx > 25 ? 3.0 : 1.2;
         let dynamicSL_Mult = curAdx > 25 ? 1.5 : 1.0;
 
@@ -485,38 +483,83 @@
         const tpL = cur + curATR * dynamicTP_Mult;
         const slS = cur + curATR * dynamicSL_Mult;
         const tpS = cur - curATR * dynamicTP_Mult;
-
-        // 計算實際動態盈虧比 (RR)
         const RR = dynamicTP_Mult / dynamicSL_Mult;
-
-        // 計算 Kelly % (帶入動態 RR)
         const kellyL = MathEngine.kelly(finalAvgL, RR);
         const kellyS = MathEngine.kelly(finalAvgS, RR);
 
         let dec = 'wait';
-        // 決策門檻：勝率 > 52 且 Kelly > 0
-        if(kellyL > 0 && finalAvgL > 52 && finalAvgL > finalAvgS) dec = 'long';
-        else if(kellyS > 0 && finalAvgS > 52 && finalAvgS > finalAvgL) dec = 'short';
-        else if(curAdx < 18) dec = 'chop'; // 極低波動強制觀望
+        let riskLevel = 'normal'; // [V41] 新增風險等級
+
+        // ---------------------------------------------------------
+        // [V41 邏輯修正：加入趨勢否決權]
+        // ---------------------------------------------------------
+        
+        // 基礎判定
+        if(kellyL > 0 && finalAvgL > 50 && finalAvgL > finalAvgS) dec = 'long';
+        else if(kellyS > 0 && finalAvgS > 50 && finalAvgS > finalAvgL) dec = 'short';
+
+        // --- 否決權檢查 (Veto Checks) ---
+        
+        // 1. ADX 濾網：如果 ADX 太低，強制轉為盤整 (Chop)
+        if(curAdx < 20) {
+            dec = 'chop'; 
+        }
+
+        // 2. 逆勢濾網：如果想做多，但價格被 EMA 壓著打 (均線下)，且 MACD 動能不足
+        if(dec === 'long') {
+            if(cur < ema[last] || macdArr[last] < 0) {
+                // 雖然數學期望值高，但屬於「逆勢接刀」，強制降級
+                riskLevel = 'risky'; // 標記為高風險
+                // 如果是 4H 大週期，逆勢直接禁止
+                if(tf === '4h') dec = 'wait'; 
+            }
+        }
+        
+        // 3. 逆勢濾網：如果想做空，但價格在 EMA 之上 (均線上)
+        if(dec === 'short') {
+            if(cur > ema[last] || macdArr[last] > 0) {
+                riskLevel = 'risky';
+                if(tf === '4h') dec = 'wait';
+            }
+        }
+
+        // ---------------------------------------------------------
+        // UI 顯示邏輯更新
+        // ---------------------------------------------------------
 
         if(tf === '15m') {
             const badge = document.getElementById(`badge-15m-${sym}`);
-            if(dec==='long') { badge.className='signal-badge sb-long'; badge.textContent=`做多 (K:${(kellyL*100).toFixed(1)}%)`; }
-            else if(dec==='short') { badge.className='signal-badge sb-short'; badge.textContent=`做空 (K:${(kellyS*100).toFixed(1)}%)`; }
+            if(dec==='long') { 
+                badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-long'; // 高風險顯示黃色
+                badge.textContent = riskLevel === 'risky' ? `險多 (K:${(kellyL*100).toFixed(0)}%)` : `做多 (K:${(kellyL*100).toFixed(0)}%)`;
+            }
+            else if(dec==='short') { 
+                badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-short';
+                badge.textContent = riskLevel === 'risky' ? `險空 (K:${(kellyS*100).toFixed(0)}%)` : `做空 (K:${(kellyS*100).toFixed(0)}%)`;
+            }
             else if(dec==='chop') { badge.className='signal-badge sb-chop'; badge.textContent='⚠️ 盤整'; }
             else { badge.className='signal-badge sb-wait'; badge.textContent='觀望'; }
         }
 
         const vals = box.querySelectorAll('.sg-val');
+        
+        // 根據 Risk Level 改變樣式
         if(dec==='long') {
-            box.className='strat-box strat-long'; title.innerHTML=`<span class="s-long">建議做多</span>`;
+            // 如果是 Risky，用黃色框；如果是 Normal，用綠色框
+            box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-long';
+            let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢反彈 (高風險)</span>` : `<span class="s-long">建議做多</span>`;
+            
+            title.innerHTML = titleText;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
             document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyL*100).toFixed(1)+'%';
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(slL);
             document.getElementById(`tp-${sym}-${tf}`).textContent=f(tpL); 
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else if(dec==='short') {
-            box.className='strat-box strat-short'; title.innerHTML=`<span class="s-short">建議做空</span>`;
+            box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-short';
+            let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢回調 (高風險)</span>` : `<span class="s-short">建議做空</span>`;
+
+            title.innerHTML = titleText;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
             document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyS*100).toFixed(1)+'%';
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(slS);
@@ -524,7 +567,7 @@
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else {
             box.className='strat-box '+(dec=='chop'?'strat-chop':'strat-wait'); 
-            title.innerHTML = (dec=='chop' ? '<span class="s-chop">⚠️ 盤整</span>' : '<span>觀望 (EV低)</span>');
+            title.innerHTML = (dec=='chop' ? '<span class="s-chop">⚠️ 盤整 (ADX低)</span>' : '<span>觀望 (趨勢不明)</span>');
             vals.forEach(e=>e.classList.add('blur-text'));
             document.getElementById(`kelly-${sym}-${tf}`).textContent='---';
         }
