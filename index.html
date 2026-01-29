@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V39 數學實戰版)</title>
+    <title>全維度戰情室 (V40 大師版)</title>
     <style>
-        /* CSS 完全保留，未更動 */
+        /* CSS 完全保留 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -94,7 +94,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V39 數學實戰版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V40 大師版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -118,6 +118,7 @@
     let btcTrendMultiplier = 1.0;
     let wss = null;
     let store = {};
+    let fundingRates = {}; // [V40] 存儲資金費率
 
     // --- 1. 自動抓取熱門幣種 ---
     async function fetchTop10Coins() {
@@ -133,9 +134,21 @@
         }
     }
 
+    // [V40] 獲取資金費率
+    async function fetchFundingRates() {
+        try {
+            const res = await fetch('https://fapi.binance.com/fapi/v1/premiumIndex');
+            const data = await res.json();
+            data.forEach(d => {
+                fundingRates[d.symbol.toLowerCase()] = parseFloat(d.lastFundingRate) * 100;
+            });
+        } catch (e) { console.log('費率獲取失敗'); }
+    }
+
     async function initSystem() {
         activeSymbols = await fetchTop10Coins();
         await checkBTCAnchor();
+        await fetchFundingRates(); // [V40] 獲取費率
         await fetchExchangeInfo();
         await applyFilter(false);
     }
@@ -199,6 +212,10 @@
         const container = document.getElementById('grid-container');
         if(container.querySelector('.loading-text')) container.innerHTML = '';
 
+        // [V40] 準備費率顯示
+        const fr = fundingRates[sym] || 0;
+        const frColor = fr > 0.03 ? '#f6465d' : (fr < 0 ? '#0ecb81' : '#888');
+
         let html = `
         <div class="coin-card" id="card-${sym}">
             <div class="card-header" onclick="toggleCard('${sym}')">
@@ -225,6 +242,7 @@
                         <div style="display:flex; justify-content:space-between; font-size:10px;"><span id="flow-bv-${sym}" style="color:var(--green)">--%</span><span id="flow-sv-${sym}" style="color:var(--red)">--%</span></div>
                     </div>
                     <div style="font-size:10px; color:#888; border-top:1px dashed #333; padding-top:5px;">ADX 趨勢強度:<br><span id="adx-${sym}" style="color:var(--yellow); font-weight:bold;">...</span></div>
+                    <div style="font-size:10px; color:#888; border-top:1px dashed #333; padding-top:5px;">資金費率:<br><span style="color:${frColor}; font-weight:bold;">${fr.toFixed(4)}%</span></div>
                 </div>
         `;
 
@@ -288,13 +306,11 @@
             }
             let atr = [trs[0]];
             for(let i=1; i<trs.length; i++) {
-                // Smoothing RM: (Prev * (p-1) + Curr) / p
                 if(i < p) atr.push((atr[i-1]*i + trs[i])/(i+1));
                 else atr.push((atr[i-1]*(p-1) + trs[i])/p);
             }
             return atr;
         },
-        // [新增] ADX 計算
         adx: (h, l, c, p=14) => {
             let plusDM=[], minusDM=[], tr=[];
             for(let i=1;i<h.length;i++){
@@ -303,7 +319,6 @@
                 plusDM.push((up>down && up>0)?up:0);
                 minusDM.push((down>up && down>0)?down:0);
             }
-            // 簡化版 SMA smoothing
             const smooth = (arr, len) => {
                 let res=[], sum=0;
                 for(let i=0;i<arr.length;i++){
@@ -319,28 +334,22 @@
                 let sum = diP+diM, diff = Math.abs(diP-diM);
                 dx.push(sum===0?0:(diff/sum)*100);
             }
-            return smooth(dx, p); // ADX
+            return smooth(dx, p);
         },
-        // [修改] 實戰路徑模擬勝率計算
         getRealisticWinRate: (signals, closes, highs, lows, atrs, direction) => { 
             let wins=0, trades=0;
-            // 回測只到倒數第24根，保留未來空間
             for(let i=50; i<signals.length-24; i++){ 
                 if(!signals[i]) continue;
-                
                 const entry = closes[i], curATR = atrs[i];
-                // 設定 1.5 ATR 止損, 2.0 ATR 止盈
                 const slDist = curATR * 1.5, tpDist = curATR * 2.0;
                 let sl = direction==='long' ? entry - slDist : entry + slDist;
                 let tp = direction==='long' ? entry + tpDist : entry - tpDist;
                 let outcome = 'timeout';
-
-                // 往未來檢查 24 根 K 線 (路徑模擬)
                 for(let k=1; k<=24; k++){
                     let h = highs[i+k], l = lows[i+k];
                     if(direction==='long'){
-                        if(l <= sl) { outcome='loss'; break; } // 先碰到止損
-                        if(h >= tp) { outcome='win'; break; }  // 先碰到止盈
+                        if(l <= sl) { outcome='loss'; break; }
+                        if(h >= tp) { outcome='win'; break; } 
                     } else {
                         if(h >= sl) { outcome='loss'; break; }
                         if(l <= tp) { outcome='win'; break; }
@@ -349,7 +358,6 @@
                 if(outcome==='win') wins++;
                 if(outcome!=='timeout') trades++;
             } 
-            // 樣本過少回傳 50%
             return trades<5 ? 50 : Math.round((wins/trades)*100); 
         },
         correlation: (a, b, len=24) => {
@@ -365,7 +373,6 @@
             for(let m of metrics) { if(m[0] > 0) { total += m[0]*m[1]; weight += m[1]; } }
             return weight===0 ? 50 : total/weight;
         },
-        // [新增] 凱利公式
         kelly: (winRate, riskReward) => {
             const w = winRate / 100;
             const q = 1 - w;
@@ -387,7 +394,7 @@
         if(tf === '1h') {
             const adxEl = document.getElementById(`adx-${sym}`);
             adxEl.textContent = curAdx.toFixed(1);
-            adxEl.style.color = curAdx > 25 ? '#f6465d' : '#848e9c'; // 紅色代表有趨勢，灰色代表震盪
+            adxEl.style.color = curAdx > 25 ? '#f6465d' : '#848e9c'; 
         }
 
         const ema = MathEngine.emaArray(c, 50);
@@ -399,7 +406,6 @@
         let ema26 = MathEngine.emaArray(c, 26);
         let macdArr = ema12.map((v,i) => v - ema26[i]);
 
-        // 插針風險
         const vwapVal = MathEngine.sma(c, 90);
         const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/curATR * 15)));
         if(tf==='15m') { 
@@ -412,10 +418,8 @@
             const v = klines.map(d=>parseFloat(d[5]));
             let maxV=0, wallP=0; 
             for(let i=last-50;i<=last;i++){ if(v[i]>maxV){ maxV=v[i]; wallP=c[i]; } } 
-            // document.getElementById(`wall-${sym}`).textContent = wallP.toFixed(cur<1?4:2); // (保持原樣或移除)
         }
 
-        // 產生歷史信號陣列
         const sigs={ r_b:[], r_s:[], e_b:[], e_s:[], m_b:[], m_s:[], v_b:[], v_s:[], b_b:[], b_s:[] };
         for(let i=50; i<=last; i++) {
             sigs.r_b[i]=rsi[i]<40; sigs.r_s[i]=rsi[i]>60;
@@ -425,7 +429,6 @@
             sigs.b_b[i]=c[i]>upper[i]; sigs.b_s[i]=c[i]<lower[i];
         }
         
-        // [修正] 使用 Path Simulation 計算勝率 (傳入 High, Low, ATR)
         const wrR = { l: MathEngine.getRealisticWinRate(sigs.r_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.r_s,c,h,l,atrs,'short') };
         const wrE = { l: MathEngine.getRealisticWinRate(sigs.e_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.e_s,c,h,l,atrs,'short') };
         const wrM = { l: MathEngine.getRealisticWinRate(sigs.m_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.m_s,c,h,l,atrs,'short') };
@@ -447,8 +450,6 @@
             addInd('VWAP', cur>vwapArr[last]?'上':'下', cur>vwapArr[last]?'l':'s', wrV) +
             addInd('BOLL', cur>upper?'破':cur<lower?'破':'區', cur>upper?'l':cur<lower?'s':'n', wrB);
 
-        // [注入: ADX 權重調整]
-        // 如果 ADX < 25 (震盪)，降低趨勢指標權重；如果 ADX > 25 (趨勢)，增加趨勢指標權重
         let wTrend = curAdx > 25 ? 2.0 : 0.5;
         let wOsc = curAdx > 25 ? 0.5 : 2.0;
 
@@ -458,11 +459,8 @@
         let avgL = MathEngine.calcSmartScore(metricsL);
         let avgS = MathEngine.calcSmartScore(metricsS);
 
-        // 2. Beta 修正 (只在高度相關時應用)
         if(isHighCorr && btcTrendMultiplier !== 1.0) {
-            // 如果 BTC 跌且我要做多 -> 扣分
             if(btcTrendMultiplier < 1.0) avgL *= 0.8;
-            // 如果 BTC 漲且我要做空 -> 扣分
             if(btcTrendMultiplier > 1.0) avgS *= 0.8;
         }
 
@@ -474,24 +472,32 @@
 
         const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
         
-        // 3. 實戰 EV 與 Kelly 計算
-        // 設定固定盈虧比 (與 Path Simulation 邏輯一致)
-        const RR = 1.33; // TP(2.0) / SL(1.5)
-        
-        const slL = cur - curATR * 1.5;
-        const tpL = cur + curATR * 2.0;
-        const slS = cur + curATR * 1.5;
-        const tpS = cur - curATR * 2.0;
+        // [V40 修改: 動態盈虧比邏輯]
+        // 趨勢盤(ADX>25)貪婪(TP3.0/SL1.5)，震盪盤(ADX<25)保守(TP1.2/SL1.0)
+        let dynamicTP_Mult = curAdx > 25 ? 3.0 : 1.2;
+        let dynamicSL_Mult = curAdx > 25 ? 1.5 : 1.0;
 
-        // 計算 Kelly %
-        const kellyL = MathEngine.kelly(avgL, RR);
-        const kellyS = MathEngine.kelly(avgS, RR);
+        // 震盪盤保守估計勝率
+        let finalAvgL = curAdx < 25 ? avgL * 0.9 : avgL;
+        let finalAvgS = curAdx < 25 ? avgS * 0.9 : avgS;
+
+        const slL = cur - curATR * dynamicSL_Mult;
+        const tpL = cur + curATR * dynamicTP_Mult;
+        const slS = cur + curATR * dynamicSL_Mult;
+        const tpS = cur - curATR * dynamicTP_Mult;
+
+        // 計算實際動態盈虧比 (RR)
+        const RR = dynamicTP_Mult / dynamicSL_Mult;
+
+        // 計算 Kelly % (帶入動態 RR)
+        const kellyL = MathEngine.kelly(finalAvgL, RR);
+        const kellyS = MathEngine.kelly(finalAvgS, RR);
 
         let dec = 'wait';
-        // 決策門檻：Kelly > 0 且 勝率 > 50 (Kelly 為正代表數學期望值為正)
-        if(kellyL > 0 && avgL > 50 && avgL > avgS) dec = 'long';
-        else if(kellyS > 0 && avgS > 50 && avgS > avgL) dec = 'short';
-        else if(curAdx < 20) dec = 'chop';
+        // 決策門檻：勝率 > 52 且 Kelly > 0
+        if(kellyL > 0 && finalAvgL > 52 && finalAvgL > finalAvgS) dec = 'long';
+        else if(kellyS > 0 && finalAvgS > 52 && finalAvgS > finalAvgL) dec = 'short';
+        else if(curAdx < 18) dec = 'chop'; // 極低波動強制觀望
 
         if(tf === '15m') {
             const badge = document.getElementById(`badge-15m-${sym}`);
@@ -507,7 +513,7 @@
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
             document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyL*100).toFixed(1)+'%';
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(slL);
-            document.getElementById(`tp-${sym}-${tf}`).textContent=f(tpL); // 只顯示最終 TP
+            document.getElementById(`tp-${sym}-${tf}`).textContent=f(tpL); 
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else if(dec==='short') {
             box.className='strat-box strat-short'; title.innerHTML=`<span class="s-short">建議做空</span>`;
