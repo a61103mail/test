@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V38 邏輯真正注入版)</title>
+    <title>全維度戰情室 (V39 數學實戰版)</title>
     <style>
         /* CSS 完全保留，未更動 */
         :root {
@@ -94,7 +94,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V38 邏輯注入版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V39 數學實戰版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -224,7 +224,7 @@
                         <div class="flow-bar-bg"><div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div><div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div></div>
                         <div style="display:flex; justify-content:space-between; font-size:10px;"><span id="flow-bv-${sym}" style="color:var(--green)">--%</span><span id="flow-sv-${sym}" style="color:var(--red)">--%</span></div>
                     </div>
-                    <div style="font-size:10px; color:#888; border-top:1px dashed #333; padding-top:5px;">核心籌碼牆:<br><span id="wall-${sym}" style="color:var(--yellow); font-weight:bold;">...</span></div>
+                    <div style="font-size:10px; color:#888; border-top:1px dashed #333; padding-top:5px;">ADX 趨勢強度:<br><span id="adx-${sym}" style="color:var(--yellow); font-weight:bold;">...</span></div>
                 </div>
         `;
 
@@ -242,9 +242,9 @@
                     <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
                     <div class="strat-grid">
                         <div>En <span class="sg-val" id="en-${sym}-${tf}">---</span></div>
+                        <div>Kelly <span class="sg-val" id="kelly-${sym}-${tf}">---</span></div>
                         <div>SL <span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
-                        <div>TP1 <span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
-                        <div>TP2 <span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
+                        <div>TP <span class="sg-val" id="tp-${sym}-${tf}">---</span></div>
                     </div>
                 </div>
             </div>`;
@@ -260,7 +260,6 @@
                 return;
             }
             
-            // 計算 Beta (1H)
             const closes = results[1].map(d=>parseFloat(d[4]));
             const beta = MathEngine.correlation(closes, btcHistory);
             const isHighCorr = beta > 0.7;
@@ -273,9 +272,6 @@
         } catch(e) {}
     }
 
-    window.toggleCard = function(sym) { document.getElementById(`card-${sym}`).classList.toggle('expanded'); };
-    function removeCard(sym) { activeSymbols.delete(sym); document.getElementById(`card-${sym}`).remove(); }
-
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
         emaArray: (d, p) => { let k=2/(p+1), ema=[d[0]]; for(let i=1;i<d.length;i++) ema.push(d[i]*k+ema[i-1]*(1-k)); return ema; },
@@ -285,20 +281,77 @@
             for(let i=15;i<c.length;i++){ let d=c[i]-c[i-1]; d>0?ag=(ag*13+d)/14:al=(al*13-d)/14; rsi[i]=al===0?100:100-(100/(1+ag/al)); }
             return rsi;
         },
-        atr: (h,l,c,p=14) => { if(h.length<p)return 0; let trs=[]; for(let i=1;i<h.length;i++) trs.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1]))); return trs.slice(-p).reduce((a,b)=>a+b,0)/p; },
-        getWeightedWinRate: (s,c,t) => { 
-            let weightedWins=0, totalWeight=0; 
-            for(let i=50;i<s.length-5;i++){ 
-                if(s[i]){ 
-                    const w = Math.pow(1.006, i); 
-                    totalWeight+=w; 
-                    let e=c[i], x=c[i+5]; 
-                    if((t=='long'&&x>e*1.0015)||(t=='short'&&x<e*0.9985)) weightedWins+=w; 
-                } 
-            } 
-            return totalWeight===0?0:Math.round((weightedWins/totalWeight)*100); 
+        atrArray: (h, l, c, p=14) => {
+            let trs = [h[0]-l[0]];
+            for(let i=1; i<h.length; i++) {
+                trs.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
+            }
+            let atr = [trs[0]];
+            for(let i=1; i<trs.length; i++) {
+                // Smoothing RM: (Prev * (p-1) + Curr) / p
+                if(i < p) atr.push((atr[i-1]*i + trs[i])/(i+1));
+                else atr.push((atr[i-1]*(p-1) + trs[i])/p);
+            }
+            return atr;
         },
-        // [新增] 相關係數
+        // [新增] ADX 計算
+        adx: (h, l, c, p=14) => {
+            let plusDM=[], minusDM=[], tr=[];
+            for(let i=1;i<h.length;i++){
+                tr.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
+                let up=h[i]-h[i-1], down=l[i-1]-l[i];
+                plusDM.push((up>down && up>0)?up:0);
+                minusDM.push((down>up && down>0)?down:0);
+            }
+            // 簡化版 SMA smoothing
+            const smooth = (arr, len) => {
+                let res=[], sum=0;
+                for(let i=0;i<arr.length;i++){
+                    sum+=arr[i]; if(i>=len) sum-=arr[i-len];
+                    res.push(i<len?sum/(i+1):sum/len);
+                }
+                return res;
+            };
+            let trS=smooth(tr,p), pDMS=smooth(plusDM,p), mDMS=smooth(minusDM,p);
+            let dx=[];
+            for(let i=0;i<trS.length;i++){
+                let diP = (pDMS[i]/trS[i])*100, diM = (mDMS[i]/trS[i])*100;
+                let sum = diP+diM, diff = Math.abs(diP-diM);
+                dx.push(sum===0?0:(diff/sum)*100);
+            }
+            return smooth(dx, p); // ADX
+        },
+        // [修改] 實戰路徑模擬勝率計算
+        getRealisticWinRate: (signals, closes, highs, lows, atrs, direction) => { 
+            let wins=0, trades=0;
+            // 回測只到倒數第24根，保留未來空間
+            for(let i=50; i<signals.length-24; i++){ 
+                if(!signals[i]) continue;
+                
+                const entry = closes[i], curATR = atrs[i];
+                // 設定 1.5 ATR 止損, 2.0 ATR 止盈
+                const slDist = curATR * 1.5, tpDist = curATR * 2.0;
+                let sl = direction==='long' ? entry - slDist : entry + slDist;
+                let tp = direction==='long' ? entry + tpDist : entry - tpDist;
+                let outcome = 'timeout';
+
+                // 往未來檢查 24 根 K 線 (路徑模擬)
+                for(let k=1; k<=24; k++){
+                    let h = highs[i+k], l = lows[i+k];
+                    if(direction==='long'){
+                        if(l <= sl) { outcome='loss'; break; } // 先碰到止損
+                        if(h >= tp) { outcome='win'; break; }  // 先碰到止盈
+                    } else {
+                        if(h >= sl) { outcome='loss'; break; }
+                        if(l <= tp) { outcome='win'; break; }
+                    }
+                }
+                if(outcome==='win') wins++;
+                if(outcome!=='timeout') trades++;
+            } 
+            // 樣本過少回傳 50%
+            return trades<5 ? 50 : Math.round((wins/trades)*100); 
+        },
         correlation: (a, b, len=24) => {
             if(!b || b.length < len || a.length < len) return 1;
             const A = a.slice(-len), B = b.slice(-len);
@@ -307,21 +360,36 @@
             for(let i=0;i<len;i++) { let da=A[i]-avgA, db=B[i]-avgB; num+=da*db; denA+=da*da; denB+=db*db; }
             return denA===0||denB===0 ? 0 : num/Math.sqrt(denA*denB);
         },
-        // [新增] 智能評分 (排除 0%)
         calcSmartScore: (metrics) => {
             let total=0, weight=0;
-            for(let m of metrics) {
-                if(m[0] > 0) { total += m[0]*m[1]; weight += m[1]; }
-            }
+            for(let m of metrics) { if(m[0] > 0) { total += m[0]*m[1]; weight += m[1]; } }
             return weight===0 ? 50 : total/weight;
+        },
+        // [新增] 凱利公式
+        kelly: (winRate, riskReward) => {
+            const w = winRate / 100;
+            const q = 1 - w;
+            return (w * riskReward - q) / riskReward;
         }
     };
 
     function processTimeframe(sym, tf, klines, isHighCorr) {
         const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3]));
         const last=c.length-1, cur=c[last];
-        const atr = MathEngine.atr(h,l,c);
+        
+        const atrs = MathEngine.atrArray(h,l,c);
+        const curATR = atrs[atrs.length-1];
         const rsi = MathEngine.rsiArray(c);
+        const adx = MathEngine.adx(h,l,c);
+        const curAdx = adx[adx.length-1];
+
+        // 顯示 ADX (只在 1H 顯示)
+        if(tf === '1h') {
+            const adxEl = document.getElementById(`adx-${sym}`);
+            adxEl.textContent = curAdx.toFixed(1);
+            adxEl.style.color = curAdx > 25 ? '#f6465d' : '#848e9c'; // 紅色代表有趨勢，灰色代表震盪
+        }
+
         const ema = MathEngine.emaArray(c, 50);
         const sma20=MathEngine.sma(c,20), std=Math.sqrt(c.slice(-20).map(x=>Math.pow(x-sma20,2)).reduce((a,b)=>a+b)/20);
         const upper=sma20+2*std, lower=sma20-2*std;
@@ -333,7 +401,7 @@
 
         // 插針風險
         const vwapVal = MathEngine.sma(c, 90);
-        const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/atr * 15)));
+        const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/curATR * 15)));
         if(tf==='15m') { 
             const rEl = document.getElementById(`risk-${sym}`); 
             rEl.textContent = `插針風險 ${risk}%`; 
@@ -344,9 +412,10 @@
             const v = klines.map(d=>parseFloat(d[5]));
             let maxV=0, wallP=0; 
             for(let i=last-50;i<=last;i++){ if(v[i]>maxV){ maxV=v[i]; wallP=c[i]; } } 
-            document.getElementById(`wall-${sym}`).textContent = wallP.toFixed(cur<1?4:2);
+            // document.getElementById(`wall-${sym}`).textContent = wallP.toFixed(cur<1?4:2); // (保持原樣或移除)
         }
 
+        // 產生歷史信號陣列
         const sigs={ r_b:[], r_s:[], e_b:[], e_s:[], m_b:[], m_s:[], v_b:[], v_s:[], b_b:[], b_s:[] };
         for(let i=50; i<=last; i++) {
             sigs.r_b[i]=rsi[i]<40; sigs.r_s[i]=rsi[i]>60;
@@ -356,11 +425,12 @@
             sigs.b_b[i]=c[i]>upper[i]; sigs.b_s[i]=c[i]<lower[i];
         }
         
-        const wrR = { l: MathEngine.getWeightedWinRate(sigs.r_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.r_s,c,'short') };
-        const wrE = { l: MathEngine.getWeightedWinRate(sigs.e_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.e_s,c,'short') };
-        const wrM = { l: MathEngine.getWeightedWinRate(sigs.m_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.m_s,c,'short') };
-        const wrV = { l: MathEngine.getWeightedWinRate(sigs.v_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.v_s,c,'short') };
-        const wrB = { l: MathEngine.getWeightedWinRate(sigs.b_b,c,'long'), s: MathEngine.getWeightedWinRate(sigs.b_s,c,'short') };
+        // [修正] 使用 Path Simulation 計算勝率 (傳入 High, Low, ATR)
+        const wrR = { l: MathEngine.getRealisticWinRate(sigs.r_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.r_s,c,h,l,atrs,'short') };
+        const wrE = { l: MathEngine.getRealisticWinRate(sigs.e_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.e_s,c,h,l,atrs,'short') };
+        const wrM = { l: MathEngine.getRealisticWinRate(sigs.m_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.m_s,c,h,l,atrs,'short') };
+        const wrV = { l: MathEngine.getRealisticWinRate(sigs.v_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.v_s,c,h,l,atrs,'short') };
+        const wrB = { l: MathEngine.getRealisticWinRate(sigs.b_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.b_s,c,h,l,atrs,'short') };
 
         const listEl = document.getElementById(`list-${sym}-${tf}`);
         let lW=0, sW=0, cnt=0;
@@ -377,16 +447,24 @@
             addInd('VWAP', cur>vwapArr[last]?'上':'下', cur>vwapArr[last]?'l':'s', wrV) +
             addInd('BOLL', cur>upper?'破':cur<lower?'破':'區', cur>upper?'l':cur<lower?'s':'n', wrB);
 
-        // [注入: 智能評分 + Beta修正 + EV計算]
-        // 1. 智能評分 (自動忽略 0%)
-        const metricsL = [[wrR.l,1], [wrE.l,1.5], [wrM.l,1.5], [wrV.l,1], [wrB.l,1]];
-        const metricsS = [[wrR.s,1], [wrE.s,1.5], [wrM.s,1.5], [wrV.s,1], [wrB.s,1]];
-        let avgL = MathEngine.calcSmartScore(metricsL);
-        const avgS = MathEngine.calcSmartScore(metricsS);
+        // [注入: ADX 權重調整]
+        // 如果 ADX < 25 (震盪)，降低趨勢指標權重；如果 ADX > 25 (趨勢)，增加趨勢指標權重
+        let wTrend = curAdx > 25 ? 2.0 : 0.5;
+        let wOsc = curAdx > 25 ? 0.5 : 2.0;
 
-        // 2. 大盤與 Beta 修正
-        if(isHighCorr && btcTrendMultiplier < 1.0) avgL *= 0.7; // 大盤跌+高度相關 -> 做多打折
-        else if(cur > ema[last]) avgL *= btcTrendMultiplier;    // 順勢加成
+        const metricsL = [[wrR.l, wOsc], [wrE.l, wTrend], [wrM.l, wTrend], [wrV.l, 1], [wrB.l, wOsc]];
+        const metricsS = [[wrR.s, wOsc], [wrE.s, wTrend], [wrM.s, wTrend], [wrV.s, 1], [wrB.s, wOsc]];
+        
+        let avgL = MathEngine.calcSmartScore(metricsL);
+        let avgS = MathEngine.calcSmartScore(metricsS);
+
+        // 2. Beta 修正 (只在高度相關時應用)
+        if(isHighCorr && btcTrendMultiplier !== 1.0) {
+            // 如果 BTC 跌且我要做多 -> 扣分
+            if(btcTrendMultiplier < 1.0) avgL *= 0.8;
+            // 如果 BTC 漲且我要做空 -> 扣分
+            if(btcTrendMultiplier > 1.0) avgS *= 0.8;
+        }
 
         document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${Math.min(100, avgL)}%`;
         document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${Math.min(100, avgS)}%`;
@@ -395,47 +473,54 @@
         document.getElementById(`wr-avg-${sym}-${tf}`).textContent = `${Math.round(avgL)}% / ${Math.round(avgS)}%`;
 
         const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
-        const low15 = Math.min(...l.slice(-15)), high15 = Math.max(...h.slice(-15));
+        
+        // 3. 實戰 EV 與 Kelly 計算
+        // 設定固定盈虧比 (與 Path Simulation 邏輯一致)
+        const RR = 1.33; // TP(2.0) / SL(1.5)
+        
+        const slL = cur - curATR * 1.5;
+        const tpL = cur + curATR * 2.0;
+        const slS = cur + curATR * 1.5;
+        const tpS = cur - curATR * 2.0;
 
-        // 3. EV 計算與決策
-        const slL = Math.min(cur - atr*1.5, low15*0.999);
-        const tpL = cur + atr*2.5;
-        const reward = (tpL - cur)/cur, riskSL = (cur - slL)/cur;
-        const ev = (avgL/100 * reward) - ((1-avgL/100) * riskSL);
+        // 計算 Kelly %
+        const kellyL = MathEngine.kelly(avgL, RR);
+        const kellyS = MathEngine.kelly(avgS, RR);
 
         let dec = 'wait';
-        // 決策門檻：勝率 > 53 且 EV > 0
-        if(avgL>=53 && avgL>avgS && ev > 0.002) dec='long';
-        else if(avgS>=53 && avgS>avgL) dec='short';
-        else if(avgL<50 && avgS<50) dec='chop';
+        // 決策門檻：Kelly > 0 且 勝率 > 50 (Kelly 為正代表數學期望值為正)
+        if(kellyL > 0 && avgL > 50 && avgL > avgS) dec = 'long';
+        else if(kellyS > 0 && avgS > 50 && avgS > avgL) dec = 'short';
+        else if(curAdx < 20) dec = 'chop';
 
         if(tf === '15m') {
             const badge = document.getElementById(`badge-15m-${sym}`);
-            if(dec==='long') { badge.className='signal-badge sb-long'; badge.textContent=`做多 (${Math.round(avgL)}%)`; }
-            else if(dec==='short') { badge.className='signal-badge sb-short'; badge.textContent=`做空 (${Math.round(avgS)}%)`; }
+            if(dec==='long') { badge.className='signal-badge sb-long'; badge.textContent=`做多 (K:${(kellyL*100).toFixed(1)}%)`; }
+            else if(dec==='short') { badge.className='signal-badge sb-short'; badge.textContent=`做空 (K:${(kellyS*100).toFixed(1)}%)`; }
             else if(dec==='chop') { badge.className='signal-badge sb-chop'; badge.textContent='⚠️ 盤整'; }
             else { badge.className='signal-badge sb-wait'; badge.textContent='觀望'; }
         }
 
         const vals = box.querySelectorAll('.sg-val');
         if(dec==='long') {
-            box.className='strat-box strat-long'; title.innerHTML=`<span class="s-long">建議做多 (EV+)</span>`;
+            box.className='strat-box strat-long'; title.innerHTML=`<span class="s-long">建議做多</span>`;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
+            document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyL*100).toFixed(1)+'%';
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(slL);
-            document.getElementById(`tp1-${sym}-${tf}`).textContent=f(cur+atr*1.2);
-            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(tpL);
+            document.getElementById(`tp-${sym}-${tf}`).textContent=f(tpL); // 只顯示最終 TP
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else if(dec==='short') {
             box.className='strat-box strat-short'; title.innerHTML=`<span class="s-short">建議做空</span>`;
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
-            document.getElementById(`sl-${sym}-${tf}`).textContent=f(Math.max(cur+atr*1.5, high15*1.001));
-            document.getElementById(`tp1-${sym}-${tf}`).textContent=f(cur-atr*1.2);
-            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(cur-atr*2.5);
+            document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyS*100).toFixed(1)+'%';
+            document.getElementById(`sl-${sym}-${tf}`).textContent=f(slS);
+            document.getElementById(`tp-${sym}-${tf}`).textContent=f(tpS);
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else {
             box.className='strat-box '+(dec=='chop'?'strat-chop':'strat-wait'); 
             title.innerHTML = (dec=='chop' ? '<span class="s-chop">⚠️ 盤整</span>' : '<span>觀望 (EV低)</span>');
             vals.forEach(e=>e.classList.add('blur-text'));
+            document.getElementById(`kelly-${sym}-${tf}`).textContent='---';
         }
     }
 
