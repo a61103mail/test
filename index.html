@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V44 S級雷達版)</title>
+    <title>全維度戰情室 (V47 循環轟炸版)</title>
     <style>
-        /* CSS 保持 V43 樣式，新增 S 級徽章特效 */
+        /* CSS 保持不變 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
             --red: #f6465d; --red-bg: rgba(246, 70, 93, 0.15);
             --yellow: #fcd535; --yellow-bg: rgba(252, 213, 53, 0.1);
             --gold: #ffd700; --gold-bg: rgba(255, 215, 0, 0.2);
+            --silver: #c0c0c0; --silver-bg: rgba(192, 192, 192, 0.2);
+            --bronze: #cd7f32; --bronze-bg: rgba(205, 127, 50, 0.2);
             --border: #2b3139; --modal-bg: #1e2329; --header-hover: #20252b;
         }
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
@@ -21,9 +23,10 @@
         .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; margin-left: 15px; overflow: hidden; }
         .timer-bar-fill { height: 100%; background: var(--yellow); width: 100%; transition: width 1s linear; }
         
-        /* S 級徽章樣式 */
-        .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: none; animation: pulse 2s infinite; }
-        .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; }
+        .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: none; }
+        .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; animation: pulse 2s infinite; }
+        .tier-a { background: var(--silver-bg); color: var(--silver); border: 1px solid var(--silver); display: inline-block; }
+        .tier-b { background: var(--bronze-bg); color: var(--bronze); border: 1px solid var(--bronze); display: inline-block; }
         
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
@@ -106,12 +109,13 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V44 S級雷達版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V47 循環轟炸版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
             <div class="timer-bar-bg" title="數據刷新倒數"><div class="timer-bar-fill" id="timer-bar"></div></div>
             <button onclick="testAudio()" style="margin-left:10px; background:#333; border:1px solid #555; color:#fff; cursor:pointer; font-size:10px; border-radius:4px;">🔊 測試聲音</button>
+            <button onclick="testDiscord()" style="margin-left:5px; background:#5865F2; border:1px solid #555; color:#fff; cursor:pointer; font-size:10px; border-radius:4px;">💬 測試DC</button>
         </div>
     </div>
     <button class="btn-filter" onclick="openModal()"><span>➕</span> 篩選</button>
@@ -122,6 +126,12 @@
 </div>
 
 <script>
+    // ==========================================
+    // ⚙️ 設定區域
+    // ==========================================
+    const DISCORD_WEBHOOK_URL = ""; 
+    // ==========================================
+
     const TFS = ['15m', '1h', '4h'];
     const LIMIT = 500;
     const TRANS = { '15m': '15m (短)', '1h': '1H (波)', '4h': '4H (趨)', 'RSI': 'RSI', 'EMA': 'EMA', 'MACD': 'MACD', 'VWAP': 'VWAP', 'BOLL': 'BOLL' };
@@ -135,9 +145,36 @@
     let fundingRates = {}; 
     let refreshInterval = null; 
     let countdownTimer = null;
-    let sTierAlerts = new Set(); // 記錄已警報過的 S 級幣種，避免重複響鈴
+    
+    // [V47] 改用 Map 來存儲每個幣種的最後發送時間
+    let sTierAlerts = new Map(); 
 
-    // --- 1. 自動抓取熱門幣種 ---
+    function sendDiscordAlert(message) {
+        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL.includes("YOUR_DISCORD_WEBHOOK")) {
+            console.log("Discord Webhook 未設定");
+            return;
+        }
+
+        const payload = {
+            content: message,
+            username: "戰情室指揮官",
+            avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"
+        };
+
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(DISCORD_WEBHOOK_URL);
+
+        fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(err => console.error("Discord 發送失敗:", err));
+    }
+
+    function testDiscord() {
+        sendDiscordAlert("✅ **戰情室連線測試**\n系統已上線，準備進行循環監控。");
+        alert("已發送測試訊息。");
+    }
+
     async function fetchTop10Coins() {
         try {
             const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
@@ -257,26 +294,21 @@
         container.innerHTML = ''; 
         if(wss) wss.close(); store = {}; 
         
-        // 重置 S 級追蹤 (每次刷新重新檢查)
-        // 但為了避免每次刷新都響鈴，我們可以保留 Set，只對新加入的響
-        // 這裡簡單處理：每次掃描都清空，只要有 S 級就響
-        // sTierAlerts.clear(); 
-
         for (const sym of activeSymbols) { 
-            store[sym] = {}; // 初始化存儲
+            store[sym] = {}; 
             await initSymbol(sym); 
             await new Promise(r => setTimeout(r, 50)); 
         } 
         
-        // [V44] 掃描完畢後，檢查共振並響鈴
         checkResonanceAndAlert();
-
         connectWSS(Array.from(activeSymbols));
     }
 
-    // [V44] 檢查共振 (S-Tier) 邏輯
+    // [V47] 循環轟炸通知系統 (每15分鐘一次)
     function checkResonanceAndAlert() {
-        let hasSTier = false;
+        let hasAlert = false;
+        const now = Date.now();
+        const COOLDOWN = 15 * 60 * 1000; // 15分鐘冷卻
         
         for (const sym of activeSymbols) {
             if (!store[sym] || !store[sym]['15m'] || !store[sym]['1h'] || !store[sym]['4h']) continue;
@@ -286,42 +318,91 @@
             const d4h = store[sym]['4h'].decision;
             const vol = store[sym]['vol_ratio'] || 0;
             const adx = store[sym]['adx_val'] || 0;
+            const priceVal = store[sym]['price'] || 0; 
+            const priceStr = priceVal > 0 ? priceVal.toFixed(4) : "--.--";
+            const tradeSetup = store[sym]['15m'].setup; 
+            const k15 = store[sym]['15m'].kelly || 0;
+            const riskLevel = store[sym]['15m'].risk;
 
-            // 定義 S 級條件
-            // 1. 三個週期同向 (都是 long 或 都是 short)
-            // 2. 有量 (x1.0 以上)
-            // 3. 有趨勢 (ADX > 25)
-            
-            let isSTier = false;
+            let tier = '';
             let direction = '';
+            let emoji = '';
+            let strategyText = '';
+            let sl = 0;
+            let tp = 0;
 
-            if (d15 === 'long' && d1h === 'long' && d4h === 'long') {
-                direction = '多';
-                if (vol >= 1.0 && adx > 25) isSTier = true;
-            } else if (d15 === 'short' && d1h === 'short' && d4h === 'short') {
-                direction = '空';
-                if (vol >= 1.0 && adx > 25) isSTier = true;
-            }
+            // 只要 15m 給出 long/short，就進入候選名單
+            if (d15 === 'long' || d15 === 'short') {
+                const isLong = d15 === 'long';
+                direction = isLong ? '做多 (LONG)' : '做空 (SHORT)';
+                emoji = isLong ? '📈' : '📉';
+                
+                if(tradeSetup) {
+                    sl = isLong ? tradeSetup.long.sl : tradeSetup.short.sl;
+                    tp = isLong ? tradeSetup.long.tp : tradeSetup.short.tp;
+                }
 
-            if (isSTier) {
-                // 顯示徽章
+                const isResonance = (d15 === d1h && d1h === d4h); 
+                const isVolume = (vol >= 1.0);
+                const isTrend = (adx > 25);
+
+                // --- 自動分級 ---
+                if (isResonance && isVolume && isTrend) {
+                    tier = 'S'; 
+                    strategyText = '梭哈模式 (趨勢+量能+共振)';
+                } else if (isResonance) {
+                    tier = 'A'; 
+                    strategyText = '穩健模式 (三週期共振)';
+                } else {
+                    tier = 'B'; 
+                    strategyText = riskLevel === 'risky' ? '逆勢/搶反彈 (請輕倉)' : '短線波段 (無大週期支持)';
+                }
+
                 const badge = document.getElementById(`tier-${sym}`);
                 if(badge) {
-                    badge.textContent = `🏆 S級${direction}單`;
                     badge.style.display = 'inline-block';
-                    badge.className = 'tier-badge tier-s';
+                    if(tier === 'S') { badge.textContent = '🏆 S級'; badge.className = 'tier-badge tier-s'; } 
+                    else if (tier === 'A') { badge.textContent = '🥈 A級'; badge.className = 'tier-badge tier-a'; } 
+                    else { badge.textContent = '🥉 B級'; badge.className = 'tier-badge tier-b'; }
                 }
-                hasSTier = true;
+                hasAlert = true;
+
+                // [V47] 循環通知邏輯
+                const alertKey = `${sym}_${direction}`;
+                const lastSentTime = sTierAlerts.get(alertKey) || 0;
+
+                if (now - lastSentTime > COOLDOWN) {
+                    sTierAlerts.set(alertKey, now); // 更新最後發送時間
+                    
+                    const msg = `
+${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會 (快訊)** ${emoji}
+**${sym.toUpperCase().replace('USDT','')}**
+💰 **現價**: ${priceStr}
+🛑 **止損**: ${sl.toFixed(4)}
+🎯 **止盈**: ${tp.toFixed(4)}
+**策略**: ${strategyText}
+(Kelly: ${k15}% | ADX: ${adx.toFixed(1)})
+                    `.trim();
+                    
+                    sendDiscordAlert(msg);
+                }
+            } else {
+                // 如果信號消失，從 Map 中移除，確保下次出現時能立刻通知
+                sTierAlerts.delete(`${sym}_做多 (LONG)`);
+                sTierAlerts.delete(`${sym}_做空 (SHORT)`);
+                
+                const badge = document.getElementById(`tier-${sym}`);
+                if(badge) badge.style.display = 'none';
             }
         }
 
-        if (hasSTier) {
+        if (hasAlert) {
             playAlert();
         }
     }
 
     async function initSymbol(sym) {
-        // store[sym] 已在 applyFilter 初始化
+        store[sym] = {}; 
         const container = document.getElementById('grid-container');
         if(container.querySelector('.loading-text')) container.innerHTML = '';
 
@@ -333,7 +414,8 @@
             <div class="card-header" onclick="toggleCard('${sym}')">
                 <div class="ch-left">
                     <span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span>
-                    <span class="tier-badge" id="tier-${sym}"></span> <span class="sym-price" id="price-${sym}">--.--</span>
+                    <span class="tier-badge" id="tier-${sym}"></span>
+                    <span class="sym-price" id="price-${sym}">--.--</span>
                 </div>
                 <div class="ch-right">
                     <span class="risk-tag" id="risk-${sym}">風險評估</span>
@@ -359,7 +441,7 @@
         `;
 
         TFS.forEach(tf => {
-            store[sym][tf] = {}; // 初始化每個 TF 的數據空間
+            store[sym][tf] = {}; 
             html += `
             <div class="col-tf">
                 <div class="tf-header"><span class="tf-title">${TRANS[tf]}</span><span id="wr-avg-${sym}-${tf}" style="font-size:10px;">--%</span></div>
@@ -391,16 +473,17 @@
             }
             
             const closes = results[1].map(d=>parseFloat(d[4]));
+            
+            const lastClose = closes[closes.length - 1];
+            store[sym]['price'] = lastClose;
+
             const beta = MathEngine.correlation(closes, btcHistory);
             const isHighCorr = beta > 0.7;
 
             results.forEach((data, i) => {
                 const tf = TFS[i]; data.pop();
                 processTimeframe(sym, tf, data, isHighCorr);
-                if(tf === '1h') { 
-                    calculateFlow(sym, data); 
-                    calculateVolume(sym, data); 
-                }
+                if(tf === '1h') { calculateFlow(sym, data); calculateVolume(sym, data); }
             });
         } catch(e) {}
     }
@@ -505,7 +588,6 @@
         const adx = MathEngine.adx(h,l,c);
         const curAdx = adx[adx.length-1];
 
-        // [V44] 存儲 ADX 數值供 S 級檢查使用
         if(tf === '1h') {
             if(!store[sym]) store[sym] = {};
             store[sym]['adx_val'] = curAdx;
@@ -518,7 +600,6 @@
         }
 
         const ema = MathEngine.emaArray(c, 50);
-        // [V43] 乖離率計算
         const bias = (cur - ema[last]) / ema[last] * 100;
 
         const sma20=MathEngine.sma(c,20), std=Math.sqrt(c.slice(-20).map(x=>Math.pow(x-sma20,2)).reduce((a,b)=>a+b)/20);
@@ -620,7 +701,6 @@
 
         if(dec === 'long') {
             if(cur < ema[last] || macdArr[last] < 0) { riskLevel = 'risky'; if(tf === '4h') dec = 'wait'; }
-            // [V43] 乖離率過大保護：禁止追高
             if(bias > (tf==='4h'?3.0:1.5)) { 
                 dec = 'wait';
                 riskLevel = 'overbought';
@@ -629,16 +709,22 @@
         
         if(dec === 'short') {
             if(cur > ema[last] || macdArr[last] > 0) { riskLevel = 'risky'; if(tf === '4h') dec = 'wait'; }
-            // [V43] 負乖離過大保護：禁止殺跌
             if(bias < (tf==='4h'?-3.0:-1.5)) {
                 dec = 'wait';
                 riskLevel = 'oversold';
             }
         }
 
-        // [V44] 存儲每個週期的決策，供 S 級判斷使用
         if(!store[sym]) store[sym] = {};
-        store[sym][tf] = { decision: dec, risk: riskLevel };
+        store[sym][tf] = { 
+            decision: dec, 
+            risk: riskLevel, 
+            kelly: Math.round(Math.max(kellyL, kellyS) * 100),
+            setup: {
+                long: { sl: slL, tp: tpL },
+                short: { sl: slS, tp: tpS }
+            }
+        };
 
         if(tf === '15m') {
             const badge = document.getElementById(`badge-15m-${sym}`);
@@ -693,7 +779,6 @@
         const len=klines.length, cur=parseFloat(klines[len-1][5]);
         let sum=0; for(let i=len-21;i<len-1;i++) sum+=parseFloat(klines[i][5]);
         const r=cur/(sum/20);
-        // [V44] 存儲量能比
         if(!store[sym]) store[sym] = {};
         store[sym]['vol_ratio'] = r;
 
