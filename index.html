@@ -122,9 +122,7 @@
     // ⚙️ 用戶設定區域 (USER CONFIG)
     // ==========================================
     const DISCORD_WEBHOOK_URL = ""; // 請在此填入你的 Webhook URL
-    const USE_PROXY = true; // 是否使用 Proxy 解決 CORS
-    const PROXY_URL = "https://corsproxy.io/?"; // 若失效可換 https://api.allorigins.win/raw?url=
-    
+   
     // ==========================================
     // 🚦 核心 1: API 隊列控制器 (Anti-Ban System)
     // ==========================================
@@ -157,8 +155,7 @@
     };
 
     async function safeFetch(url) {
-        const targetUrl = USE_PROXY ? (PROXY_URL + encodeURIComponent(url)) : url;
-        return API_QUEUE.add(() => fetch(targetUrl).then(res => {
+        return API_QUEUE.add(() => fetch(url).then(res => {
             if(!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
         }));
