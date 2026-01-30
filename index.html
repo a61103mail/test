@@ -134,7 +134,7 @@
     // ==========================================
     const CONFIG = {
         DISCORD_WEBHOOK: "", // 填入 Webhook
-        PROXY_URL: "https://corsproxy.io/?", // 解決 CORS
+       
         BAN_DELAY: 400, // 防封鎖延遲 (ms)
         LIMIT: 500 // K線回測長度
     };
@@ -169,7 +169,7 @@
     };
 
     async function safeFetch(url) {
-        return API_QUEUE.add(() => fetch(CONFIG.PROXY_URL + encodeURIComponent(url)).then(r => {
+        return API_QUEUE.add(() => fetch(encodeURIComponent(url)).then(r => {
             if(!r.ok) throw new Error(r.status);
             return r.json();
         }));
