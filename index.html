@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V56 指揮官全權版)</title>
+    <title>全維度戰情室 (V69 時間同步狙擊版)</title>
     <style>
-        /* V56 樣式：高密度資訊矩陣 */
+        /* V69: Based on your V60/V56 UI */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -16,16 +16,23 @@
             --bronze: #ffad5e; --bronze-bg: rgba(255, 173, 94, 0.15);
             --blue: #2979ff; --blue-bg: rgba(41, 121, 255, 0.15);
             --purple: #bf5af2; --purple-bg: rgba(191, 90, 242, 0.2);
+            --ai-color: #00e676; --ai-bg: rgba(0, 230, 118, 0.1);
             --border: #2b3139; --modal-bg: #1e2329; --header-hover: #20252b;
         }
-        body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
-        .header { border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Roboto Mono', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
+        
+        .header { border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        
+        .api-input-box { display: flex; gap: 10px; align-items: center; background: #1e2329; padding: 5px 10px; border-radius: 4px; border: 1px solid #333; }
+        .api-input { background: transparent; border: none; color: var(--gold); width: 200px; font-family: 'Roboto Mono'; font-size: 12px; outline: none; }
+        
         .btn-filter { background: #2b3139; color: #fff; border: 1px solid #444; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; }
         .btc-bar { background: #1e2329; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--yellow); font-size: 11px; display: flex; gap: 15px; margin-bottom: 10px; align-items: center; }
         .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; margin-left: 15px; overflow: hidden; }
         .timer-bar-fill { height: 100%; background: var(--yellow); width: 100%; transition: width 1s linear; }
         
-        /* 徽章系統 */
+        /* Badges */
         .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: none; }
         .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); animation: pulse 2s infinite; }
         .tier-a { background: var(--silver-bg); color: var(--silver); border: 1px solid var(--silver); display: inline-block; }
@@ -33,8 +40,44 @@
         .tier-q { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple); display: inline-block; animation: pulse 2s infinite; }
         .tier-z { background: #333; color: #666; border: 1px dashed #555; display: inline-block; }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        /* AI UI Elements */
+        .ai-status { font-size: 11px; color: var(--ai-color); margin-left: 10px; font-weight: bold; display: none; }
+        .ai-thinking { animation: blink 1s infinite; }
+        .ai-error { color: var(--red); animation: none; }
+        
+        /* [V69] AI Tactical Panel */
+        .ai-tactical-panel {
+            grid-column: 1 / -1; 
+            background: #111518;
+            border: 1px solid var(--ai-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .ai-tactical-panel::before { content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--ai-color); }
+        .ai-tp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px dashed #333; padding-bottom: 8px; }
+        .ai-tp-title { font-size: 14px; font-weight: bold; color: var(--ai-color); display: flex; align-items: center; gap: 8px; }
+        .ai-content { display: flex; align-items: flex-start; }
+        .ai-decision-box { font-size: 24px; font-weight: 900; margin-right: 15px; }
+        .ai-comment { font-size: 13px; line-height: 1.6; color: #ddd; flex: 1; }
 
+        /* Manual AI Button */
+        .btn-ai-manual { 
+            background: linear-gradient(135deg, #00e676, #00a854); 
+            color: #000; border: none; padding: 4px 12px; 
+            border-radius: 20px; font-weight: bold; font-size: 11px; 
+            cursor: pointer; display: none; margin-left: 10px;
+            box-shadow: 0 0 5px rgba(0, 230, 118, 0.4);
+        }
+        .btn-ai-manual:disabled { background: #333; color: #666; cursor: wait; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* Card Layout */
         .coin-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; transition: all 0.2s ease; }
         .coin-card.expanded { border-color: #666; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         .card-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #1e2329; border-bottom: 1px solid transparent; }
@@ -66,7 +109,6 @@
         .tf-title { font-weight: bold; font-size: 13px; color: #fff; }
         .countdown-text { font-family: 'Roboto Mono'; font-size: 10px; color: #aaa; margin-left: 5px; float: right;}
 
-        /* [V56] 恢復勝率條與文字 */
         .wr-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px; }
         .wr-bar-long { height: 100%; background: var(--green); transition: width 0.5s; }
         .wr-bar-short { height: 100%; background: var(--red); transition: width 0.5s; }
@@ -77,7 +119,6 @@
         .win-dual { font-family: 'Roboto Mono'; font-size: 10px; }
         .active-side { font-weight: bold; text-decoration: underline; opacity: 1 !important; }
         
-        /* [V56] 戰術六宮格 */
         .strat-box { margin-top: auto; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid transparent; }
         .strat-long { background: var(--green-bg); border-color: var(--green); }
         .strat-short { background: var(--red-bg); border-color: var(--red); }
@@ -86,8 +127,8 @@
         .sg-row { display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 2px; }
         .sg-label { color: #888; font-size: 10px; }
         .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
-        .sg-trailing { color: var(--blue); font-weight: bold; } /* 移動止損高亮 */
-        .sg-profit { color: var(--gold); font-weight: bold; }   /* 獲利預估高亮 */
+        .sg-trailing { color: var(--blue); font-weight: bold; } 
+        .sg-profit { color: var(--gold); font-weight: bold; }
 
         .vol-box, .flow-box { padding-top: 5px; border-top: 1px dashed #333; font-size: 11px; }
         .flow-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px; }
@@ -125,16 +166,24 @@
 </div>
 
 <div class="header">
-    <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V56 指揮官全權版)</h1>
-        <div class="btc-bar" style="margin-top:5px;">
-            <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
-            <span>權重: <strong id="btc-weight">x1.0</strong></span>
-            <div class="timer-bar-bg" title="數據刷新倒數"><div class="timer-bar-fill" id="timer-bar"></div></div>
-            <button onclick="testDiscord()" style="margin-left:10px; background:#5865F2; border:1px solid #555; color:#fff; cursor:pointer; font-size:10px; border-radius:4px;">💬 測試DC</button>
+    <div class="header-top">
+        <div>
+            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V69 時間同步狙擊版)</h1>
+            <div class="btc-bar" style="margin-top:5px;">
+                <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
+                <span>權重: <strong id="btc-weight">x1.0</strong></span>
+                <div class="timer-bar-bg" title="數據刷新倒數"><div class="timer-bar-fill" id="timer-bar"></div></div>
+                <button onclick="testDiscord()" style="margin-left:10px; background:#5865F2; border:1px solid #555; color:#fff; cursor:pointer; font-size:10px; border-radius:4px;">💬 測試DC</button>
+            </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;">
+            <div class="api-input-box">
+                <span style="font-size:10px; color:#888;">Gemini API:</span>
+                <input type="password" id="gemini-key" class="api-input" placeholder="貼上你的 API Key (qvvl...)" onchange="saveKey()">
+            </div>
+            <button class="btn-filter" onclick="openModal()"><span>➕</span> 篩選</button>
         </div>
     </div>
-    <button class="btn-filter" onclick="openModal()"><span>➕</span> 篩選</button>
 </div>
 
 <div id="grid-container">
@@ -145,7 +194,7 @@
     // ==========================================
     // ⚙️ 設定區域
     // ==========================================
-    const DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"; 
+    const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1465999617937248321/oW1PzIAY4KXSbAT8XBk-iK3yO_n8huZtXhgDKM88_pc5dGRs9O74SAouMGP3NuPpDbjl"; 
     // ==========================================
 
     const TFS = ['15m', '1h', '4h'];
@@ -161,20 +210,57 @@
     let fundingRates = {}; 
     let refreshInterval = null; 
     let countdownTimer = null;
-    let sTierAlerts = new Map(); 
+    let sTierAlerts = new Map(); // 記錄發送時間
+    let lastAutoScanTime = 0;
+
+    document.getElementById('gemini-key').value = localStorage.getItem('gemini_key') || '';
+    function saveKey() { localStorage.setItem('gemini_key', document.getElementById('gemini-key').value); }
+
+    // --- AI 呼叫 (鎖定 gemini-2.5-flash) ---
+    async function askGemini(symbol, data) {
+        const apiKey = localStorage.getItem('gemini_key');
+        if (!apiKey) return null;
+
+        const prompt = `
+        你是一名極速交易員 (Scalper)。針對 ${symbol} (15m級別) 進行分析。
+        【數據】價格:${data.price}, 趨勢:${data.d15}, 量能:x${data.vol}, ADX:${data.adx}, 布林:${data.bb}, 1H走勢:${data.d1h}。
+        【任務】
+        1. 判斷真突破還是假突破。
+        2. 給出 0-100 信心分數。
+        3. 20字內簡短操作建議。
+        請回傳 JSON: { "decision": "看漲/看跌/觀望", "confidence": 85, "comment": "簡評" }
+        `;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+
+            if (!response.ok) return { decision: "ERROR", confidence: 0, comment: `API 錯誤: ${response.status}` };
+
+            const result = await response.json();
+            const text = result.candidates[0].content.parts[0].text;
+            const jsonText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(jsonText);
+        } catch (e) {
+            console.error("Gemini Error:", e);
+            return { decision: "ERROR", confidence: 0, comment: "連線失敗" };
+        }
+    }
 
     function sendDiscordAlert(message) {
-        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL.includes("YOUR_DISCORD_WEBHOOK")) {
-            console.log("Discord Webhook 未設定");
-            return;
-        }
+        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL.includes("YOUR_DISCORD_WEBHOOK")) return;
         const payload = { content: message, username: "戰情室指揮官", avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png" };
         const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(DISCORD_WEBHOOK_URL);
         fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(err => console.error(err));
     }
 
     function testDiscord() {
-        sendDiscordAlert("✅ **戰情室 V56 連線成功**\n策略：移動止損 + 雙重止盈 + 全資訊顯示。");
+        sendDiscordAlert("✅ **戰情室 V69 連線成功**\n模式：時間同步自動發送 (00/15/30/45分)。");
         alert("已發送測試訊息。");
     }
 
@@ -200,6 +286,9 @@
         activeSymbols = await fetchTop10Coins();
         await fetchExchangeInfo();
         await startSystemLoop(); 
+        
+        // [V69] 啟動時間同步檢查器
+        setInterval(checkTimeAndTriggerAI, 1000);
     }
 
     async function startSystemLoop() {
@@ -286,99 +375,39 @@
             await initSymbol(sym); 
             await new Promise(r => setTimeout(r, 50)); 
         } 
-        checkResonanceAndAlert();
+        
         connectWSS(Array.from(activeSymbols));
     }
 
-    function checkResonanceAndAlert() {
-        const now = Date.now();
-        const COOLDOWN = 15 * 60 * 1000; 
-        
+    // [V69] 時間同步檢查器
+    function checkTimeAndTriggerAI() {
+        const now = new Date();
+        const min = now.getMinutes();
+        const sec = now.getSeconds();
+
+        // 只在 00, 15, 30, 45 分的 00-05 秒觸發，防止重複
+        if ([0, 15, 30, 45].includes(min) && sec < 5) {
+            // 防止同一分鐘內多次觸發
+            if (Date.now() - lastAutoScanTime > 60000) {
+                lastAutoScanTime = Date.now();
+                console.log(`⏰ 時間同步觸發: ${min}分 (自動 AI 掃描開始)`);
+                autoTriggerAI();
+            }
+        }
+    }
+
+    // [V69] 自動觸發邏輯：遍歷所有 B 級以上
+    async function autoTriggerAI() {
         for (const sym of activeSymbols) {
-            if (!store[sym] || !store[sym]['15m'] || !store[sym]['1h'] || !store[sym]['4h']) continue;
-            if (!store[sym]['15m'].decision) continue;
-
-            const d15 = store[sym]['15m'].decision;
-            const d1h = store[sym]['1h'].decision;
-            const d4h = store[sym]['4h'].decision;
-            const vol = store[sym]['vol_ratio'] || 0;
-            const adx = store[sym]['adx_val'] || 0;
-            const priceVal = store[sym]['price'] || 0; 
-            const priceStr = priceVal > 0 ? priceVal.toFixed(4) : "--.--";
-            const tradeSetup = store[sym]['15m'].setup; 
-            const k15 = store[sym]['15m'].kelly || 0;
-            const bbState = store[sym]['1h'] ? store[sym]['1h'].bb_state : 'normal';
-
-            let tier = '';
-            let direction = '';
-            let emoji = '';
-            let strategyText = '';
-            let sl = 0, tp1 = 0, tp2 = 0, pnl = "0.00";
-
-            if (bbState === 'squeeze') {
-                const badge = document.getElementById(`tier-${sym}`);
-                if(badge) { badge.textContent = '💥 蓄力中'; badge.className = 'tier-badge tier-q'; badge.style.display = 'inline-block'; }
-            }
-
-            if (vol < 0.8 && adx < 20) {
-                const badge = document.getElementById(`tier-${sym}`);
-                if(badge) { badge.textContent = '💤 殭屍盤'; badge.className = 'tier-badge tier-z'; badge.style.display = 'inline-block'; }
-                // 殭屍盤不發通知，但 UI 會顯示
-            }
-
-            if (d15 === 'long' || d15 === 'short') {
-                const isLong = d15 === 'long';
-                direction = isLong ? '做多 (LONG)' : '做空 (SHORT)';
-                emoji = isLong ? '📈' : '📉';
-                
-                if(tradeSetup) {
-                    sl = isLong ? tradeSetup.long.sl : tradeSetup.short.sl;
-                    tp1 = isLong ? tradeSetup.long.tp1 : tradeSetup.short.tp1;
-                    tp2 = isLong ? tradeSetup.long.tp2 : tradeSetup.short.tp2;
-                    
-                    const dist = Math.abs(tp2 - priceVal);
-                    pnl = ((dist/priceVal)*100).toFixed(2);
-                }
-
-                const isResonance = (d15 === d1h && d1h === d4h); 
-                const isShortResonance = (d15 === d1h); 
-                const isVolume = (vol >= 1.0); 
-                const isTrend = (adx > 25);             
-
-                if (isResonance && isVolume && isTrend) { tier = 'S'; strategyText = '🔥 趨勢共振 (重倉/波段)'; }
-                else if (isShortResonance && isVolume) { tier = 'A'; strategyText = '🚀 動能突破 (標準/短線)'; }
-                else { tier = 'B'; strategyText = '⚠️ 逆勢/反彈 (輕倉/快出)'; }
-
-                const badge = document.getElementById(`tier-${sym}`);
-                if(badge) {
-                    badge.style.display = 'inline-block';
-                    if(tier === 'S') { badge.textContent = '🏆 S級'; badge.className = 'tier-badge tier-s'; } 
-                    else if (tier === 'A') { badge.textContent = '🥈 A級'; badge.className = 'tier-badge tier-a'; } 
-                    else { badge.textContent = '🥉 B級'; badge.className = 'tier-badge tier-b'; }
-                }
-
-                const alertKey = `${sym}_${direction}`;
-                const lastSentTime = sTierAlerts.get(alertKey) || 0;
-
-                if (now - lastSentTime > COOLDOWN) {
-                    sTierAlerts.set(alertKey, now); 
-                    const msg = `
-${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會 (V56)** ${emoji}
-**${sym.toUpperCase().replace('USDT','')}**
-💰 **現價**: ${priceStr}
-🛡️ **移動止損**: ${sl.toFixed(4)}
-🌊 **潛在獲利**: ~${pnl}%
-🎯 **TP1**: ${tp1.toFixed(4)} | 🚀 **TP2**: ${tp2.toFixed(4)}
-**策略**: ${strategyText}
-(Kelly: ${k15}% | ADX: ${adx.toFixed(1)} | Vol: x${vol.toFixed(1)})
-                    `.trim();
-                    sendDiscordAlert(msg);
-                }
-            } else {
-                sTierAlerts.delete(`${sym}_做多 (LONG)`);
-                sTierAlerts.delete(`${sym}_做空 (SHORT)`);
-                const badge = document.getElementById(`tier-${sym}`);
-                if(badge && !store[sym]['1h'].bb_state) badge.style.display = 'none';
+            if (!store[sym] || !store[sym]['data_packet']) continue;
+            
+            const data = store[sym]['data_packet'];
+            // 只要有 Tier (S/A/B)，就自動觸發
+            if (data.tier === 'S' || data.tier === 'A' || data.tier === 'B') {
+                console.log(`🤖 自動分析: ${sym} (${data.tier}級)`);
+                await triggerManualAI(sym, true); // true 代表是自動觸發
+                // 每個幣種之間間隔 5 秒，防止 429
+                await new Promise(r => setTimeout(r, 5000));
             }
         }
     }
@@ -392,10 +421,26 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
         let html = `
         <div class="coin-card" id="card-${sym}">
             <div class="card-header" onclick="toggleCard('${sym}')">
-                <div class="ch-left"><span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span><span class="tier-badge" id="tier-${sym}"></span><span class="sym-price" id="price-${sym}">--.--</span></div>
+                <div class="ch-left">
+                    <span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span>
+                    <span class="tier-badge" id="tier-${sym}"></span>
+                    <span class="sym-price" id="price-${sym}">--.--</span>
+                    <button id="btn-ai-${sym}" class="btn-ai-manual" onclick="event.stopPropagation(); triggerManualAI('${sym}', false)">🤖 AI 分析</button>
+                </div>
                 <div class="ch-right"><span class="risk-tag" id="risk-${sym}">風險評估</span><span class="signal-badge sb-wait" id="badge-15m-${sym}">分析中...</span><span class="arrow-icon">▼</span></div>
             </div>
             <div class="card-body">
+                <div id="ai-panel-${sym}" class="ai-tactical-panel">
+                    <div class="ai-tp-header">
+                        <div class="ai-tp-title">🤖 戰術參謀 <span id="ai-conf-${sym}" class="ai-tp-conf"></span></div>
+                        <div class="conf-bar-bg"><div id="ai-bar-${sym}" class="conf-bar-fill" style="width:0%"></div></div>
+                    </div>
+                    <div class="ai-content">
+                        <div id="ai-dec-${sym}" class="ai-decision-box">--</div>
+                        <div id="ai-com-${sym}" class="ai-comment">等待指令...</div>
+                    </div>
+                </div>
+
                 <div class="col-info">
                     <div style="font-size:10px; color:#666; cursor:pointer;" onclick="event.stopPropagation(); removeCard('${sym}')">移除幣種 ✕</div>
                     <div class="vol-box"><div style="color:#aaa; display:flex; justify-content:space-between;"><span>量能(1H)</span><span id="vol-ratio-${sym}">x1.0</span></div><span id="vol-status-${sym}" class="vol-tag v-norm">...</span></div>
@@ -410,12 +455,10 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             html += `
             <div class="col-tf">
                 <div class="tf-header"><span class="tf-title">${TRANS[tf]}</span><span id="timer-${sym}-${tf}" class="countdown-text">--:--</span></div>
-                
                 <div style="margin-bottom:5px;">
                     <div class="wr-bar-bg"><div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div><div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div></div>
                     <div class="wr-text"><span id="wr-l-${sym}-${tf}">多--%</span><span id="wr-s-${sym}-${tf}">空--%</span></div>
                 </div>
-                
                 <div class="ind-list" id="list-${sym}-${tf}"><div style="color:#444;">下載中...</div></div>
                 <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
                     <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
@@ -645,7 +688,6 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
                 if(btcTrendMultiplier > 1.0) avgS *= 0.8;
             }
 
-            // [V56] 恢復勝率條
             document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${Math.min(100, avgL)}%`;
             document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${Math.min(100, avgS)}%`;
             document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${Math.round(avgL)}%`;
@@ -670,7 +712,6 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             if(kellyL > 0 && avgL > 50 && avgL > avgS) dec = 'long';
             else if(kellyS > 0 && avgS > 50 && avgS > avgL) dec = 'short';
 
-            // 潛在獲利 %
             let potProfit = 0;
             if(dec === 'long') potProfit = ((tpL2 - cur) / cur) * 100;
             else if(dec === 'short') potProfit = ((cur - tpS2) / cur) * 100;
@@ -691,7 +732,6 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
 
             const vals = box.querySelectorAll('.sg-val');
             
-            // [V56] 六宮格數據填充 (即使觀望也顯示數據供參考)
             document.getElementById(`en-${sym}-${tf}`).textContent = f(cur);
             document.getElementById(`kelly-${sym}-${tf}`).textContent = (dec !== 'wait') ? (Math.max(kellyL, kellyS)*100).toFixed(1)+'%' : '---';
             
@@ -712,7 +752,6 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
                 document.getElementById(`pnl-${sym}-${tf}`).textContent = `+${potProfit.toFixed(2)}%`;
                 vals.forEach(e=>e.classList.remove('blur-text'));
             } else {
-                // 觀望時顯示灰色參考值 (假設做多的話)
                 box.className = 'strat-box strat-wait';
                 title.innerHTML = '<span>觀望</span>';
                 document.getElementById(`tp1-${sym}-${tf}`).textContent = f(tpL1);
@@ -723,6 +762,63 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             }
 
         } catch(e) { console.error(`Error in processTimeframe for ${sym} ${tf}`, e); }
+    }
+
+    // 5. 整合觸發器 (Manual & Auto)
+    window.triggerManualAI = async function(sym, isAuto = false) {
+        const btn = document.getElementById(`btn-ai-${sym}`);
+        const panel = document.getElementById(`ai-panel-${sym}`);
+        const data = store[sym]['data_packet'];
+        
+        if (!data) return alert("數據尚未準備好");
+        
+        const apiKey = localStorage.getItem('gemini_key');
+        if (!apiKey) {
+            if(!isAuto) alert("請先在上方輸入 API Key");
+            return;
+        }
+
+        // UI 變更
+        if (!isAuto) {
+            btn.disabled = true;
+            btn.textContent = "⏳ 分析中...";
+            panel.style.display = 'block';
+            document.getElementById(`ai-dec-${sym}`).textContent = "--";
+            document.getElementById(`ai-com-${sym}`).textContent = "連線 AI 指揮部...";
+        }
+
+        const aiRes = await askGemini(sym, data);
+
+        if (aiRes && aiRes.decision !== "ERROR") {
+            // 更新面板
+            const decEl = document.getElementById(`ai-dec-${sym}`);
+            decEl.textContent = aiRes.decision;
+            decEl.style.color = aiRes.decision.includes('漲') || aiRes.decision === 'BUY' ? 'var(--green)' : 'var(--red)';
+            
+            document.getElementById(`ai-com-${sym}`).textContent = aiRes.comment;
+            document.getElementById(`ai-conf-${sym}`).textContent = `(信心: ${aiRes.confidence}%)`;
+            document.getElementById(`ai-bar-${sym}`).style.width = `${aiRes.confidence}%`;
+            
+            // 發送 Discord
+            sendDiscord(sym, data, aiRes);
+        } else {
+            if (!isAuto) document.getElementById(`ai-com-${sym}`).innerHTML = `<span style="color:red">❌ 分析失敗: ${aiRes.comment}</span>`;
+        }
+
+        if (!isAuto) {
+            btn.disabled = false;
+            btn.textContent = "🤖 重新分析";
+        }
+    }
+
+    function sendDiscord(sym, data, aiRes) {
+        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL.includes("YOUR")) return;
+        const msg = { 
+            content: `**${sym.toUpperCase()} 戰術報告**\n📊 等級: ${data.tier}\n🤖 AI 決策: **${aiRes.decision}** (${aiRes.confidence}%)\n📝 點評: ${aiRes.comment}` 
+        };
+        fetch("https://corsproxy.io/?" + encodeURIComponent(DISCORD_WEBHOOK_URL), {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(msg)
+        });
     }
 
     function calculateVolume(sym, klines) { 
@@ -743,14 +839,16 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
 
     window.toggleCard = function(sym) { document.getElementById(`card-${sym}`).classList.toggle('expanded'); };
     function removeCard(sym) { activeSymbols.delete(sym); document.getElementById(`card-${sym}`).remove(); }
+    
     function connectWSS(symbols) {
-        wss = new WebSocket(`wss://fstream.binance.com/stream?streams=${symbols.map(s => `${s}@ticker`).join('/')}`);
-        wss.onmessage = (e) => {
-            const m = JSON.parse(e.data).data; const el = document.getElementById(`price-${m.s.toLowerCase()}`);
-            if(el) { el.textContent = parseFloat(m.c); el.className = `sym-price ${parseFloat(m.P)>=0?'up':'down'}`; }
-        };
+        wss = new WebSocket(`wss://fstream.binance.com/stream?streams=${Array.from(activeSymbols).map(s=>s+'@ticker').join('/')}`);
+        wss.onmessage = e => {
+            const d = JSON.parse(e.data).data;
+            const el = document.getElementById(`price-${d.s.toLowerCase()}`);
+            if(el) { el.textContent = parseFloat(d.c); el.className = `sym-price ${parseFloat(d.P)>=0?'up':'down'}`; }
+        }
     }
-
+    
     initSystem();
 </script>
 </body>
