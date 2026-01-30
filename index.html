@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V47 循環轟炸版)</title>
+    <title>全維度戰情室 (V50 動能掠奪版)</title>
     <style>
-        /* CSS 保持不變 */
+        /* CSS 樣式 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -23,10 +23,12 @@
         .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; margin-left: 15px; overflow: hidden; }
         .timer-bar-fill { height: 100%; background: var(--yellow); width: 100%; transition: width 1s linear; }
         
+        /* 徽章樣式 */
         .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: none; }
         .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; animation: pulse 2s infinite; }
         .tier-a { background: var(--silver-bg); color: var(--silver); border: 1px solid var(--silver); display: inline-block; }
         .tier-b { background: var(--bronze-bg); color: var(--bronze); border: 1px solid var(--bronze); display: inline-block; }
+        .tier-z { background: #333; color: #666; border: 1px dashed #555; display: inline-block; } /* 殭屍盤 */
         
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
@@ -89,8 +91,6 @@
 </head>
 <body>
 
-<audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
-
 <div class="modal-overlay" id="filterModal">
     <div class="modal-content">
         <div style="padding:15px; border-bottom:1px solid #333; display:flex; justify-content:space-between;">
@@ -109,13 +109,12 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V47 循環轟炸版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V50 動能掠奪版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
             <div class="timer-bar-bg" title="數據刷新倒數"><div class="timer-bar-fill" id="timer-bar"></div></div>
-            <button onclick="testAudio()" style="margin-left:10px; background:#333; border:1px solid #555; color:#fff; cursor:pointer; font-size:10px; border-radius:4px;">🔊 測試聲音</button>
-            <button onclick="testDiscord()" style="margin-left:5px; background:#5865F2; border:1px solid #555; color:#fff; cursor:pointer; font-size:10px; border-radius:4px;">💬 測試DC</button>
+            <button onclick="testDiscord()" style="margin-left:10px; background:#5865F2; border:1px solid #555; color:#fff; cursor:pointer; font-size:10px; border-radius:4px;">💬 測試DC</button>
         </div>
     </div>
     <button class="btn-filter" onclick="openModal()"><span>➕</span> 篩選</button>
@@ -129,7 +128,7 @@
     // ==========================================
     // ⚙️ 設定區域
     // ==========================================
-    const DISCORD_WEBHOOK_URL = ""; 
+    const DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"; 
     // ==========================================
 
     const TFS = ['15m', '1h', '4h'];
@@ -145,8 +144,6 @@
     let fundingRates = {}; 
     let refreshInterval = null; 
     let countdownTimer = null;
-    
-    // [V47] 改用 Map 來存儲每個幣種的最後發送時間
     let sTierAlerts = new Map(); 
 
     function sendDiscordAlert(message) {
@@ -157,7 +154,7 @@
 
         const payload = {
             content: message,
-            username: "戰情室指揮官",
+            username: "動能指揮官",
             avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"
         };
 
@@ -171,7 +168,7 @@
     }
 
     function testDiscord() {
-        sendDiscordAlert("✅ **戰情室連線測試**\n系統已上線，準備進行循環監控。");
+        sendDiscordAlert("✅ **戰情室 V50 上線**\n邏輯：動能掠奪 (Kinetic Scalping)。\n重點：有量就衝，無量避險。");
         alert("已發送測試訊息。");
     }
 
@@ -272,16 +269,6 @@
         document.querySelectorAll('.coin-option').forEach(opt => opt.style.display = opt.textContent.includes(txt) ? 'block' : 'none');
     }
 
-    function testAudio() {
-        const audio = document.getElementById('alert-sound');
-        audio.play().catch(e => alert("請先與網頁互動才能播放聲音"));
-    }
-
-    function playAlert() {
-        const audio = document.getElementById('alert-sound');
-        audio.play().catch(e => console.log('Audio blocked'));
-    }
-
     async function applyFilter(fromModal = true) {
         if (fromModal) {
             activeSymbols = new Set(Array.from(document.querySelectorAll('.coin-option.selected')).map(el => el.dataset.sym));
@@ -304,34 +291,40 @@
         connectWSS(Array.from(activeSymbols));
     }
 
-    // [V47] 循環轟炸通知系統 (每15分鐘一次)
+    // [V50] 動能平衡邏輯 (Kinetic Balance)
     function checkResonanceAndAlert() {
-        let hasAlert = false;
         const now = Date.now();
-        const COOLDOWN = 15 * 60 * 1000; // 15分鐘冷卻
+        const COOLDOWN = 15 * 60 * 1000; 
         
         for (const sym of activeSymbols) {
             if (!store[sym] || !store[sym]['15m'] || !store[sym]['1h'] || !store[sym]['4h']) continue;
 
             const d15 = store[sym]['15m'].decision;
             const d1h = store[sym]['1h'].decision;
-            const d4h = store[sym]['4h'].decision;
             const vol = store[sym]['vol_ratio'] || 0;
             const adx = store[sym]['adx_val'] || 0;
             const priceVal = store[sym]['price'] || 0; 
             const priceStr = priceVal > 0 ? priceVal.toFixed(4) : "--.--";
             const tradeSetup = store[sym]['15m'].setup; 
             const k15 = store[sym]['15m'].kelly || 0;
-            const riskLevel = store[sym]['15m'].risk;
 
             let tier = '';
             let direction = '';
             let emoji = '';
             let strategyText = '';
-            let sl = 0;
-            let tp = 0;
+            let sl = 0, tp = 0;
 
-            // 只要 15m 給出 long/short，就進入候選名單
+            // [V50] 殭屍盤檢查 (Time Cost Filter)
+            if (vol < 0.8 && adx < 20) {
+                const badge = document.getElementById(`tier-${sym}`);
+                if(badge) {
+                    badge.textContent = '💤 殭屍盤'; 
+                    badge.className = 'tier-badge tier-z';
+                    badge.style.display = 'inline-block';
+                }
+                continue; // 跳過此幣種，不發通知
+            }
+
             if (d15 === 'long' || d15 === 'short') {
                 const isLong = d15 === 'long';
                 direction = isLong ? '做多 (LONG)' : '做空 (SHORT)';
@@ -342,20 +335,24 @@
                     tp = isLong ? tradeSetup.long.tp : tradeSetup.short.tp;
                 }
 
-                const isResonance = (d15 === d1h && d1h === d4h); 
-                const isVolume = (vol >= 1.0);
-                const isTrend = (adx > 25);
+                // [V50] 新分級邏輯
+                const isShortResonance = (d15 === d1h); // 15m 與 1H 共振
+                const isVolume = (vol >= 1.2);          // 有量 (提高標準)
+                const isSurge = (vol >= 1.5);           // 爆量
+                const isTrend = (adx > 25);             // 有趨勢
 
-                // --- 自動分級 ---
-                if (isResonance && isVolume && isTrend) {
+                if (isShortResonance && isVolume && isTrend) {
                     tier = 'S'; 
-                    strategyText = '梭哈模式 (趨勢+量能+共振)';
-                } else if (isResonance) {
+                    strategyText = '完美風暴 (趨勢+動能共振)';
+                } else if (isSurge && !isShortResonance) {
                     tier = 'A'; 
-                    strategyText = '穩健模式 (三週期共振)';
+                    strategyText = '短線爆破 (爆量突破/無共振)';
+                } else if (isShortResonance) {
+                    tier = 'B';
+                    strategyText = '穩健波動 (動能普通)';
                 } else {
                     tier = 'B'; 
-                    strategyText = riskLevel === 'risky' ? '逆勢/搶反彈 (請輕倉)' : '短線波段 (無大週期支持)';
+                    strategyText = '逆勢/喝湯單 (輕倉)';
                 }
 
                 const badge = document.getElementById(`tier-${sym}`);
@@ -365,14 +362,12 @@
                     else if (tier === 'A') { badge.textContent = '🥈 A級'; badge.className = 'tier-badge tier-a'; } 
                     else { badge.textContent = '🥉 B級'; badge.className = 'tier-badge tier-b'; }
                 }
-                hasAlert = true;
 
-                // [V47] 循環通知邏輯
                 const alertKey = `${sym}_${direction}`;
                 const lastSentTime = sTierAlerts.get(alertKey) || 0;
 
                 if (now - lastSentTime > COOLDOWN) {
-                    sTierAlerts.set(alertKey, now); // 更新最後發送時間
+                    sTierAlerts.set(alertKey, now); 
                     
                     const msg = `
 ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會 (快訊)** ${emoji}
@@ -381,23 +376,17 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
 🛑 **止損**: ${sl.toFixed(4)}
 🎯 **止盈**: ${tp.toFixed(4)}
 **策略**: ${strategyText}
-(Kelly: ${k15}% | ADX: ${adx.toFixed(1)})
+(Kelly: ${k15}% | ADX: ${adx.toFixed(1)} | Vol: x${vol.toFixed(1)})
                     `.trim();
                     
                     sendDiscordAlert(msg);
                 }
             } else {
-                // 如果信號消失，從 Map 中移除，確保下次出現時能立刻通知
                 sTierAlerts.delete(`${sym}_做多 (LONG)`);
                 sTierAlerts.delete(`${sym}_做空 (SHORT)`);
-                
                 const badge = document.getElementById(`tier-${sym}`);
                 if(badge) badge.style.display = 'none';
             }
-        }
-
-        if (hasAlert) {
-            playAlert();
         }
     }
 
