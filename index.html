@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V56 指揮官全權版)</title>
+    <title>全維度戰情室 (V56 GitHub 部署版)</title>
     <style>
-        /* V56 樣式：高密度資訊矩陣 */
+        /* =========================================
+           V56 視覺核心樣式 (Dark Mode / Neon)
+           ========================================= */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -16,742 +18,612 @@
             --bronze: #ffad5e; --bronze-bg: rgba(255, 173, 94, 0.15);
             --blue: #2979ff; --blue-bg: rgba(41, 121, 255, 0.15);
             --purple: #bf5af2; --purple-bg: rgba(191, 90, 242, 0.2);
-            --border: #2b3139; --modal-bg: #1e2329; --header-hover: #20252b;
+            --border: #2b3139; --modal-bg: #1e2329;
         }
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
-        .header { border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-filter { background: #2b3139; color: #fff; border: 1px solid #444; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; }
-        .btc-bar { background: #1e2329; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--yellow); font-size: 11px; display: flex; gap: 15px; margin-bottom: 10px; align-items: center; }
-        .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; margin-left: 15px; overflow: hidden; }
-        .timer-bar-fill { height: 100%; background: var(--yellow); width: 100%; transition: width 1s linear; }
         
-        /* 徽章系統 */
-        .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: none; }
+        /* 頂部導航 */
+        .header { border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
+        .status-bar { background: #1e2329; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--yellow); font-size: 11px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .system-log { color: #888; font-family: 'Roboto Mono'; font-size: 10px; margin-left: auto; }
+        
+        /* 進度條 */
+        .timer-container { width: 100px; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+        .timer-fill { height: 100%; background: var(--yellow); width: 0%; transition: width 0.5s linear; }
+
+        /* 卡片容器 */
+        #grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 10px; }
+        
+        /* 幣種卡片 */
+        .coin-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transition: all 0.2s ease; position: relative; }
+        .coin-card:hover { border-color: #555; }
+        .card-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #1e2329; border-bottom: 1px solid transparent; }
+        .expanded .card-header { border-bottom: 1px solid var(--border); background: #252a30; }
+
+        .ch-left, .ch-right { display: flex; align-items: center; gap: 10px; }
+        .sym-name { font-size: 16px; font-weight: 900; color: #fff; width: 80px; }
+        .sym-price { font-family: 'Roboto Mono'; font-weight: bold; font-size: 15px; min-width: 80px; }
+        .up { color: var(--green); } .down { color: var(--red); }
+        
+        /* 徽章 */
+        .tier-badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: bold; display: none; }
         .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); animation: pulse 2s infinite; }
         .tier-a { background: var(--silver-bg); color: var(--silver); border: 1px solid var(--silver); display: inline-block; }
         .tier-b { background: var(--bronze-bg); color: var(--bronze); border: 1px solid var(--bronze); display: inline-block; }
-        .tier-q { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple); display: inline-block; animation: pulse 2s infinite; }
         .tier-z { background: #333; color: #666; border: 1px dashed #555; display: inline-block; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-        .coin-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; transition: all 0.2s ease; }
-        .coin-card.expanded { border-color: #666; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        .card-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #1e2329; border-bottom: 1px solid transparent; }
-        .coin-card.expanded .card-header { border-bottom: 1px solid var(--border); background: #252a30; }
+        /* 卡片內容區 */
+        .card-body { display: none; padding: 10px; background: #111; grid-template-columns: 100px 1fr 1fr 1fr; gap: 5px; }
+        .expanded .card-body { display: grid; }
         
-        .ch-left { display: flex; align-items: center; gap: 10px; }
-        .sym-name { font-size: 16px; font-weight: 900; color: #fff; width: 80px; }
-        .sym-price { font-family: 'Roboto Mono'; font-weight: bold; font-size: 15px; width: 85px; }
-        .up { color: var(--green); } .down { color: var(--red); }
-        .ch-right { display: flex; align-items: center; gap: 10px; }
-        .risk-tag { font-size: 10px; padding: 2px 5px; border-radius: 3px; background: #333; color: #888; }
-        .risk-high { background: var(--red-bg); color: var(--red); font-weight: bold; animation: blink 1s infinite; }
-        .signal-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; min-width: 80px; text-align: center; }
-        .sb-long { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
-        .sb-short { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
-        .sb-chop { background: var(--yellow-bg); color: var(--yellow); border: 1px dashed var(--yellow); }
-        .sb-wait { background: #333; color: #888; border: 1px solid #555; }
-        .arrow-icon { font-size: 10px; color: #666; transition: transform 0.3s; }
-        .coin-card.expanded .arrow-icon { transform: rotate(180deg); }
-        
-        .card-body { display: none; padding: 10px; background: #111; grid-template-columns: 200px 1fr 1fr 1fr; gap: 10px; }
-        .coin-card.expanded .card-body { display: grid; }
-        
-        .col-info { padding: 10px; border-right: 1px dashed #333; display: flex; flex-direction: column; gap: 8px; }
-        .col-tf { padding: 5px; border-right: 1px dashed #333; display: flex; flex-direction: column; }
+        /* 資訊欄 */
+        .col-info { border-right: 1px dashed #333; display: flex; flex-direction: column; gap: 8px; padding-right: 5px; }
+        .col-tf { border-right: 1px dashed #333; padding: 0 5px; display: flex; flex-direction: column; }
         .col-tf:last-child { border-right: none; }
-        
-        .tf-header { margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 3px; display: flex; justify-content: space-between; }
-        .tf-title { font-weight: bold; font-size: 13px; color: #fff; }
-        .countdown-text { font-family: 'Roboto Mono'; font-size: 10px; color: #aaa; margin-left: 5px; float: right;}
 
-        /* [V56] 恢復勝率條與文字 */
-        .wr-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px; }
-        .wr-bar-long { height: 100%; background: var(--green); transition: width 0.5s; }
-        .wr-bar-short { height: 100%; background: var(--red); transition: width 0.5s; }
-        .wr-text { font-size: 10px; display: flex; justify-content: space-between; color: #888; margin-bottom: 5px; }
+        .tf-header { margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 3px; display: flex; justify-content: space-between; font-weight: bold; color: #ddd; font-size: 12px; }
 
-        .ind-list { display: grid; grid-template-columns: 1fr; gap: 3px; margin-bottom: 8px; }
-        .ind-item { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 5px; background: rgba(255,255,255,0.03); border-radius: 3px; }
-        .win-dual { font-family: 'Roboto Mono'; font-size: 10px; }
-        .active-side { font-weight: bold; text-decoration: underline; opacity: 1 !important; }
+        /* 指標列表 */
+        .ind-item { display: flex; justify-content: space-between; font-size: 10px; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .ind-val { font-family: 'Roboto Mono'; font-weight: bold; }
         
-        /* [V56] 戰術六宮格 */
-        .strat-box { margin-top: auto; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid transparent; }
+        /* 戰術六宮格 */
+        .strat-box { margin-top: auto; padding: 4px; border-radius: 4px; text-align: center; border: 1px solid #333; background: #1a1a1a; }
         .strat-long { background: var(--green-bg); border-color: var(--green); }
         .strat-short { background: var(--red-bg); border-color: var(--red); }
-        .strat-wait { background: #2b3139; border-color: #444; color: #888; }
-        .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; text-align: left; margin-top: 5px; }
-        .sg-row { display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 2px; }
-        .sg-label { color: #888; font-size: 10px; }
-        .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
-        .sg-trailing { color: var(--blue); font-weight: bold; } /* 移動止損高亮 */
-        .sg-profit { color: var(--gold); font-weight: bold; }   /* 獲利預估高亮 */
+        .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 10px; text-align: left; margin-top: 4px; }
+        .sg-row { display: flex; justify-content: space-between; }
+        .sg-label { color: #666; font-size: 9px; }
+        .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #eee; }
+        .blur-text { opacity: 0.3; filter: blur(1px); }
 
-        .vol-box, .flow-box { padding-top: 5px; border-top: 1px dashed #333; font-size: 11px; }
-        .flow-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px; }
-        .flow-buy { height: 100%; background: var(--green); } .flow-sell { height: 100%; background: var(--red); }
-        .vol-tag { padding: 1px 4px; border-radius: 2px; font-weight: bold; }
-        .v-high { background: var(--yellow); color: #000; } .v-norm { background: #444; color: #ccc; } .v-low { background: #222; color: #666; }
+        /* 資金流與量能 */
+        .flow-bar-bg { width: 100%; height: 4px; background: #333; border-radius: 2px; overflow: hidden; display: flex; margin: 2px 0; }
+        .flow-buy { background: var(--green); height: 100%; } .flow-sell { background: var(--red); height: 100%; }
+        .vol-tag { font-size: 9px; padding: 1px 3px; border-radius: 2px; float: right; }
+        .v-high { background: var(--yellow); color: #000; }
         
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: none; justify-content: center; align-items: center; }
-        .modal-content { background: var(--modal-bg); width: 90%; max-width: 600px; max-height: 80vh; border-radius: 8px; border: 1px solid #444; display: flex; flex-direction: column; }
-        .modal-body { padding: 15px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-        .coin-option { background: #0b0e11; padding: 8px; border-radius: 4px; border: 1px solid #333; cursor: pointer; text-align: center; font-family: 'Roboto Mono'; font-size: 12px; }
-        .coin-option.selected { background: var(--green-bg); border-color: var(--green); color: var(--green); font-weight: bold; }
-        .search-input { background: #0b0e11; border: 1px solid #444; color: #fff; padding: 8px; width: 90%; margin: 10px 5%; box-sizing: border-box; }
-        .loading-text { text-align: center; color: #666; margin-top: 50px; font-size: 16px; }
-        
-        @media (max-width: 900px) { .card-body { grid-template-columns: 1fr; gap: 0; } .col-info { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 10px; } .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 10px 0; } .ind-list { grid-template-columns: 1fr 1fr; gap: 5px; } }
+        /* Loading */
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; display:flex; justify-content:center; align-items:center; flex-direction: column; color: #fff; }
+
+        @media (max-width: 900px) { 
+            .card-body { grid-template-columns: 1fr; gap: 15px; } 
+            .col-info { border-right: none; border-bottom: 1px dashed #333; padding-bottom: 10px; flex-direction: row; flex-wrap: wrap; justify-content: space-between;}
+            .col-tf { border-right: none; border-bottom: 1px dashed #333; padding-bottom: 10px; }
+        }
     </style>
 </head>
 <body>
 
-<div class="modal-overlay" id="filterModal">
-    <div class="modal-content">
-        <div style="padding:15px; border-bottom:1px solid #333; display:flex; justify-content:space-between;">
-            <span style="font-weight:bold;">選擇幣種</span>
-            <span style="cursor:pointer;" onclick="closeModal()">✕</span>
-        </div>
-        <div style="padding:10px;">
-            <input type="text" class="search-input" id="coinSearch" placeholder="搜尋..." onkeyup="filterCoins()">
-        </div>
-        <div class="modal-body" id="coinList">載入中...</div>
-        <div style="padding:15px; text-align:right; border-top:1px solid #333;">
-            <button onclick="applyFilter()" style="background:var(--green); border:none; padding:8px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">確認</button>
-        </div>
-    </div>
+<div id="loading" class="loading-overlay">
+    <h2>🚀 戰情室系統啟動中...</h2>
+    <p id="loading-text">正在初始化 API 隊列...</p>
 </div>
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V56 指揮官全權版)</h1>
-        <div class="btc-bar" style="margin-top:5px;">
-            <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
-            <span>權重: <strong id="btc-weight">x1.0</strong></span>
-            <div class="timer-bar-bg" title="數據刷新倒數"><div class="timer-bar-fill" id="timer-bar"></div></div>
-            <button onclick="testDiscord()" style="margin-left:10px; background:#5865F2; border:1px solid #555; color:#fff; cursor:pointer; font-size:10px; border-radius:4px;">💬 測試DC</button>
-        </div>
+        <h1 style="margin:0; font-size:20px; color:var(--text-main);">全維度戰情室 <span style="font-size:12px; color:var(--yellow);">V56 指揮官版</span></h1>
     </div>
-    <button class="btn-filter" onclick="openModal()"><span>➕</span> 篩選</button>
+    <div class="status-bar">
+        <span>BTC 趨勢: <strong id="btc-trend">...</strong></span>
+        <span>下次掃描:</span>
+        <div class="timer-container"><div class="timer-fill" id="scan-timer"></div></div>
+        <button onclick="testDiscord()" style="background:#5865F2; border:none; padding:4px 8px; border-radius:4px; color:#fff; cursor:pointer; font-size:10px;">💬 測試通知</button>
+        <span class="system-log" id="sys-log">系統就緒</span>
+    </div>
 </div>
 
 <div id="grid-container">
-    <div class="loading-text">正在掃描市場成交量前 10 名...</div>
-</div>
+    </div>
 
 <script>
     // ==========================================
-    // ⚙️ 設定區域
+    // ⚙️ 用戶設定區域 (USER CONFIG)
     // ==========================================
-    const DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"; 
+    const DISCORD_WEBHOOK_URL = ""; // 請在此填入你的 Webhook URL
+    const USE_PROXY = true; // 是否使用 Proxy 解決 CORS
+    const PROXY_URL = "https://corsproxy.io/?"; // 若失效可換 https://api.allorigins.win/raw?url=
+    
     // ==========================================
+    // 🚦 核心 1: API 隊列控制器 (Anti-Ban System)
+    // ==========================================
+    const API_QUEUE = {
+        items: [],
+        isProcessing: false,
+        delay: 350, // 350ms 間隔，確保安全不被封鎖
 
-    const TFS = ['15m', '1h', '4h'];
-    const LIMIT = 500;
-    const TRANS = { '15m': '15m (短)', '1h': '1H (波)', '4h': '4H (趨)' };
-
-    let allSymbols = [];
-    let activeSymbols = new Set();
-    let btcHistory = []; 
-    let btcTrendMultiplier = 1.0;
-    let wss = null;
-    let store = {};
-    let fundingRates = {}; 
-    let refreshInterval = null; 
-    let countdownTimer = null;
-    let sTierAlerts = new Map(); 
-
-    function sendDiscordAlert(message) {
-        if (!DISCORD_WEBHOOK_URL || DISCORD_WEBHOOK_URL.includes("YOUR_DISCORD_WEBHOOK")) {
-            console.log("Discord Webhook 未設定");
-            return;
-        }
-        const payload = { content: message, username: "戰情室指揮官", avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png" };
-        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(DISCORD_WEBHOOK_URL);
-        fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(err => console.error(err));
-    }
-
-    function testDiscord() {
-        sendDiscordAlert("✅ **戰情室 V56 連線成功**\n策略：移動止損 + 雙重止盈 + 全資訊顯示。");
-        alert("已發送測試訊息。");
-    }
-
-    async function fetchTop10Coins() {
-        try {
-            const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
-            const data = await res.json();
-            let pairs = data.filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('USDC'));
-            pairs.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
-            return new Set(pairs.slice(0, 10).map(t => t.symbol.toLowerCase()));
-        } catch (e) { return new Set(['btcusdt', 'ethusdt', 'solusdt', 'dogeusdt', 'xrpusdt', 'adausdt', 'bnbusdt']); }
-    }
-
-    async function fetchFundingRates() {
-        try {
-            const res = await fetch('https://fapi.binance.com/fapi/v1/premiumIndex');
-            const data = await res.json();
-            data.forEach(d => { fundingRates[d.symbol.toLowerCase()] = parseFloat(d.lastFundingRate) * 100; });
-        } catch (e) {}
-    }
-
-    async function initSystem() {
-        activeSymbols = await fetchTop10Coins();
-        await fetchExchangeInfo();
-        await startSystemLoop(); 
-    }
-
-    async function startSystemLoop() {
-        await runAnalysisCycle();
-        if(refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(runAnalysisCycle, 60000);
-        startCountdown();
-    }
-
-    async function runAnalysisCycle() {
-        await checkBTCAnchor();
-        await fetchFundingRates();
-        await applyFilter(false); 
-        startCountdown(); 
-    }
-
-    function startCountdown() {
-        if(countdownTimer) clearInterval(countdownTimer);
-        const bar = document.getElementById('timer-bar');
-        let width = 100;
-        bar.style.width = '100%';
-        countdownTimer = setInterval(() => {
-            width -= (100/60); 
-            if(width < 0) width = 0;
-            bar.style.width = `${width}%`;
-        }, 1000);
-    }
-
-    async function checkBTCAnchor() {
-        try {
-            const res = await fetch('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=100');
-            const data = await res.json();
-            if(Array.isArray(data)) btcHistory = data.map(d=>parseFloat(d[4]));
-            const last = parseFloat(data[data.length-1][4]), prev = parseFloat(data[data.length-2][4]);
-            const change = (last - prev) / prev;
-            const tEl = document.getElementById('btc-trend'), wEl = document.getElementById('btc-weight');
-            if (change < -0.005) { btcTrendMultiplier = 0.6; tEl.textContent = "⚠️ 下跌"; tEl.style.color = "#f6465d"; }
-            else if (change > 0.005) { btcTrendMultiplier = 1.3; tEl.textContent = "🚀 上漲"; tEl.style.color = "#0ecb81"; }
-            else { btcTrendMultiplier = 1.0; tEl.textContent = "⚖️ 震盪"; tEl.style.color = "#fcd535"; }
-            wEl.textContent = `x${btcTrendMultiplier.toFixed(1)}`;
-        } catch(e) {}
-    }
-
-    async function fetchExchangeInfo() {
-        try {
-            const res = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
-            const data = await res.json();
-            allSymbols = data.symbols.filter(s => s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL' && s.status === 'TRADING').map(s => s.symbol.replace('USDT', '')).sort();
-        } catch (e) {}
-    }
-
-    function openModal() { renderCoinList(); document.getElementById('filterModal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('filterModal').style.display = 'none'; }
-    function renderCoinList() {
-        const container = document.getElementById('coinList'); container.innerHTML = '';
-        allSymbols.forEach(sym => {
-            const code = sym.toLowerCase() + 'usdt';
-            const div = document.createElement('div');
-            div.className = `coin-option ${activeSymbols.has(code) ? 'selected' : ''}`;
-            div.textContent = sym; div.dataset.sym = code;
-            div.onclick = () => div.classList.toggle('selected');
-            container.appendChild(div);
-        });
-    }
-    function filterCoins() {
-        const txt = document.getElementById('coinSearch').value.toUpperCase();
-        document.querySelectorAll('.coin-option').forEach(opt => opt.style.display = opt.textContent.includes(txt) ? 'block' : 'none');
-    }
-
-    async function applyFilter(fromModal = true) {
-        if (fromModal) {
-            activeSymbols = new Set(Array.from(document.querySelectorAll('.coin-option.selected')).map(el => el.dataset.sym));
-            closeModal();
-            startSystemLoop();
-            return;
-        }
-        
-        const container = document.getElementById('grid-container');
-        container.innerHTML = ''; 
-        if(wss) wss.close(); store = {}; 
-        
-        for (const sym of activeSymbols) { 
-            store[sym] = {}; 
-            await initSymbol(sym); 
-            await new Promise(r => setTimeout(r, 50)); 
-        } 
-        checkResonanceAndAlert();
-        connectWSS(Array.from(activeSymbols));
-    }
-
-    function checkResonanceAndAlert() {
-        const now = Date.now();
-        const COOLDOWN = 15 * 60 * 1000; 
-        
-        for (const sym of activeSymbols) {
-            if (!store[sym] || !store[sym]['15m'] || !store[sym]['1h'] || !store[sym]['4h']) continue;
-            if (!store[sym]['15m'].decision) continue;
-
-            const d15 = store[sym]['15m'].decision;
-            const d1h = store[sym]['1h'].decision;
-            const d4h = store[sym]['4h'].decision;
-            const vol = store[sym]['vol_ratio'] || 0;
-            const adx = store[sym]['adx_val'] || 0;
-            const priceVal = store[sym]['price'] || 0; 
-            const priceStr = priceVal > 0 ? priceVal.toFixed(4) : "--.--";
-            const tradeSetup = store[sym]['15m'].setup; 
-            const k15 = store[sym]['15m'].kelly || 0;
-            const bbState = store[sym]['1h'] ? store[sym]['1h'].bb_state : 'normal';
-
-            let tier = '';
-            let direction = '';
-            let emoji = '';
-            let strategyText = '';
-            let sl = 0, tp1 = 0, tp2 = 0, pnl = "0.00";
-
-            if (bbState === 'squeeze') {
-                const badge = document.getElementById(`tier-${sym}`);
-                if(badge) { badge.textContent = '💥 蓄力中'; badge.className = 'tier-badge tier-q'; badge.style.display = 'inline-block'; }
-            }
-
-            if (vol < 0.8 && adx < 20) {
-                const badge = document.getElementById(`tier-${sym}`);
-                if(badge) { badge.textContent = '💤 殭屍盤'; badge.className = 'tier-badge tier-z'; badge.style.display = 'inline-block'; }
-                // 殭屍盤不發通知，但 UI 會顯示
-            }
-
-            if (d15 === 'long' || d15 === 'short') {
-                const isLong = d15 === 'long';
-                direction = isLong ? '做多 (LONG)' : '做空 (SHORT)';
-                emoji = isLong ? '📈' : '📉';
-                
-                if(tradeSetup) {
-                    sl = isLong ? tradeSetup.long.sl : tradeSetup.short.sl;
-                    tp1 = isLong ? tradeSetup.long.tp1 : tradeSetup.short.tp1;
-                    tp2 = isLong ? tradeSetup.long.tp2 : tradeSetup.short.tp2;
-                    
-                    const dist = Math.abs(tp2 - priceVal);
-                    pnl = ((dist/priceVal)*100).toFixed(2);
-                }
-
-                const isResonance = (d15 === d1h && d1h === d4h); 
-                const isShortResonance = (d15 === d1h); 
-                const isVolume = (vol >= 1.0); 
-                const isTrend = (adx > 25);             
-
-                if (isResonance && isVolume && isTrend) { tier = 'S'; strategyText = '🔥 趨勢共振 (重倉/波段)'; }
-                else if (isShortResonance && isVolume) { tier = 'A'; strategyText = '🚀 動能突破 (標準/短線)'; }
-                else { tier = 'B'; strategyText = '⚠️ 逆勢/反彈 (輕倉/快出)'; }
-
-                const badge = document.getElementById(`tier-${sym}`);
-                if(badge) {
-                    badge.style.display = 'inline-block';
-                    if(tier === 'S') { badge.textContent = '🏆 S級'; badge.className = 'tier-badge tier-s'; } 
-                    else if (tier === 'A') { badge.textContent = '🥈 A級'; badge.className = 'tier-badge tier-a'; } 
-                    else { badge.textContent = '🥉 B級'; badge.className = 'tier-badge tier-b'; }
-                }
-
-                const alertKey = `${sym}_${direction}`;
-                const lastSentTime = sTierAlerts.get(alertKey) || 0;
-
-                if (now - lastSentTime > COOLDOWN) {
-                    sTierAlerts.set(alertKey, now); 
-                    const msg = `
-${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會 (V56)** ${emoji}
-**${sym.toUpperCase().replace('USDT','')}**
-💰 **現價**: ${priceStr}
-🛡️ **移動止損**: ${sl.toFixed(4)}
-🌊 **潛在獲利**: ~${pnl}%
-🎯 **TP1**: ${tp1.toFixed(4)} | 🚀 **TP2**: ${tp2.toFixed(4)}
-**策略**: ${strategyText}
-(Kelly: ${k15}% | ADX: ${adx.toFixed(1)} | Vol: x${vol.toFixed(1)})
-                    `.trim();
-                    sendDiscordAlert(msg);
-                }
-            } else {
-                sTierAlerts.delete(`${sym}_做多 (LONG)`);
-                sTierAlerts.delete(`${sym}_做空 (SHORT)`);
-                const badge = document.getElementById(`tier-${sym}`);
-                if(badge && !store[sym]['1h'].bb_state) badge.style.display = 'none';
-            }
-        }
-    }
-
-    async function initSymbol(sym) {
-        const container = document.getElementById('grid-container');
-        if(container.querySelector('.loading-text')) container.innerHTML = '';
-        const fr = fundingRates[sym] || 0;
-        const frColor = fr > 0.03 ? '#f6465d' : (fr < 0 ? '#0ecb81' : '#888');
-
-        let html = `
-        <div class="coin-card" id="card-${sym}">
-            <div class="card-header" onclick="toggleCard('${sym}')">
-                <div class="ch-left"><span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span><span class="tier-badge" id="tier-${sym}"></span><span class="sym-price" id="price-${sym}">--.--</span></div>
-                <div class="ch-right"><span class="risk-tag" id="risk-${sym}">風險評估</span><span class="signal-badge sb-wait" id="badge-15m-${sym}">分析中...</span><span class="arrow-icon">▼</span></div>
-            </div>
-            <div class="card-body">
-                <div class="col-info">
-                    <div style="font-size:10px; color:#666; cursor:pointer;" onclick="event.stopPropagation(); removeCard('${sym}')">移除幣種 ✕</div>
-                    <div class="vol-box"><div style="color:#aaa; display:flex; justify-content:space-between;"><span>量能(1H)</span><span id="vol-ratio-${sym}">x1.0</span></div><span id="vol-status-${sym}" class="vol-tag v-norm">...</span></div>
-                    <div class="flow-box"><div style="color:#aaa; margin-bottom:2px;">Taker(1H)</div><div class="flow-bar-bg"><div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div><div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div></div><div style="display:flex; justify-content:space-between; font-size:10px;"><span id="flow-bv-${sym}" style="color:var(--green)">--%</span><span id="flow-sv-${sym}" style="color:var(--red)">--%</span></div></div>
-                    <div style="font-size:10px; color:#888; border-top:1px dashed #333; padding-top:5px;">ADX 趨勢強度:<br><span id="adx-${sym}" style="color:var(--yellow); font-weight:bold;">...</span></div>
-                    <div style="font-size:10px; color:#888; border-top:1px dashed #333; padding-top:5px;">資金費率:<br><span style="color:${frColor}; font-weight:bold;">${fr.toFixed(4)}%</span></div>
-                </div>`;
-
-        TFS.forEach(tf => {
-            if(!store[sym]) store[sym] = {};
-            store[sym][tf] = {}; 
-            html += `
-            <div class="col-tf">
-                <div class="tf-header"><span class="tf-title">${TRANS[tf]}</span><span id="timer-${sym}-${tf}" class="countdown-text">--:--</span></div>
-                
-                <div style="margin-bottom:5px;">
-                    <div class="wr-bar-bg"><div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div><div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div></div>
-                    <div class="wr-text"><span id="wr-l-${sym}-${tf}">多--%</span><span id="wr-s-${sym}-${tf}">空--%</span></div>
-                </div>
-                
-                <div class="ind-list" id="list-${sym}-${tf}"><div style="color:#444;">下載中...</div></div>
-                <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
-                    <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
-                    <div class="strat-grid">
-                        <div class="sg-row"><div><span class="sg-label">En</span> <span class="sg-val" id="en-${sym}-${tf}">---</span></div><div><span class="sg-label">Kelly</span> <span class="sg-val" id="kelly-${sym}-${tf}">---</span></div></div>
-                        <div class="sg-row"><div><span class="sg-label">TP1</span> <span class="sg-val" id="tp1-${sym}-${tf}">---</span></div><div><span class="sg-label">TP2</span> <span class="sg-val" id="tp2-${sym}-${tf}">---</span></div></div>
-                        <div class="sg-row"><div><span class="sg-label">Trail SL</span> <span class="sg-val sg-trailing" id="sl-${sym}-${tf}">---</span></div><div><span class="sg-label">PnL</span> <span class="sg-val sg-profit" id="pnl-${sym}-${tf}">---</span></div></div>
-                    </div>
-                </div>
-            </div>`;
-        });
-        html += `</div></div>`; 
-        container.insertAdjacentHTML('beforeend', html);
-
-        try {
-            const promises = TFS.map(tf => fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`).then(r=>r.json()));
-            const results = await Promise.all(promises);
-            if(!Array.isArray(results[0]) || results[0].code) { document.getElementById(`badge-15m-${sym}`).textContent = "無數據"; return; }
-            
-            const closes = results[1].map(d=>parseFloat(d[4]));
-            const lastClose = closes[closes.length - 1];
-            store[sym]['price'] = lastClose;
-            const beta = MathEngine.correlation(closes, btcHistory);
-            const isHighCorr = beta > 0.7;
-
-            results.forEach((data, i) => {
-                const tf = TFS[i]; 
-                updateCountdown(sym, tf);
-                processTimeframe(sym, tf, data, isHighCorr);
-                if(tf === '1h') { calculateFlow(sym, data); calculateVolume(sym, data); }
+        add: function(task) {
+            return new Promise((resolve, reject) => {
+                this.items.push({ task, resolve, reject });
+                this.process();
             });
-        } catch(e) { console.error("Init Error", e); }
-    }
-
-    function updateCountdown(sym, tf) {
-        const el = document.getElementById(`timer-${sym}-${tf}`);
-        if(!el) return;
-        const now = Date.now();
-        let intervalMs = 0;
-        if(tf === '15m') intervalMs = 15 * 60 * 1000;
-        else if(tf === '1h') intervalMs = 60 * 60 * 1000;
-        else intervalMs = 4 * 60 * 60 * 1000;
-        const nextClose = Math.ceil(now / intervalMs) * intervalMs;
-        const diff = nextClose - now;
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-        el.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        if(m < 3) el.style.color = '#f6465d'; else el.style.color = '#aaa';
-    }
-
-    const MathEngine = {
-        sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
-        emaArray: (d, p) => { let k=2/(p+1), ema=[d[0]]; for(let i=1;i<d.length;i++) ema.push(d[i]*k+ema[i-1]*(1-k)); return ema; },
-        rsiArray: (c) => { 
-            let rsi=[], g=0, l=0; 
-            if(c.length < 15) return Array(c.length).fill(50);
-            for(let i=1;i<=14;i++){ let d=c[i]-c[i-1]; d>0?g+=d:l-=d; }
-            let ag=g/14, al=l/14; rsi[14]=100-(100/(1+ag/al));
-            for(let i=15;i<c.length;i++){ let d=c[i]-c[i-1]; d>0?ag=(ag*13+d)/14:al=(al*13-d)/14; rsi[i]=al===0?100:100-(100/(1+ag/al)); }
-            return rsi;
         },
-        atrArray: (h, l, c, p=14) => {
-            let trs = [h[0]-l[0]];
-            for(let i=1; i<h.length; i++) trs.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
-            let atr = [trs[0]];
-            for(let i=1; i<trs.length; i++) if(i < p) atr.push((atr[i-1]*i + trs[i])/(i+1)); else atr.push((atr[i-1]*(p-1) + trs[i])/p);
-            return atr;
-        },
-        adx: (h, l, c, p=14) => {
-            let plusDM=[], minusDM=[], tr=[];
-            for(let i=1;i<h.length;i++){
-                tr.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
-                let up=h[i]-h[i-1], down=l[i-1]-l[i];
-                plusDM.push((up>down && up>0)?up:0); minusDM.push((down>up && down>0)?down:0);
+        process: async function() {
+            if (this.isProcessing || this.items.length === 0) return;
+            this.isProcessing = true;
+            const { task, resolve, reject } = this.items.shift();
+            try {
+                const result = await task();
+                resolve(result);
+            } catch (e) {
+                reject(e);
             }
-            const smooth = (arr, len) => {
-                let res=[], sum=0;
-                for(let i=0;i<arr.length;i++){ sum+=arr[i]; if(i>=len) sum-=arr[i-len]; res.push(i<len?sum/(i+1):sum/len); }
-                return res;
-            };
-            let trS=smooth(tr,p), pDMS=smooth(plusDM,p), mDMS=smooth(minusDM,p);
-            let dx=[];
-            for(let i=0;i<trS.length;i++){
-                let diP = (pDMS[i]/trS[i])*100, diM = (mDMS[i]/trS[i])*100;
-                let sum = diP+diM, diff = Math.abs(diP-diM);
-                dx.push(sum===0?0:(diff/sum)*100);
-            }
-            return smooth(dx, p);
-        },
-        bollinger: (c, p=20, mult=2) => {
-            const sma = c.slice(-p).reduce((a,b)=>a+b,0)/p;
-            const std = Math.sqrt(c.slice(-p).map(x=>Math.pow(x-sma,2)).reduce((a,b)=>a+b)/p);
-            return { upper: sma + mult*std, lower: sma - mult*std, mid: sma, width: sma===0?0:(mult*std*2)/sma };
-        },
-        getRealisticWinRate: (signals, closes, highs, lows, atrs, direction) => { 
-            let wins=0, trades=0;
-            if(signals.length < 50) return 50;
-            for(let i=50; i<signals.length-24; i++){ 
-                if(!signals[i]) continue;
-                const entry = closes[i], curATR = atrs[i];
-                const slDist = curATR * 1.5, tpDist = curATR * 2.0;
-                let sl = direction==='long' ? entry - slDist : entry + slDist;
-                let tp = direction==='long' ? entry + tpDist : entry - tpDist;
-                let outcome = 'timeout';
-                for(let k=1; k<=24; k++){
-                    let h = highs[i+k], l = lows[i+k];
-                    if(direction==='long'){ if(l <= sl) { outcome='loss'; break; } if(h >= tp) { outcome='win'; break; } } 
-                    else { if(h >= sl) { outcome='loss'; break; } if(l <= tp) { outcome='win'; break; } }
-                }
-                if(outcome==='win') wins++; if(outcome!=='timeout') trades++;
-            } 
-            return trades<5 ? 50 : Math.round((wins/trades)*100); 
-        },
-        correlation: (a, b, len=24) => {
-            if(!b || b.length < len || a.length < len) return 1;
-            const A = a.slice(-len), B = b.slice(-len);
-            const avgA = A.reduce((x,y)=>x+y,0)/len, avgB = B.reduce((x,y)=>x+y,0)/len;
-            let num=0, denA=0, denB=0;
-            for(let i=0;i<len;i++) { let da=A[i]-avgA, db=B[i]-avgB; num+=da*db; denA+=da*da; denB+=db*db; }
-            return denA===0||denB===0 ? 0 : num/Math.sqrt(denA*denB);
-        },
-        calcSmartScore: (metrics) => {
-            let total=0, weight=0;
-            for(let m of metrics) { if(m[0] > 0) { total += m[0]*m[1]; weight += m[1]; } }
-            return weight===0 ? 50 : total/weight;
-        },
-        kelly: (winRate, riskReward) => {
-            const w = winRate / 100;
-            const q = 1 - w;
-            return (w * riskReward - q) / riskReward;
+            setTimeout(() => {
+                this.isProcessing = false;
+                this.process();
+            }, this.delay);
         }
     };
 
-    function processTimeframe(sym, tf, klines, isHighCorr) {
-        try {
-            const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3]));
-            const last=c.length-1, cur=c[last];
-            
-            if(c.length < 50) { 
-                document.getElementById(`list-${sym}-${tf}`).innerHTML = '<div style="color:#666;">數據不足</div>';
-                return;
+    async function safeFetch(url) {
+        const targetUrl = USE_PROXY ? (PROXY_URL + encodeURIComponent(url)) : url;
+        return API_QUEUE.add(() => fetch(targetUrl).then(res => {
+            if(!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        }));
+    }
+
+    // ==========================================
+    // 🧮 核心 2: 數學引擎 (Math Engine)
+    // ==========================================
+    const MathEngine = {
+        sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
+        emaArray: (d, p) => { 
+            let k=2/(p+1), ema=[d[0]]; 
+            for(let i=1;i<d.length;i++) ema.push(d[i]*k+ema[i-1]*(1-k)); 
+            return ema; 
+        },
+        rsi: (c, p=14) => {
+            let gains=0, losses=0;
+            for(let i=c.length-p; i<c.length; i++) {
+                let diff = c[i] - c[i-1];
+                if(diff >= 0) gains += diff; else losses -= diff;
             }
+            if(losses === 0) return 100;
+            let rs = (gains/p) / (losses/p);
+            return 100 - (100/(1+rs));
+        },
+        atr: (h, l, c, p=14) => {
+            let tr = 0;
+            for(let i=c.length-p; i<c.length; i++) {
+                tr += Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1]));
+            }
+            return tr / p;
+        },
+        bollinger: (c, p=20, mult=2) => {
+            const sma = c.slice(-p).reduce((a,b)=>a+b,0)/p;
+            const sqDiffs = c.slice(-p).map(v => Math.pow(v-sma, 2));
+            const std = Math.sqrt(sqDiffs.reduce((a,b)=>a+b,0)/p);
+            return { upper: sma + mult*std, lower: sma - mult*std, width: (2*mult*std)/sma };
+        },
+        adx: (h, l, c, p=14) => {
+            // 簡易版 ADX 計算，用於判斷趨勢強度
+            let tr=0, pdm=0, mdm=0;
+            for(let i=1; i<p+1; i++) {
+                let idx = h.length-1-i;
+                tr += Math.max(h[idx]-l[idx], Math.abs(h[idx]-c[idx-1]), Math.abs(l[idx]-c[idx-1]));
+                let up = h[idx] - h[idx-1];
+                let down = l[idx-1] - l[idx];
+                pdm += (up>down && up>0) ? up : 0;
+                mdm += (down>up && down>0) ? down : 0;
+            }
+            let pdi = 100 * (pdm/tr);
+            let mdi = 100 * (mdm/tr);
+            return Math.abs(pdi-mdi) / (pdi+mdi) * 100;
+        }
+    };
 
-            const atrs = MathEngine.atrArray(h,l,c);
-            const curATR = atrs[atrs.length-1];
-            const rsi = MathEngine.rsiArray(c);
-            const adx = MathEngine.adx(h,l,c);
-            const curAdx = adx.length > 0 ? adx[adx.length-1] : 0; 
+    // ==========================================
+    // 🧠 核心 3: 狀態管理與邏輯
+    // ==========================================
+    const State = {
+        activeSymbols: new Set(),
+        data: {}, // { BTCUSDT: { 15m: {...}, 1h: {...} } }
+        btcTrend: 'neutral',
+        prices: {} // 即時價格
+    };
 
-            const bb = MathEngine.bollinger(c);
-            let bbState = 'normal';
-            if (bb.width < 0.02) bbState = 'squeeze'; 
+    const CONSTANTS = {
+        BLACKLIST: ['USDCUSDT', 'USDPUSDT', 'TUSDUSDT', 'FDUSDUSDT', 'BUSDUSDT', 'DAIUSDT', 'EURUSDT'],
+        TFS: ['15m', '1h', '4h']
+    };
 
-            if(tf === '1h') {
-                if(!store[sym]) store[sym] = {};
-                store[sym]['adx_val'] = curAdx;
-                store[sym]['bb_state'] = bbState; 
-                const adxEl = document.getElementById(`adx-${sym}`);
-                if(adxEl) {
-                    adxEl.textContent = curAdx.toFixed(1);
-                    adxEl.style.color = curAdx > 25 ? '#f6465d' : '#848e9c'; 
+    let wss = null;
+
+    // 系統入口
+    async function initSystem() {
+        document.getElementById('loading-text').textContent = "正在掃描市場前 10 名熱點...";
+        await updateTop10();
+        
+        document.getElementById('loading').style.display = 'none';
+        
+        // 啟動定時任務
+        // 1. 每 5 分鐘掃描一次市場排名
+        setInterval(updateTop10, 5 * 60 * 1000);
+        // 2. 每 1 分鐘更新指標數據
+        setInterval(refreshIndicators, 60 * 1000);
+        
+        startTimerBar(5 * 60);
+    }
+
+    async function updateTop10() {
+        log("掃描成交量排名...");
+        try {
+            const data = await safeFetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
+            let pairs = data.filter(t => t.symbol.endsWith('USDT') && !CONSTANTS.BLACKLIST.includes(t.symbol));
+            pairs.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
+            
+            const newTop10 = pairs.slice(0, 10).map(t => t.symbol);
+            const newSet = new Set(newTop10);
+
+            // 1. 移除落榜的
+            for(let sym of State.activeSymbols) {
+                if(!newSet.has(sym)) {
+                    removeCard(sym);
+                    State.activeSymbols.delete(sym);
                 }
             }
 
-            const ema = MathEngine.emaArray(c, 50);
-            const bias = (cur - ema[last]) / ema[last] * 100;
-            const vwapArr = MathEngine.emaArray(c, 90); 
-            
-            let ema12 = MathEngine.emaArray(c, 12);
-            let ema26 = MathEngine.emaArray(c, 26);
-            let macdArr = ema12.map((v,i) => v - ema26[i]);
-
-            const vwapVal = MathEngine.sma(c, 90);
-            const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/curATR * 15)));
-            if(tf==='15m') { 
-                const rEl = document.getElementById(`risk-${sym}`); 
-                if(rEl) { rEl.textContent = `插針風險 ${risk}%`; rEl.className = `risk-tag ${risk>80?'risk-high':''}`; }
+            // 2. 新增入榜的
+            for(let sym of newSet) {
+                if(!State.activeSymbols.has(sym)) {
+                    State.activeSymbols.add(sym);
+                    createCard(sym);
+                    // 這裡不 await，讓它在背景排隊執行
+                    loadSymbolData(sym); 
+                }
             }
             
-            if(tf==='1h') {
-                const v = klines.map(d=>parseFloat(d[5]));
-                let maxV=0, wallP=0; 
-                for(let i=last-50;i<=last;i++){ if(v[i]>maxV){ maxV=v[i]; wallP=c[i]; } } 
-            }
+            // 3. 更新 WebSocket 訂閱
+            updateWebSocket();
 
-            const sigs={ r_b:[], r_s:[], e_b:[], e_s:[], m_b:[], m_s:[], v_b:[], v_s:[], b_b:[], b_s:[] };
-            for(let i=50; i<=last; i++) {
-                sigs.r_b[i]=rsi[i]<40; sigs.r_s[i]=rsi[i]>60;
-                sigs.e_b[i]=c[i]>ema[i]; sigs.e_s[i]=c[i]<ema[i];
-                sigs.m_b[i]=macdArr[i]>0; sigs.m_s[i]=macdArr[i]<0;
-                sigs.v_b[i]=c[i]>vwapArr[i]; sigs.v_s[i]=c[i]<vwapArr[i];
-                sigs.b_b[i]=c[i]>bb.upper; sigs.b_s[i]=c[i]<bb.lower;
-            }
-            
-            const wrR = { l: MathEngine.getRealisticWinRate(sigs.r_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.r_s,c,h,l,atrs,'short') };
-            const wrE = { l: MathEngine.getRealisticWinRate(sigs.e_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.e_s,c,h,l,atrs,'short') };
-            const wrM = { l: MathEngine.getRealisticWinRate(sigs.m_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.m_s,c,h,l,atrs,'short') };
-            const wrV = { l: MathEngine.getRealisticWinRate(sigs.v_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.v_s,c,h,l,atrs,'short') };
-            const wrB = { l: MathEngine.getRealisticWinRate(sigs.b_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.b_s,c,h,l,atrs,'short') };
-
-            const listEl = document.getElementById(`list-${sym}-${tf}`);
-            let lW=0, sW=0, cnt=0;
-            const addInd = (n,v,d,w) => {
-                const lc=d=='l'?'active-side':'w-l', sc=d=='s'?'active-side':'w-s', col=d=='l'?'var(--green)':d=='s'?'var(--red)':'#666';
-                if(w.l>0) lW+=w.l; if(w.s>0) sW+=w.s; cnt++;
-                return `<div class="ind-item"><div style="color:#aaa;">${n} <span style="color:${col};font-weight:bold;">${v}</span></div><div class="win-dual"><span class="${lc}">多${w.l}%</span>|<span class="${sc}">空${w.s}%</span></div></div>`;
-            };
-            
-            listEl.innerHTML = 
-                addInd('RSI', rsi[last].toFixed(1), rsi[last]>55?'l':rsi[last]<45?'s':'n', wrR) +
-                addInd('EMA', cur>ema[last]?'上':'下', cur>ema[last]?'l':'s', wrE) +
-                addInd('MACD', macdArr[last].toFixed(2), macdArr[last]>0?'l':'s', wrM) +
-                addInd('VWAP', cur>vwapArr[last]?'上':'下', cur>vwapArr[last]?'l':'s', wrV) +
-                addInd('BOLL', cur>bb.upper?'破':cur<bb.lower?'破':'區', cur>bb.upper?'l':cur<bb.lower?'s':'n', wrB);
-
-            let wTrend = curAdx > 25 ? 2.0 : 0.5;
-            let wOsc = curAdx > 25 ? 0.5 : 2.0;
-
-            const metricsL = [[wrR.l, wOsc], [wrE.l, wTrend], [wrM.l, wTrend], [wrV.l, 1], [wrB.l, wOsc]];
-            const metricsS = [[wrR.s, wOsc], [wrE.s, wTrend], [wrM.s, wTrend], [wrV.s, 1], [wrB.s, wOsc]];
-            
-            let avgL = MathEngine.calcSmartScore(metricsL);
-            let avgS = MathEngine.calcSmartScore(metricsS);
-
-            if(isHighCorr && btcTrendMultiplier !== 1.0) {
-                if(btcTrendMultiplier < 1.0) avgL *= 0.8;
-                if(btcTrendMultiplier > 1.0) avgS *= 0.8;
-            }
-
-            // [V56] 恢復勝率條
-            document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${Math.min(100, avgL)}%`;
-            document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${Math.min(100, avgS)}%`;
-            document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${Math.round(avgL)}%`;
-            document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${Math.round(avgS)}%`;
-
-            const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
-            
-            const slDist = curATR * 1.5; 
-            const tpDist = curATR * 3.0; 
-
-            const slL = cur - slDist; 
-            const slS = cur + slDist; 
-            
-            const tpL1 = cur + curATR * 1.0; const tpL2 = cur + curATR * 3.0;
-            const tpS1 = cur - curATR * 1.0; const tpS2 = cur - curATR * 3.0;
-
-            const RR = 3.0 / 1.5; 
-            const kellyL = MathEngine.kelly(avgL, RR);
-            const kellyS = MathEngine.kelly(avgS, RR);
-
-            let dec = 'wait';
-            if(kellyL > 0 && avgL > 50 && avgL > avgS) dec = 'long';
-            else if(kellyS > 0 && avgS > 50 && avgS > avgL) dec = 'short';
-
-            // 潛在獲利 %
-            let potProfit = 0;
-            if(dec === 'long') potProfit = ((tpL2 - cur) / cur) * 100;
-            else if(dec === 'short') potProfit = ((cur - tpS2) / cur) * 100;
-
-            if(!store[sym]) store[sym] = {};
-            store[sym][tf] = { 
-                decision: dec, 
-                kelly: Math.round(Math.max(kellyL, kellyS) * 100),
-                setup: { long: { sl: slL, tp1: tpL1, tp2: tpL2 }, short: { sl: slS, tp1: tpS1, tp2: tpS2 } } 
-            };
-
-            if(tf === '15m') {
-                const badge = document.getElementById(`badge-15m-${sym}`);
-                if(dec==='long') { badge.className = 'signal-badge sb-long'; badge.textContent = `做多 (K:${(kellyL*100).toFixed(0)}%)`; } 
-                else if(dec==='short') { badge.className = 'signal-badge sb-short'; badge.textContent = `做空 (K:${(kellyS*100).toFixed(0)}%)`; } 
-                else { badge.className='signal-badge sb-wait'; badge.textContent='觀望'; }
-            }
-
-            const vals = box.querySelectorAll('.sg-val');
-            
-            // [V56] 六宮格數據填充 (即使觀望也顯示數據供參考)
-            document.getElementById(`en-${sym}-${tf}`).textContent = f(cur);
-            document.getElementById(`kelly-${sym}-${tf}`).textContent = (dec !== 'wait') ? (Math.max(kellyL, kellyS)*100).toFixed(1)+'%' : '---';
-            
-            if (dec === 'long') {
-                box.className = 'strat-box strat-long';
-                title.innerHTML = `<span>建議做多</span>`;
-                document.getElementById(`tp1-${sym}-${tf}`).textContent = f(tpL1);
-                document.getElementById(`tp2-${sym}-${tf}`).textContent = f(tpL2);
-                document.getElementById(`sl-${sym}-${tf}`).textContent = f(slL);
-                document.getElementById(`pnl-${sym}-${tf}`).textContent = `+${potProfit.toFixed(2)}%`;
-                vals.forEach(e=>e.classList.remove('blur-text'));
-            } else if (dec === 'short') {
-                box.className = 'strat-box strat-short';
-                title.innerHTML = `<span>建議做空</span>`;
-                document.getElementById(`tp1-${sym}-${tf}`).textContent = f(tpS1);
-                document.getElementById(`tp2-${sym}-${tf}`).textContent = f(tpS2);
-                document.getElementById(`sl-${sym}-${tf}`).textContent = f(slS);
-                document.getElementById(`pnl-${sym}-${tf}`).textContent = `+${potProfit.toFixed(2)}%`;
-                vals.forEach(e=>e.classList.remove('blur-text'));
-            } else {
-                // 觀望時顯示灰色參考值 (假設做多的話)
-                box.className = 'strat-box strat-wait';
-                title.innerHTML = '<span>觀望</span>';
-                document.getElementById(`tp1-${sym}-${tf}`).textContent = f(tpL1);
-                document.getElementById(`tp2-${sym}-${tf}`).textContent = f(tpL2);
-                document.getElementById(`sl-${sym}-${tf}`).textContent = f(slL);
-                document.getElementById(`pnl-${sym}-${tf}`).textContent = '---';
-                vals.forEach(e=>e.classList.add('blur-text'));
-            }
-
-        } catch(e) { console.error(`Error in processTimeframe for ${sym} ${tf}`, e); }
+        } catch(e) {
+            log("API 錯誤: " + e.message);
+        }
     }
 
-    function calculateVolume(sym, klines) { 
-        const len=klines.length, cur=parseFloat(klines[len-1][5]);
-        let sum=0; for(let i=len-21;i<len-1;i++) sum+=parseFloat(klines[i][5]);
-        const r=cur/(sum/20);
-        if(!store[sym]) store[sym] = {};
-        store[sym]['vol_ratio'] = r;
-        const el=document.getElementById(`vol-status-${sym}`);
-        document.getElementById(`vol-ratio-${sym}`).textContent = `x${r.toFixed(1)}`;
-        if(r>=2){el.textContent="🔥 爆量";el.className="vol-tag v-high";} else if(r>=1.2){el.textContent="📈 放量";el.className="vol-tag v-norm";} else if(r<=0.6){el.textContent="💤 縮量";el.className="vol-tag v-low";} else{el.textContent="⚖️ 正常";el.className="vol-tag v-norm";}
-    }
-    function calculateFlow(sym, klines) {
-        const rec=klines.slice(-24); let t=0,b=0; rec.forEach(k=>{t+=parseFloat(k[5]);b+=parseFloat(k[9]);});
-        const bp=(b/t)*100; document.getElementById(`flow-b-${sym}`).style.width=`${bp}%`; document.getElementById(`flow-s-${sym}`).style.width=`${100-bp}%`;
-        document.getElementById(`flow-bv-${sym}`).textContent=`買${bp.toFixed(0)}%`; document.getElementById(`flow-sv-${sym}`).textContent=`賣${(100-bp).toFixed(0)}%`;
+    async function loadSymbolData(sym) {
+        const card = document.getElementById(`card-${sym}`);
+        if(!card) return;
+        
+        // 初始化數據結構
+        State.data[sym] = { '15m':{}, '1h':{}, '4h':{} };
+
+        // 依序下載三個週期的 K 線
+        for(let tf of CONSTANTS.TFS) {
+            try {
+                updateCardStatus(sym, `下載 ${tf}...`);
+                // 下載 200 根 K 線足夠計算
+                const klines = await safeFetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=${tf}&limit=200`);
+                analyzeTimeframe(sym, tf, klines);
+            } catch(e) {
+                console.error(sym, tf, e);
+            }
+        }
+        
+        // 抓取資金費率
+        try {
+            const funding = await safeFetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`);
+            const fr = parseFloat(funding.lastFundingRate) * 100;
+            const frEl = document.getElementById(`fr-${sym}`);
+            if(frEl) {
+                frEl.innerText = `${fr.toFixed(4)}%`;
+                frEl.style.color = fr > 0.01 ? 'var(--red)' : (fr < 0 ? 'var(--green)' : '#888');
+            }
+        } catch(e) {}
+
+        updateCardStatus(sym, "監控中");
+        evaluateStrategy(sym);
     }
 
-    window.toggleCard = function(sym) { document.getElementById(`card-${sym}`).classList.toggle('expanded'); };
-    function removeCard(sym) { activeSymbols.delete(sym); document.getElementById(`card-${sym}`).remove(); }
-    function connectWSS(symbols) {
-        wss = new WebSocket(`wss://fstream.binance.com/stream?streams=${symbols.map(s => `${s}@ticker`).join('/')}`);
-        wss.onmessage = (e) => {
-            const m = JSON.parse(e.data).data; const el = document.getElementById(`price-${m.s.toLowerCase()}`);
-            if(el) { el.textContent = parseFloat(m.c); el.className = `sym-price ${parseFloat(m.P)>=0?'up':'down'}`; }
+    function analyzeTimeframe(sym, tf, klines) {
+        // 數據解析
+        const c = klines.map(d=>parseFloat(d[4])); // 收盤價
+        const h = klines.map(d=>parseFloat(d[2]));
+        const l = klines.map(d=>parseFloat(d[3]));
+        const v = klines.map(d=>parseFloat(d[5])); // 量
+        const last = c.length - 1;
+        const price = c[last];
+
+        // 計算指標
+        const rsiVal = MathEngine.rsi(c);
+        const bb = MathEngine.bollinger(c);
+        const atrVal = MathEngine.atr(h,l,c);
+        const ema50 = MathEngine.emaArray(c, 50)[last];
+        const adxVal = MathEngine.adx(h,l,c);
+
+        // 趨勢判斷
+        let trend = 'neutral';
+        if (price > ema50 && rsiVal > 50) trend = 'long';
+        if (price < ema50 && rsiVal < 50) trend = 'short';
+
+        // 儲存數據
+        State.data[sym][tf] = {
+            price, rsi: rsiVal, bb, atr: atrVal, adx: adxVal, trend, 
+            vol: v[last], prevVol: v[last-1]
+        };
+
+        // UI 更新 (指標列表)
+        const listEl = document.getElementById(`ind-${sym}-${tf}`);
+        if(listEl) {
+            listEl.innerHTML = `
+                <div class="ind-item"><span>RSI</span><span class="ind-val" style="color:${rsiVal>70?'var(--red)':rsiVal<30?'var(--green)':'#aaa'}">${rsiVal.toFixed(1)}</span></div>
+                <div class="ind-item"><span>BB寬</span><span class="ind-val">${(bb.width*100).toFixed(2)}%</span></div>
+                <div class="ind-item"><span>ADX</span><span class="ind-val" style="color:${adxVal>25?'var(--yellow)':'#666'}">${adxVal.toFixed(1)}</span></div>
+            `;
+        }
+
+        // 1H 特殊處理：量能與資金流
+        if (tf === '1h') {
+            const volRatio = v[last] / MathEngine.sma(v, 20);
+            const vTag = document.getElementById(`vol-${sym}`);
+            if(vTag) {
+                vTag.innerText = `Vol x${volRatio.toFixed(1)}`;
+                vTag.className = `vol-tag ${volRatio>1.5 ? 'v-high' : ''}`;
+            }
+            // 模擬資金流 (用 Taker Buy Base Asset Volume 估算)
+            const takerBuy = parseFloat(klines[last][9]);
+            const totalVol = parseFloat(klines[last][5]);
+            const buyRatio = (takerBuy / totalVol) * 100;
+            document.getElementById(`flow-b-${sym}`).style.width = `${buyRatio}%`;
+            document.getElementById(`flow-s-${sym}`).style.width = `${100-buyRatio}%`;
+        }
+    }
+
+    function evaluateStrategy(sym) {
+        const d15 = State.data[sym]['15m'];
+        const d1h = State.data[sym]['1h'];
+        const d4h = State.data[sym]['4h'];
+        
+        if(!d15 || !d1h || !d4h || !d15.trend) return;
+
+        // 策略邏輯
+        let signal = 'wait';
+        let tier = '';
+        
+        // S級: 15m, 1h, 4h 共振
+        if (d15.trend === d1h.trend && d1h.trend === d4h.trend && d1h.adx > 25) {
+            signal = d15.trend;
+            tier = 'S';
+        }
+        // A級: 15m, 1h 共振 + 4h 不反向
+        else if (d15.trend === d1h.trend && d4h.trend !== (d15.trend==='long'?'short':'long')) {
+            signal = d15.trend;
+            tier = 'A';
+        }
+        // B級: 僅 15m 趨勢 + 1H 震盪
+        else if (d15.adx > 30) {
+            signal = d15.trend;
+            tier = 'B';
+        }
+
+        // 殭屍盤過濾
+        if (d1h.bb.width < 0.01 || d1h.adx < 15) {
+            tier = 'Z'; signal = 'wait';
+        }
+
+        renderStrategyBox(sym, signal, tier, d15);
+        updateTierBadge(sym, tier);
+        
+        // 發送通知 (防止重複發送需加鎖，此處簡化)
+        if (tier === 'S' || tier === 'A') {
+            sendDiscordAlert(sym, signal, tier, d15.price);
+        }
+    }
+
+    function renderStrategyBox(sym, signal, tier, data) {
+        // 顯示在 15m 的卡片區域，或其他合適位置
+        // 這裡我們統一更新最下方的 15m 戰術格
+        const box = document.getElementById(`strat-${sym}`);
+        const title = document.getElementById(`st-title-${sym}`);
+        
+        if (!box) return;
+
+        const atr = data.atr || (data.price * 0.01);
+        const sl = signal === 'long' ? data.price - (atr * 1.5) : data.price + (atr * 1.5);
+        const tp1 = signal === 'long' ? data.price + (atr * 1.5) : data.price - (atr * 1.5);
+        const tp2 = signal === 'long' ? data.price + (atr * 3.0) : data.price - (atr * 3.0);
+        
+        // Kelly 簡易估算 (基於信號強度)
+        let kelly = 0;
+        if(tier === 'S') kelly = 15;
+        else if(tier === 'A') kelly = 8;
+        else if(tier === 'B') kelly = 3;
+
+        // UI 渲染
+        if (signal === 'long') {
+            box.className = 'strat-box strat-long';
+            title.innerText = `做多 (Tier ${tier})`;
+        } else if (signal === 'short') {
+            box.className = 'strat-box strat-short';
+            title.innerText = `做空 (Tier ${tier})`;
+        } else {
+            box.className = 'strat-box';
+            title.innerText = '觀望中';
+            box.style.opacity = '0.5';
+        }
+
+        document.getElementById(`val-sl-${sym}`).innerText = sl.toFixed(4);
+        document.getElementById(`val-tp1-${sym}`).innerText = tp1.toFixed(4);
+        document.getElementById(`val-tp2-${sym}`).innerText = tp2.toFixed(4);
+        document.getElementById(`val-k-${sym}`).innerText = kelly > 0 ? `${kelly}%` : '-';
+    }
+
+    // ==========================================
+    // 🎨 UI 渲染與操作
+    // ==========================================
+    function createCard(sym) {
+        const div = document.createElement('div');
+        div.className = 'coin-card expanded'; // 預設展開
+        div.id = `card-${sym}`;
+        div.innerHTML = `
+            <div class="card-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <div class="ch-left">
+                    <span class="sym-name">${sym.replace('USDT','')}</span>
+                    <span class="tier-badge" id="badge-${sym}"></span>
+                    <span class="sym-price" id="price-${sym}">--.--</span>
+                </div>
+                <div class="ch-right">
+                    <div id="status-${sym}" style="font-size:10px; color:#666;">等待數據...</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="col-info">
+                    <div style="font-size:10px; color:#888;">資金費率: <span id="fr-${sym}">--</span></div>
+                    <div style="margin-top:5px;">
+                        <span id="vol-${sym}" class="vol-tag">Vol --</span>
+                    </div>
+                    <div style="margin-top:auto;">
+                        <div style="font-size:9px; color:#666; margin-bottom:2px;">主動買賣比</div>
+                        <div class="flow-bar-bg">
+                            <div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div>
+                            <div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div>
+                        </div>
+                    </div>
+                </div>
+                ${CONSTANTS.TFS.map(tf => `
+                    <div class="col-tf">
+                        <div class="tf-header">${tf}</div>
+                        <div id="ind-${sym}-${tf}" style="flex-grow:1;"></div>
+                        ${tf === '15m' ? `
+                            <div class="strat-box" id="strat-${sym}">
+                                <div id="st-title-${sym}" style="font-weight:bold; font-size:11px; margin-bottom:2px;">分析中</div>
+                                <div class="strat-grid">
+                                    <div class="sg-row"><span class="sg-label">SL</span><span class="sg-val" id="val-sl-${sym}">---</span></div>
+                                    <div class="sg-row"><span class="sg-label">TP1</span><span class="sg-val" id="val-tp1-${sym}">---</span></div>
+                                    <div class="sg-row"><span class="sg-label">TP2</span><span class="sg-val" id="val-tp2-${sym}">---</span></div>
+                                    <div class="sg-row"><span class="sg-label">Kelly</span><span class="sg-val" id="val-k-${sym}">---</span></div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        document.getElementById('grid-container').appendChild(div);
+    }
+
+    function removeCard(sym) {
+        const el = document.getElementById(`card-${sym}`);
+        if(el) el.remove();
+    }
+
+    function updateCardStatus(sym, text) {
+        const el = document.getElementById(`status-${sym}`);
+        if(el) el.innerText = text;
+    }
+
+    function updateTierBadge(sym, tier) {
+        const el = document.getElementById(`badge-${sym}`);
+        if(!el) return;
+        if(tier) {
+            el.className = `tier-badge tier-${tier.toLowerCase()}`;
+            el.innerText = `${tier}級`;
+            el.style.display = 'inline-block';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+
+    function log(msg) {
+        const el = document.getElementById('sys-log');
+        el.innerText = msg;
+        setTimeout(() => el.innerText = '系統就緒', 3000);
+    }
+
+    function startTimerBar(seconds) {
+        const bar = document.getElementById('scan-timer');
+        bar.style.width = '0%';
+        bar.style.transition = 'none';
+        setTimeout(() => {
+            bar.style.transition = `width ${seconds}s linear`;
+            bar.style.width = '100%';
+        }, 100);
+    }
+
+    async function refreshIndicators() {
+        log("更新指標數據...");
+        startTimerBar(60);
+        for(let sym of State.activeSymbols) {
+            loadSymbolData(sym); // 這裡不需要 await，讓 queue 處理
+        }
+    }
+
+    // ==========================================
+    // 📡 WebSocket 即時價格
+    // ==========================================
+    function updateWebSocket() {
+        if(wss) wss.close();
+        const streams = Array.from(State.activeSymbols).map(s => `${s.toLowerCase()}@ticker`).join('/');
+        if(!streams) return;
+        
+        wss = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
+        wss.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            const data = msg.data;
+            const sym = data.s;
+            const price = parseFloat(data.c);
+            
+            // 更新顯示
+            const el = document.getElementById(`price-${sym}`);
+            if(el) {
+                const oldPrice = parseFloat(el.innerText);
+                el.innerText = price;
+                el.className = `sym-price ${price >= oldPrice ? 'up' : 'down'}`;
+            }
         };
     }
 
+    // ==========================================
+    // 📢 Discord 通知
+    // ==========================================
+    const alertHistory = new Map(); // 避免通知刷屏
+
+    function sendDiscordAlert(sym, signal, tier, price) {
+        if(!DISCORD_WEBHOOK_URL) return;
+        
+        const now = Date.now();
+        const key = `${sym}-${tier}`;
+        // 同一幣種同一等級，15分鐘內不重複發送
+        if(alertHistory.has(key) && (now - alertHistory.get(key) < 15 * 60 * 1000)) return;
+        
+        alertHistory.set(key, now);
+
+        const color = signal === 'long' ? 5763719 : 15548997; // Green or Red
+        const emoji = signal === 'long' ? '📈' : '📉';
+        
+        const payload = {
+            username: "V56 戰情官",
+            embeds: [{
+                title: `${emoji} ${tier}級訊號: ${sym}`,
+                color: color,
+                fields: [
+                    { name: "方向", value: signal.toUpperCase(), inline: true },
+                    { name: "價格", value: String(price), inline: true },
+                    { name: "策略", value: "趨勢共振突破", inline: false }
+                ],
+                footer: { text: "V56 Commander Edition" },
+                timestamp: new Date().toISOString()
+            }]
+        };
+
+        fetch(DISCORD_WEBHOOK_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        }).catch(err => console.error("Discord Error", err));
+    }
+
+    function testDiscord() {
+        if(!DISCORD_WEBHOOK_URL) { alert("請先在代碼中設定 Webhook URL"); return; }
+        sendDiscordAlert("TEST-USDT", "long", "S", 12345.67);
+        alert("測試訊號已發送");
+    }
+
+    // 啟動！
     initSystem();
+
 </script>
 </body>
 </html>
