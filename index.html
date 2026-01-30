@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V70 嚴格風控版)</title>
+    <title>全維度戰情室 (V71 邏輯修復版)</title>
     <style>
-        /* V70: 嚴格保留 V68 UI，完全未動 */
+        /* V71: 嚴格保留 V60/V68 UI */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -32,7 +32,6 @@
         .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; margin-left: 15px; overflow: hidden; }
         .timer-bar-fill { height: 100%; background: var(--yellow); width: 100%; transition: width 1s linear; }
         
-        /* 徽章 */
         .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: none; }
         .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); animation: pulse 2s infinite; }
         .tier-a { background: var(--silver-bg); color: var(--silver); border: 1px solid var(--silver); display: inline-block; }
@@ -40,7 +39,6 @@
         .tier-q { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple); display: inline-block; animation: pulse 2s infinite; }
         .tier-z { background: #333; color: #666; border: 1px dashed #555; display: inline-block; }
 
-        /* AI 狀態 */
         .ai-status { font-size: 11px; color: var(--ai-color); margin-left: 10px; font-weight: bold; display: none; }
         .ai-thinking { animation: blink 1s infinite; }
         .ai-error { color: var(--red); animation: none; }
@@ -58,7 +56,6 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* 卡片佈局 */
         .coin-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; transition: all 0.2s ease; }
         .coin-card.expanded { border-color: #666; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         .card-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #1e2329; border-bottom: 1px solid transparent; }
@@ -100,7 +97,6 @@
         .win-dual { font-family: 'Roboto Mono'; font-size: 10px; }
         .active-side { font-weight: bold; text-decoration: underline; opacity: 1 !important; }
         
-        /* 戰術六宮格 */
         .strat-box { margin-top: auto; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid transparent; }
         .strat-long { background: var(--green-bg); border-color: var(--green); }
         .strat-short { background: var(--red-bg); border-color: var(--red); }
@@ -150,7 +146,7 @@
 <div class="header">
     <div class="header-top">
         <div>
-            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V70 嚴格風控)</h1>
+            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V71 邏輯修復版)</h1>
             <div class="btc-bar" style="margin-top:5px;">
                 <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
                 <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -197,7 +193,6 @@
     document.getElementById('gemini-key').value = localStorage.getItem('gemini_key') || '';
     function saveKey() { localStorage.setItem('gemini_key', document.getElementById('gemini-key').value); }
 
-    // --- [V70] AI 呼叫 - 增加懲罰指令 ---
     async function askGemini(symbol, data) {
         const apiKey = localStorage.getItem('gemini_key');
         if (!apiKey) return null;
@@ -220,7 +215,8 @@
         { "decision": "看漲/看跌/觀望", "confidence": 60, "comment": "量能不足，小心假突破" }
         `;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        // 🏆 改回最穩定的 gemini-2.0-flash-lite-001
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
@@ -230,7 +226,6 @@
             });
 
             if (!response.ok) {
-                console.error("Gemini API Error:", response.status, response.statusText);
                 return { decision: "ERROR", confidence: 0, comment: `API 錯誤: ${response.status}` };
             }
 
@@ -339,7 +334,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
         for (const sym of activeSymbols) {
             if (!store[sym] || !store[sym]['data_packet']) continue;
             const data = store[sym]['data_packet'];
-            // V70: 只有 B 級或以上才會觸發 (且 B 級現在條件更嚴格了)
+            // V71: 只要是 S, A, B 級都自動觸發
             if (['S', 'A', 'B'].includes(data.tier)) {
                 console.log(`🚀 自動觸發: ${sym} (${data.tier}級)`);
                 await triggerManualAI(sym, true); 
@@ -358,7 +353,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
     }
 
     function testDiscord() {
-        sendDiscordAlert("✅ **戰情室 V70 連線成功**\n模式：嚴格量能風控 + 時間同步自動發送。");
+        sendDiscordAlert("✅ **戰情室 V71 連線成功**\n模式：邏輯修復 + 嚴格風控 + 時間同步。");
         alert("已發送測試訊息。");
     }
 
@@ -814,25 +809,26 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
                 vals.forEach(e=>e.classList.add('blur-text'));
             }
 
-            // --- [V70] 嚴格分級邏輯 ---
+            // --- [修復重點] 先計算等級 (Tier)，再更新 UI ---
             let tier = '';
             const vol = Math.abs(store[sym]['vol_ratio'] || 0);
             const adx = curAdx;
             const trend1h = store[sym]['1h'].decision || 'wait';
 
-            // 只有當 15m 與 1H 方向一致才考慮分級
+            // 嚴格分級邏輯 (V70版)
             if (dec !== 'wait' && dec === trend1h) {
                 if (vol > 1.2 && adx > 25) {
-                    tier = 'S'; // 黃金機會：量能充足 + 趨勢強
+                    tier = 'S'; 
                 } else if (vol > 0.8) {
-                    tier = 'A'; // 標準機會：量能及格
+                    tier = 'A'; 
                 } else {
-                    tier = 'B'; // 弱勢機會：量能不足 (如 x0.2)
+                    tier = 'B'; 
                 }
             } else if (dec !== 'wait') {
-                tier = 'B'; // 方向不一致但有短線訊號
+                tier = 'B';
             }
 
+            // 存儲數據
             store[sym]['data_packet'] = {
                 price: cur,
                 d15: dec,
@@ -850,7 +846,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
                 pnl: potProfit.toFixed(2)
             };
 
-            // 更新 UI 徽章
+            // --- 最後才更新 UI (這樣 tier 才有值) ---
             const tierBadge = document.getElementById(`tier-${sym}`);
             const aiBtn = document.querySelector(`#card-${sym} .btn-ai-manual`);
             
@@ -858,7 +854,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
                 tierBadge.style.display = 'inline-block';
                 tierBadge.textContent = `${tier} 級`;
                 tierBadge.className = `tier-badge tier-${tier.toLowerCase()}`;
-                if(aiBtn) aiBtn.style.display = 'inline-block';
+                if(aiBtn) aiBtn.style.display = 'inline-block'; // 顯示按鈕
             } else {
                 tierBadge.style.display = 'none';
                 if(aiBtn) aiBtn.style.display = 'none';
