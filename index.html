@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V75 指揮官增強版)</title>
+    <title>全維度戰情室 (V76 最終邏輯修正)</title>
     <style>
-        /* V56 樣式：完全保留你提供的 CSS */
+        /* [UI] 完全保留你提供的 V75 樣式，未做任何修改 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -16,7 +16,7 @@
             --bronze: #ffad5e; --bronze-bg: rgba(255, 173, 94, 0.15);
             --blue: #2979ff; --blue-bg: rgba(41, 121, 255, 0.15);
             --purple: #bf5af2; --purple-bg: rgba(191, 90, 242, 0.2);
-            --ai-color: #00bcd4; --ai-bg: rgba(0, 188, 212, 0.1); /* 補回 AI 顏色變數 */
+            --ai-color: #00bcd4; --ai-bg: rgba(0, 188, 212, 0.1);
             --border: #2b3139; --modal-bg: #1e2329; --header-hover: #20252b;
         }
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
@@ -145,7 +145,7 @@
 <div class="header">
     <div class="header-top">
         <div>
-            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V75 指揮官增強版)</h1>
+            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V76 最終修正版)</h1>
             <div class="btc-bar" style="margin-top:5px;">
                 <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
                 <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -192,7 +192,7 @@
     document.getElementById('gemini-key').value = localStorage.getItem('gemini_key') || '';
     function saveKey() { localStorage.setItem('gemini_key', document.getElementById('gemini-key').value); }
 
-    // --- AI 邏輯核心 ---
+    // --- AI 邏輯核心 (Gemini 2.5) ---
     async function askGemini(symbol, data) {
         const apiKey = localStorage.getItem('gemini_key');
         if (!apiKey) return null;
@@ -204,6 +204,7 @@
         回傳 JSON: { "decision": "看漲/看跌/觀望", "confidence": 85, "comment": "簡評" }
         `;
 
+        // 鎖定 gemini-2.5-flash
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         try {
@@ -222,7 +223,7 @@
         }
     }
 
-    // --- 觸發器 ---
+    // --- 觸發器 (修復按鈕顯示邏輯) ---
     window.triggerManualAI = async function(sym, isAuto = false) {
         const aiStatusEl = document.getElementById(`ai-status-${sym}`);
         const aiBoxEl = document.getElementById(`ai-box-${sym}`);
@@ -258,7 +259,7 @@
         }
     }
 
-    // --- 自動化 ---
+    // --- 自動化 (時間同步: 00/15/30/45) ---
     setInterval(() => {
         const now = new Date();
         if (now.getMinutes() % 15 === 0 && now.getSeconds() < 5) autoScan();
@@ -285,7 +286,7 @@
         fetch(DISCORD_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     }
 
-    function testDiscord() { sendDiscordAlert("✅ V75 連線成功"); alert("已發送"); }
+    function testDiscord() { sendDiscordAlert("✅ V76 連線成功"); alert("已發送"); }
 
     async function fetchTop10Coins() {
         try {
@@ -731,27 +732,32 @@
                 vals.forEach(e=>e.classList.add('blur-text'));
             }
 
-            // --- [關鍵修正] Tier 判斷邏輯 ---
+            // --- Tier 邏輯 (修正版) ---
             let tier = '';
-            const vol = Math.abs(store[sym]['vol_ratio'] || 0);
             const trend1h = store[sym]['1h'].decision || 'wait';
-
-            // 1. 基礎條件：必須有方向
+            
+            // 1. 保底邏輯：只要有方向，最少就是 B 級 (按鈕一定出)
             if (dec !== 'wait') {
-                // 2. 嚴格條件：方向一致 + 量能 > 0.8 才是 A
+                tier = 'B';
+                
+                // 2. 升級 A 級：方向一致且量能及格
+                // 注意：vol_ratio 來自 calculateVolume，但可能尚未計算，這裡做個防呆
+                const vol = Math.abs(store[sym]['vol_ratio'] || 0);
+                
                 if (dec === trend1h && vol > 0.8) {
                     tier = 'A';
-                    // 3. 超級條件：量能 > 1.2 且 ADX > 25 才是 S
-                    if (vol > 1.2 && curAdx > 25) tier = 'S';
-                } else {
-                    tier = 'B'; // 否則都是 B (確保有按鈕)
+                    // 3. 升級 S 級：量能超強且 ADX 強
+                    if (vol > 1.2 && curAdx > 25) {
+                        tier = 'S';
+                    }
                 }
             }
 
             // 存儲數據
             store[sym]['data_packet'] = {
                 price: cur, d15: dec, d1h: trend1h,
-                vol: vol.toFixed(2), adx: curAdx.toFixed(1),
+                vol: (store[sym]['vol_ratio'] || 0).toFixed(2), 
+                adx: curAdx.toFixed(1),
                 bb: bbState, k15: store[sym]['15m'].kelly,
                 strategy: dec === 'long' ? '建議做多' : (dec === 'short' ? '建議做空' : '觀望'),
                 tier: tier, emoji: dec === 'long' ? '📈' : '📉',
@@ -761,7 +767,7 @@
                 pnl: potProfit.toFixed(2)
             };
 
-            // 更新 UI (確保按鈕出現)
+            // --- 更新 UI (確保按鈕出現) ---
             const tierBadge = document.getElementById(`tier-${sym}`);
             const aiBtn = document.querySelector(`#card-${sym} .btn-ai-manual`);
             
@@ -769,6 +775,8 @@
                 tierBadge.style.display = 'inline-block';
                 tierBadge.textContent = `${tier} 級`;
                 tierBadge.className = `tier-badge tier-${tier.toLowerCase()}`;
+                
+                // [關鍵] 強制顯示按鈕
                 if(aiBtn) aiBtn.style.display = 'inline-block';
             } else {
                 tierBadge.style.display = 'none';
