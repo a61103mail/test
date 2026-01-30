@@ -176,7 +176,7 @@
     // ==========================================
     // ⚙️ 設定區域
     // ==========================================
-    const DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"; 
+    const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1465999617937248321/oW1PzIAY4KXSbAT8XBk-iK3yO_n8huZtXhgDKM88_pc5dGRs9O74SAouMGP3NuPpDbjl"; 
     // ==========================================
 
     const TFS = ['15m', '1h', '4h'];
@@ -223,7 +223,7 @@
         `;
 
         // 🏆 使用你清單中的 gemini-2.0-flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
