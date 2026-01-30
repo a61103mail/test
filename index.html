@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V52 終極完整版)</title>
+    <title>全維度戰情室 (V53 系統重啟版)</title>
     <style>
-        /* V52 樣式表 */
+        /* CSS 樣式 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -33,14 +33,6 @@
         
         .countdown-text { font-family: 'Roboto Mono'; font-size: 10px; color: #aaa; margin-left: 5px; float: right;}
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: none; justify-content: center; align-items: center; }
-        .modal-content { background: var(--modal-bg); width: 90%; max-width: 600px; max-height: 80vh; border-radius: 8px; border: 1px solid #444; display: flex; flex-direction: column; }
-        .modal-body { padding: 15px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-        .coin-option { background: #0b0e11; padding: 8px; border-radius: 4px; border: 1px solid #333; cursor: pointer; text-align: center; font-family: 'Roboto Mono'; font-size: 12px; }
-        .coin-option.selected { background: var(--green-bg); border-color: var(--green); color: var(--green); font-weight: bold; }
-        .search-input { background: #0b0e11; border: 1px solid #444; color: #fff; padding: 8px; width: 90%; margin: 10px 5%; box-sizing: border-box; }
         .coin-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; transition: all 0.2s ease; }
         .coin-card.expanded { border-color: #555; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
         .card-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #1e2329; border-bottom: 1px solid transparent; }
@@ -82,14 +74,20 @@
         .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 11px; text-align: left; }
         .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #fff; }
         .blur-text { filter: blur(4px); opacity: 0.5; }
-        .loading-text { text-align: center; color: #666; margin-top: 50px; font-size: 16px; }
         .vol-box, .flow-box { padding-top: 5px; border-top: 1px dashed #333; font-size: 11px; }
         .flow-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px; }
         .flow-buy { height: 100%; background: var(--green); } .flow-sell { height: 100%; background: var(--red); }
         .vol-tag { padding: 1px 4px; border-radius: 2px; font-weight: bold; }
         .v-high { background: var(--yellow); color: #000; } .v-norm { background: #444; color: #ccc; } .v-low { background: #222; color: #666; }
-        @keyframes blink { 50% { opacity: 0.3; } }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: var(--modal-bg); width: 90%; max-width: 600px; max-height: 80vh; border-radius: 8px; border: 1px solid #444; display: flex; flex-direction: column; }
+        .modal-body { padding: 15px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+        .coin-option { background: #0b0e11; padding: 8px; border-radius: 4px; border: 1px solid #333; cursor: pointer; text-align: center; font-family: 'Roboto Mono'; font-size: 12px; }
+        .coin-option.selected { background: var(--green-bg); border-color: var(--green); color: var(--green); font-weight: bold; }
+        .search-input { background: #0b0e11; border: 1px solid #444; color: #fff; padding: 8px; width: 90%; margin: 10px 5%; box-sizing: border-box; }
+        .loading-text { text-align: center; color: #666; margin-top: 50px; font-size: 16px; }
         @media (max-width: 900px) { .card-body { grid-template-columns: 1fr; gap: 0; } .col-info { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 10px; } .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 10px 0; } .ind-list { grid-template-columns: 1fr 1fr; gap: 5px; } .ind-item { flex-direction: column; align-items: flex-start; } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -112,7 +110,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V52 終極完整版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V53 系統重啟版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -154,24 +152,13 @@
             console.log("Discord Webhook 未設定");
             return;
         }
-
-        const payload = {
-            content: message,
-            username: "戰情室指揮官",
-            avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"
-        };
-
+        const payload = { content: message, username: "戰情室指揮官", avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png" };
         const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(DISCORD_WEBHOOK_URL);
-
-        fetch(proxyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(err => console.error("Discord 發送失敗:", err));
+        fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(err => console.error(err));
     }
 
     function testDiscord() {
-        sendDiscordAlert("✅ **戰情室連線測試**\nV52 模式：雙重止盈 + 擠壓偵測 + 靜音通知。");
+        sendDiscordAlert("✅ **戰情室 V53 上線**\n狀態：修復指標顯示，重啟監控。");
         alert("已發送測試訊息。");
     }
 
@@ -181,21 +168,16 @@
             const data = await res.json();
             let pairs = data.filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('USDC'));
             pairs.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
-            const top10 = pairs.slice(0, 10).map(t => t.symbol.toLowerCase());
-            return new Set(top10);
-        } catch (e) {
-            return new Set(['btcusdt', 'ethusdt', 'solusdt', 'dogeusdt', 'xrpusdt', 'adausdt', 'bnbusdt']);
-        }
+            return new Set(pairs.slice(0, 10).map(t => t.symbol.toLowerCase()));
+        } catch (e) { return new Set(['btcusdt', 'ethusdt', 'solusdt', 'dogeusdt', 'xrpusdt', 'adausdt', 'bnbusdt']); }
     }
 
     async function fetchFundingRates() {
         try {
             const res = await fetch('https://fapi.binance.com/fapi/v1/premiumIndex');
             const data = await res.json();
-            data.forEach(d => {
-                fundingRates[d.symbol.toLowerCase()] = parseFloat(d.lastFundingRate) * 100;
-            });
-        } catch (e) { console.log('費率獲取失敗'); }
+            data.forEach(d => { fundingRates[d.symbol.toLowerCase()] = parseFloat(d.lastFundingRate) * 100; });
+        } catch (e) {}
     }
 
     async function initSystem() {
@@ -235,7 +217,6 @@
             const res = await fetch('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=100');
             const data = await res.json();
             if(Array.isArray(data)) btcHistory = data.map(d=>parseFloat(d[4]));
-            
             const last = parseFloat(data[data.length-1][4]), prev = parseFloat(data[data.length-2][4]);
             const change = (last - prev) / prev;
             const tEl = document.getElementById('btc-trend'), wEl = document.getElementById('btc-weight');
@@ -272,11 +253,6 @@
         document.querySelectorAll('.coin-option').forEach(opt => opt.style.display = opt.textContent.includes(txt) ? 'block' : 'none');
     }
 
-    function testDiscord() {
-        sendDiscordAlert("✅ **戰情室連線測試**\nV52: 雙重止盈 (TP1/TP2) + 擠壓預警 + 靜音循環。");
-        alert("已發送測試訊息。");
-    }
-
     async function applyFilter(fromModal = true) {
         if (fromModal) {
             activeSymbols = new Set(Array.from(document.querySelectorAll('.coin-option.selected')).map(el => el.dataset.sym));
@@ -294,18 +270,18 @@
             await initSymbol(sym); 
             await new Promise(r => setTimeout(r, 50)); 
         } 
-        
         checkResonanceAndAlert();
         connectWSS(Array.from(activeSymbols));
     }
 
-    // [V52] 終極防禦通知邏輯
     function checkResonanceAndAlert() {
         const now = Date.now();
         const COOLDOWN = 15 * 60 * 1000; 
         
         for (const sym of activeSymbols) {
             if (!store[sym] || !store[sym]['15m'] || !store[sym]['1h'] || !store[sym]['4h']) continue;
+            // 確保所有週期都處理完畢才通知
+            if (!store[sym]['15m'].decision) continue;
 
             const d15 = store[sym]['15m'].decision;
             const d1h = store[sym]['1h'].decision;
@@ -315,7 +291,7 @@
             const priceStr = priceVal > 0 ? priceVal.toFixed(4) : "--.--";
             const tradeSetup = store[sym]['15m'].setup; 
             const k15 = store[sym]['15m'].kelly || 0;
-            const bbState = store[sym]['1h'].bb_state;
+            const bbState = store[sym]['1h'] ? store[sym]['1h'].bb_state : 'normal';
 
             let tier = '';
             let direction = '';
@@ -323,25 +299,15 @@
             let strategyText = '';
             let sl = 0, tp1 = 0, tp2 = 0;
 
-            // [V52] 1. 擠壓預警 (最高優先)
             if (bbState === 'squeeze') {
                 const badge = document.getElementById(`tier-${sym}`);
-                if(badge) {
-                    badge.textContent = '💥 蓄力中'; 
-                    badge.className = 'tier-badge tier-q';
-                    badge.style.display = 'inline-block';
-                }
+                if(badge) { badge.textContent = '💥 蓄力中'; badge.className = 'tier-badge tier-q'; badge.style.display = 'inline-block'; }
                 continue; 
             }
 
-            // [V52] 2. 殭屍盤過濾
             if (vol < 0.8 && adx < 20) {
                 const badge = document.getElementById(`tier-${sym}`);
-                if(badge) {
-                    badge.textContent = '💤 殭屍盤'; 
-                    badge.className = 'tier-badge tier-z';
-                    badge.style.display = 'inline-block';
-                }
+                if(badge) { badge.textContent = '💤 殭屍盤'; badge.className = 'tier-badge tier-z'; badge.style.display = 'inline-block'; }
                 continue;
             }
 
@@ -361,19 +327,10 @@
                 const isSurge = (vol >= 1.5);           
                 const isTrend = (adx > 25);             
 
-                if (isShortResonance && isVolume && isTrend) {
-                    tier = 'S'; 
-                    strategyText = '🔥 完美風暴 (共振+量)';
-                } else if (isSurge && !isShortResonance) {
-                    tier = 'A'; 
-                    strategyText = '🚀 短線爆破 (純動能)';
-                } else if (isShortResonance) {
-                    tier = 'B';
-                    strategyText = '🌊 穩健波動 (動能普)';
-                } else {
-                    tier = 'B'; 
-                    strategyText = '⚠️ 逆勢喝湯 (輕倉快跑)';
-                }
+                if (isShortResonance && isVolume && isTrend) { tier = 'S'; strategyText = '🔥 完美風暴 (共振+量)'; }
+                else if (isSurge && !isShortResonance) { tier = 'A'; strategyText = '🚀 短線爆破 (純動能)'; }
+                else if (isShortResonance) { tier = 'B'; strategyText = '🌊 穩健波動 (動能普)'; }
+                else { tier = 'B'; strategyText = '⚠️ 逆勢喝湯 (輕倉快跑)'; }
 
                 const badge = document.getElementById(`tier-${sym}`);
                 if(badge) {
@@ -388,18 +345,16 @@
 
                 if (now - lastSentTime > COOLDOWN) {
                     sTierAlerts.set(alertKey, now); 
-                    
                     const msg = `
-${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會 (V52)** ${emoji}
+${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會** ${emoji}
 **${sym.toUpperCase().replace('USDT','')}**
 💰 **現價**: ${priceStr}
 🛑 **止損**: ${sl.toFixed(4)}
-🎯 **TP1 (穩健)**: ${tp1.toFixed(4)}
-🚀 **TP2 (貪婪)**: ${tp2.toFixed(4)}
+🎯 **TP1**: ${tp1.toFixed(4)}
+🚀 **TP2**: ${tp2.toFixed(4)}
 **策略**: ${strategyText}
 (Kelly: ${k15}% | ADX: ${adx.toFixed(1)} | Vol: x${vol.toFixed(1)})
                     `.trim();
-                    
                     sendDiscordAlert(msg);
                 }
             } else {
@@ -412,52 +367,32 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
     }
 
     async function initSymbol(sym) {
-        store[sym] = {}; 
         const container = document.getElementById('grid-container');
         if(container.querySelector('.loading-text')) container.innerHTML = '';
-
         const fr = fundingRates[sym] || 0;
         const frColor = fr > 0.03 ? '#f6465d' : (fr < 0 ? '#0ecb81' : '#888');
 
         let html = `
         <div class="coin-card" id="card-${sym}">
             <div class="card-header" onclick="toggleCard('${sym}')">
-                <div class="ch-left">
-                    <span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span>
-                    <span class="tier-badge" id="tier-${sym}"></span>
-                    <span class="sym-price" id="price-${sym}">--.--</span>
-                </div>
-                <div class="ch-right">
-                    <span class="risk-tag" id="risk-${sym}">風險評估</span>
-                    <span class="signal-badge sb-wait" id="badge-15m-${sym}">分析中...</span>
-                    <span class="arrow-icon">▼</span>
-                </div>
+                <div class="ch-left"><span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span><span class="tier-badge" id="tier-${sym}"></span><span class="sym-price" id="price-${sym}">--.--</span></div>
+                <div class="ch-right"><span class="risk-tag" id="risk-${sym}">風險評估</span><span class="signal-badge sb-wait" id="badge-15m-${sym}">分析中...</span><span class="arrow-icon">▼</span></div>
             </div>
             <div class="card-body">
                 <div class="col-info">
                     <div style="font-size:10px; color:#666; cursor:pointer;" onclick="event.stopPropagation(); removeCard('${sym}')">移除幣種 ✕</div>
-                    <div class="vol-box">
-                        <div style="color:#aaa; display:flex; justify-content:space-between;"><span>量能(1H)</span><span id="vol-ratio-${sym}">x1.0</span></div>
-                        <span id="vol-status-${sym}" class="vol-tag v-norm">...</span>
-                    </div>
-                    <div class="flow-box">
-                        <div style="color:#aaa; margin-bottom:2px;">Taker(1H)</div>
-                        <div class="flow-bar-bg"><div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div><div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div></div>
-                        <div style="display:flex; justify-content:space-between; font-size:10px;"><span id="flow-bv-${sym}" style="color:var(--green)">--%</span><span id="flow-sv-${sym}" style="color:var(--red)">--%</span></div>
-                    </div>
+                    <div class="vol-box"><div style="color:#aaa; display:flex; justify-content:space-between;"><span>量能(1H)</span><span id="vol-ratio-${sym}">x1.0</span></div><span id="vol-status-${sym}" class="vol-tag v-norm">...</span></div>
+                    <div class="flow-box"><div style="color:#aaa; margin-bottom:2px;">Taker(1H)</div><div class="flow-bar-bg"><div class="flow-buy" id="flow-b-${sym}" style="width:50%"></div><div class="flow-sell" id="flow-s-${sym}" style="width:50%"></div></div><div style="display:flex; justify-content:space-between; font-size:10px;"><span id="flow-bv-${sym}" style="color:var(--green)">--%</span><span id="flow-sv-${sym}" style="color:var(--red)">--%</span></div></div>
                     <div style="font-size:10px; color:#888; border-top:1px dashed #333; padding-top:5px;">ADX 趨勢強度:<br><span id="adx-${sym}" style="color:var(--yellow); font-weight:bold;">...</span></div>
                     <div style="font-size:10px; color:#888; border-top:1px dashed #333; padding-top:5px;">資金費率:<br><span style="color:${frColor}; font-weight:bold;">${fr.toFixed(4)}%</span></div>
-                </div>
-        `;
+                </div>`;
 
         TFS.forEach(tf => {
+            if(!store[sym]) store[sym] = {};
             store[sym][tf] = {}; 
             html += `
             <div class="col-tf">
-                <div class="tf-header">
-                    <span class="tf-title">${TRANS[tf]}</span>
-                    <span id="timer-${sym}-${tf}" class="countdown-text">--:--</span>
-                </div>
+                <div class="tf-header"><span class="tf-title">${TRANS[tf]}</span><span id="timer-${sym}-${tf}" class="countdown-text">--:--</span></div>
                 <div style="margin-bottom:5px;">
                     <div class="wr-bar-bg"><div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div><div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div></div>
                     <div class="wr-text"><span id="wr-l-${sym}-${tf}">多--%</span><span id="wr-s-${sym}-${tf}">空--%</span></div>
@@ -465,12 +400,7 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
                 <div class="ind-list" id="list-${sym}-${tf}"><div style="color:#444;">下載中...</div></div>
                 <div class="strat-box strat-wait" id="strat-${sym}-${tf}">
                     <span class="strat-title" id="act-${sym}-${tf}">觀望</span>
-                    <div class="strat-grid">
-                        <div>En <span class="sg-val" id="en-${sym}-${tf}">---</span></div>
-                        <div>Kelly <span class="sg-val" id="kelly-${sym}-${tf}">---</span></div>
-                        <div>TP1 <span class="sg-val" id="tp1-${sym}-${tf}">---</span></div>
-                        <div>TP2 <span class="sg-val" id="tp2-${sym}-${tf}">---</span></div>
-                    </div>
+                    <div class="strat-grid"><div>En <span class="sg-val" id="en-${sym}-${tf}">---</span></div><div>Kelly <span class="sg-val" id="kelly-${sym}-${tf}">---</span></div><div>TP1 <span class="sg-val" id="tp1-${sym}-${tf}">---</span></div><div>TP2 <span class="sg-val" id="tp2-${sym}-${tf}">---</span></div></div>
                 </div>
             </div>`;
         });
@@ -480,68 +410,56 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
         try {
             const promises = TFS.map(tf => fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym.toUpperCase()}&interval=${tf}&limit=${LIMIT}`).then(r=>r.json()));
             const results = await Promise.all(promises);
-            if(!Array.isArray(results[0]) || results[0].code) {
-                document.getElementById(`badge-15m-${sym}`).textContent = "無數據";
-                return;
-            }
+            if(!Array.isArray(results[0]) || results[0].code) { document.getElementById(`badge-15m-${sym}`).textContent = "無數據"; return; }
             
             const closes = results[1].map(d=>parseFloat(d[4]));
             const lastClose = closes[closes.length - 1];
             store[sym]['price'] = lastClose;
-
             const beta = MathEngine.correlation(closes, btcHistory);
             const isHighCorr = beta > 0.7;
 
             results.forEach((data, i) => {
-                const tf = TFS[i]; data.pop();
+                const tf = TFS[i]; 
+                // data.pop(); // 移除這行，避免數據不足導致計算錯誤
                 updateCountdown(sym, tf);
                 processTimeframe(sym, tf, data, isHighCorr);
                 if(tf === '1h') { calculateFlow(sym, data); calculateVolume(sym, data); }
             });
-        } catch(e) {}
+        } catch(e) { console.error("Init Error", e); }
     }
 
     function updateCountdown(sym, tf) {
         const el = document.getElementById(`timer-${sym}-${tf}`);
         if(!el) return;
-        
         const now = Date.now();
         let intervalMs = 0;
         if(tf === '15m') intervalMs = 15 * 60 * 1000;
         else if(tf === '1h') intervalMs = 60 * 60 * 1000;
         else intervalMs = 4 * 60 * 60 * 1000;
-
         const nextClose = Math.ceil(now / intervalMs) * intervalMs;
         const diff = nextClose - now;
-        
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const s = Math.floor((diff % (1000 * 60)) / 1000);
-        
         el.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        
-        if(m < 3) el.style.color = '#f6465d';
-        else el.style.color = '#aaa';
+        if(m < 3) el.style.color = '#f6465d'; else el.style.color = '#aaa';
     }
 
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
         emaArray: (d, p) => { let k=2/(p+1), ema=[d[0]]; for(let i=1;i<d.length;i++) ema.push(d[i]*k+ema[i-1]*(1-k)); return ema; },
         rsiArray: (c) => { 
-            let rsi=[], g=0, l=0; for(let i=1;i<=14;i++){ let d=c[i]-c[i-1]; d>0?g+=d:l-=d; }
+            let rsi=[], g=0, l=0; 
+            if(c.length < 15) return Array(c.length).fill(50);
+            for(let i=1;i<=14;i++){ let d=c[i]-c[i-1]; d>0?g+=d:l-=d; }
             let ag=g/14, al=l/14; rsi[14]=100-(100/(1+ag/al));
             for(let i=15;i<c.length;i++){ let d=c[i]-c[i-1]; d>0?ag=(ag*13+d)/14:al=(al*13-d)/14; rsi[i]=al===0?100:100-(100/(1+ag/al)); }
             return rsi;
         },
         atrArray: (h, l, c, p=14) => {
             let trs = [h[0]-l[0]];
-            for(let i=1; i<h.length; i++) {
-                trs.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
-            }
+            for(let i=1; i<h.length; i++) trs.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
             let atr = [trs[0]];
-            for(let i=1; i<trs.length; i++) {
-                if(i < p) atr.push((atr[i-1]*i + trs[i])/(i+1));
-                else atr.push((atr[i-1]*(p-1) + trs[i])/p);
-            }
+            for(let i=1; i<trs.length; i++) if(i < p) atr.push((atr[i-1]*i + trs[i])/(i+1)); else atr.push((atr[i-1]*(p-1) + trs[i])/p);
             return atr;
         },
         adx: (h, l, c, p=14) => {
@@ -549,15 +467,11 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             for(let i=1;i<h.length;i++){
                 tr.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
                 let up=h[i]-h[i-1], down=l[i-1]-l[i];
-                plusDM.push((up>down && up>0)?up:0);
-                minusDM.push((down>up && down>0)?down:0);
+                plusDM.push((up>down && up>0)?up:0); minusDM.push((down>up && down>0)?down:0);
             }
             const smooth = (arr, len) => {
                 let res=[], sum=0;
-                for(let i=0;i<arr.length;i++){
-                    sum+=arr[i]; if(i>=len) sum-=arr[i-len];
-                    res.push(i<len?sum/(i+1):sum/len);
-                }
+                for(let i=0;i<arr.length;i++){ sum+=arr[i]; if(i>=len) sum-=arr[i-len]; res.push(i<len?sum/(i+1):sum/len); }
                 return res;
             };
             let trS=smooth(tr,p), pDMS=smooth(plusDM,p), mDMS=smooth(minusDM,p);
@@ -572,10 +486,11 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
         bollinger: (c, p=20, mult=2) => {
             const sma = c.slice(-p).reduce((a,b)=>a+b,0)/p;
             const std = Math.sqrt(c.slice(-p).map(x=>Math.pow(x-sma,2)).reduce((a,b)=>a+b)/p);
-            return { upper: sma + mult*std, lower: sma - mult*std, mid: sma, width: (mult*std*2)/sma };
+            return { upper: sma + mult*std, lower: sma - mult*std, mid: sma, width: sma===0?0:(mult*std*2)/sma };
         },
         getRealisticWinRate: (signals, closes, highs, lows, atrs, direction) => { 
             let wins=0, trades=0;
+            if(signals.length < 50) return 50;
             for(let i=50; i<signals.length-24; i++){ 
                 if(!signals[i]) continue;
                 const entry = closes[i], curATR = atrs[i];
@@ -585,16 +500,10 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
                 let outcome = 'timeout';
                 for(let k=1; k<=24; k++){
                     let h = highs[i+k], l = lows[i+k];
-                    if(direction==='long'){
-                        if(l <= sl) { outcome='loss'; break; }
-                        if(h >= tp) { outcome='win'; break; } 
-                    } else {
-                        if(h >= sl) { outcome='loss'; break; }
-                        if(l <= tp) { outcome='win'; break; }
-                    }
+                    if(direction==='long'){ if(l <= sl) { outcome='loss'; break; } if(h >= tp) { outcome='win'; break; } } 
+                    else { if(h >= sl) { outcome='loss'; break; } if(l <= tp) { outcome='win'; break; } }
                 }
-                if(outcome==='win') wins++;
-                if(outcome!=='timeout') trades++;
+                if(outcome==='win') wins++; if(outcome!=='timeout') trades++;
             } 
             return trades<5 ? 50 : Math.round((wins/trades)*100); 
         },
@@ -619,209 +528,197 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
     };
 
     function processTimeframe(sym, tf, klines, isHighCorr) {
-        const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3]));
-        const last=c.length-1, cur=c[last];
-        
-        const atrs = MathEngine.atrArray(h,l,c);
-        const curATR = atrs[atrs.length-1];
-        const rsi = MathEngine.rsiArray(c);
-        const adx = MathEngine.adx(h,l,c);
-        const curAdx = adx[adx.length-1];
+        try {
+            const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3]));
+            const last=c.length-1, cur=c[last];
+            
+            // 安全性檢查：如果 K 線過少，填充預設值
+            if(c.length < 50) { 
+                document.getElementById(`list-${sym}-${tf}`).innerHTML = '<div style="color:#666;">數據不足</div>';
+                return;
+            }
 
-        const bb = MathEngine.bollinger(c);
-        let bbState = 'normal';
-        if (bb.width < 0.02) bbState = 'squeeze'; 
+            const atrs = MathEngine.atrArray(h,l,c);
+            const curATR = atrs[atrs.length-1];
+            const rsi = MathEngine.rsiArray(c);
+            const adx = MathEngine.adx(h,l,c);
+            const curAdx = adx.length > 0 ? adx[adx.length-1] : 0; // 防止 undefined
 
-        if(tf === '1h') {
+            const bb = MathEngine.bollinger(c);
+            let bbState = 'normal';
+            if (bb.width < 0.02) bbState = 'squeeze'; 
+
+            if(tf === '1h') {
+                if(!store[sym]) store[sym] = {};
+                store[sym]['adx_val'] = curAdx;
+                store[sym]['bb_state'] = bbState; 
+                const adxEl = document.getElementById(`adx-${sym}`);
+                if(adxEl) {
+                    adxEl.textContent = curAdx.toFixed(1);
+                    adxEl.style.color = curAdx > 25 ? '#f6465d' : '#848e9c'; 
+                }
+            }
+
+            const ema = MathEngine.emaArray(c, 50);
+            const bias = (cur - ema[last]) / ema[last] * 100;
+            const vwapArr = MathEngine.emaArray(c, 90); 
+            
+            let ema12 = MathEngine.emaArray(c, 12);
+            let ema26 = MathEngine.emaArray(c, 26);
+            let macdArr = ema12.map((v,i) => v - ema26[i]);
+
+            const vwapVal = MathEngine.sma(c, 90);
+            const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/curATR * 15)));
+            if(tf==='15m') { 
+                const rEl = document.getElementById(`risk-${sym}`); 
+                if(rEl) { rEl.textContent = `插針風險 ${risk}%`; rEl.className = `risk-tag ${risk>80?'risk-high':''}`; }
+            }
+            
+            if(tf==='1h') {
+                const v = klines.map(d=>parseFloat(d[5]));
+                let maxV=0, wallP=0; 
+                for(let i=last-50;i<=last;i++){ if(v[i]>maxV){ maxV=v[i]; wallP=c[i]; } } 
+            }
+
+            const sigs={ r_b:[], r_s:[], e_b:[], e_s:[], m_b:[], m_s:[], v_b:[], v_s:[], b_b:[], b_s:[] };
+            for(let i=50; i<=last; i++) {
+                sigs.r_b[i]=rsi[i]<40; sigs.r_s[i]=rsi[i]>60;
+                sigs.e_b[i]=c[i]>ema[i]; sigs.e_s[i]=c[i]<ema[i];
+                sigs.m_b[i]=macdArr[i]>0; sigs.m_s[i]=macdArr[i]<0;
+                sigs.v_b[i]=c[i]>vwapArr[i]; sigs.v_s[i]=c[i]<vwapArr[i];
+                sigs.b_b[i]=c[i]>bb.upper; sigs.b_s[i]=c[i]<bb.lower;
+            }
+            
+            const wrR = { l: MathEngine.getRealisticWinRate(sigs.r_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.r_s,c,h,l,atrs,'short') };
+            const wrE = { l: MathEngine.getRealisticWinRate(sigs.e_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.e_s,c,h,l,atrs,'short') };
+            const wrM = { l: MathEngine.getRealisticWinRate(sigs.m_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.m_s,c,h,l,atrs,'short') };
+            const wrV = { l: MathEngine.getRealisticWinRate(sigs.v_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.v_s,c,h,l,atrs,'short') };
+            const wrB = { l: MathEngine.getRealisticWinRate(sigs.b_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.b_s,c,h,l,atrs,'short') };
+
+            const listEl = document.getElementById(`list-${sym}-${tf}`);
+            let lW=0, sW=0, cnt=0;
+            const addInd = (n,v,d,w) => {
+                const lc=d=='l'?'active-side':'w-l', sc=d=='s'?'active-side':'w-s', col=d=='l'?'var(--green)':d=='s'?'var(--red)':'#666';
+                if(w.l>0) lW+=w.l; if(w.s>0) sW+=w.s; cnt++;
+                return `<div class="ind-item"><div style="color:#aaa;">${n} <span style="color:${col};font-weight:bold;">${v}</span></div><div class="win-dual"><span class="${lc}">多${w.l}%</span>|<span class="${sc}">空${w.s}%</span></div></div>`;
+            };
+            
+            listEl.innerHTML = 
+                addInd('RSI', rsi[last].toFixed(1), rsi[last]>55?'l':rsi[last]<45?'s':'n', wrR) +
+                addInd('EMA', cur>ema[last]?'上':'下', cur>ema[last]?'l':'s', wrE) +
+                addInd('MACD', macdArr[last].toFixed(2), macdArr[last]>0?'l':'s', wrM) +
+                addInd('VWAP', cur>vwapArr[last]?'上':'下', cur>vwapArr[last]?'l':'s', wrV) +
+                addInd('BOLL', cur>bb.upper?'破':cur<bb.lower?'破':'區', cur>bb.upper?'l':cur<bb.lower?'s':'n', wrB);
+
+            let wTrend = curAdx > 25 ? 2.0 : 0.5;
+            let wOsc = curAdx > 25 ? 0.5 : 2.0;
+
+            const metricsL = [[wrR.l, wOsc], [wrE.l, wTrend], [wrM.l, wTrend], [wrV.l, 1], [wrB.l, wOsc]];
+            const metricsS = [[wrR.s, wOsc], [wrE.s, wTrend], [wrM.s, wTrend], [wrV.s, 1], [wrB.s, wOsc]];
+            
+            let avgL = MathEngine.calcSmartScore(metricsL);
+            let avgS = MathEngine.calcSmartScore(metricsS);
+
+            if(isHighCorr && btcTrendMultiplier !== 1.0) {
+                if(btcTrendMultiplier < 1.0) avgL *= 0.8;
+                if(btcTrendMultiplier > 1.0) avgS *= 0.8;
+            }
+
+            document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${Math.min(100, avgL)}%`;
+            document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${Math.min(100, avgS)}%`;
+            document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${Math.round(avgL)}%`;
+            document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${Math.round(avgS)}%`;
+            document.getElementById(`wr-avg-${sym}-${tf}`).textContent = `${Math.round(avgL)}% / ${Math.round(avgS)}%`;
+
+            const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
+            
+            let dynamicTP_Mult = curAdx > 25 ? 3.0 : 1.2;
+            let dynamicSL_Mult = curAdx > 25 ? 1.5 : 1.0;
+            let finalAvgL = curAdx < 25 ? avgL * 0.9 : avgL;
+            let finalAvgS = curAdx < 25 ? avgS * 0.9 : avgS;
+
+            const slL = cur - curATR * dynamicSL_Mult;
+            const tpL1 = cur + curATR * 1.0; 
+            const tpL2 = cur + curATR * 3.0; 
+            
+            const slS = cur + curATR * dynamicSL_Mult;
+            const tpS1 = cur - curATR * 1.0; 
+            const tpS2 = cur - curATR * 3.0; 
+
+            const RR = dynamicTP_Mult / dynamicSL_Mult;
+            const kellyL = MathEngine.kelly(finalAvgL, RR);
+            const kellyS = MathEngine.kelly(finalAvgS, RR);
+
+            let dec = 'wait';
+            let riskLevel = 'normal';
+
+            if(kellyL > 0 && finalAvgL > 50 && finalAvgL > finalAvgS) dec = 'long';
+            else if(kellyS > 0 && finalAvgS > 50 && finalAvgS > finalAvgL) dec = 'short';
+
+            if(curAdx < 20) dec = 'chop'; 
+
+            if(dec === 'long') {
+                if(cur < ema[last] || macdArr[last] < 0) { riskLevel = 'risky'; if(tf === '4h') dec = 'wait'; }
+                if(bias > (tf==='4h'?3.0:1.5)) { dec = 'wait'; riskLevel = 'overbought'; }
+            }
+            
+            if(dec === 'short') {
+                if(cur > ema[last] || macdArr[last] > 0) { riskLevel = 'risky'; if(tf === '4h') dec = 'wait'; }
+                if(bias < (tf==='4h'?-3.0:-1.5)) { dec = 'wait'; riskLevel = 'oversold'; }
+            }
+
             if(!store[sym]) store[sym] = {};
-            store[sym]['adx_val'] = curAdx;
-            store[sym]['bb_state'] = bbState; 
+            store[sym][tf] = { 
+                decision: dec, 
+                risk: riskLevel, 
+                kelly: Math.round(Math.max(kellyL, kellyS) * 100),
+                setup: { long: { sl: slL, tp1: tpL1, tp2: tpL2 }, short: { sl: slS, tp1: tpS1, tp2: tpS2 } }
+            };
 
-            const adxEl = document.getElementById(`adx-${sym}`);
-            if(adxEl) {
-                adxEl.textContent = curAdx.toFixed(1);
-                adxEl.style.color = curAdx > 25 ? '#f6465d' : '#848e9c'; 
+            if(tf === '15m') {
+                const badge = document.getElementById(`badge-15m-${sym}`);
+                if(riskLevel === 'overbought') { badge.className='signal-badge sb-wait'; badge.textContent='⚠️ 超買回調'; } 
+                else if (riskLevel === 'oversold') { badge.className='signal-badge sb-wait'; badge.textContent='⚠️ 超賣反彈'; } 
+                else if(dec==='long') { badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-long'; badge.textContent = riskLevel === 'risky' ? `險多 (K:${(kellyL*100).toFixed(0)}%)` : `做多 (K:${(kellyL*100).toFixed(0)}%)`; } 
+                else if(dec==='short') { badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-short'; badge.textContent = riskLevel === 'risky' ? `險空 (K:${(kellyS*100).toFixed(0)}%)` : `做空 (K:${(kellyS*100).toFixed(0)}%)`; } 
+                else if(dec==='chop') { badge.className='signal-badge sb-chop'; badge.textContent='⚠️ 盤整'; }
+                else { badge.className='signal-badge sb-wait'; badge.textContent='觀望'; }
             }
-        }
 
-        const ema = MathEngine.emaArray(c, 50);
-        const bias = (cur - ema[last]) / ema[last] * 100;
-
-        const vwapArr = MathEngine.emaArray(c, 90); 
-        
-        let ema12 = MathEngine.emaArray(c, 12);
-        let ema26 = MathEngine.emaArray(c, 26);
-        let macdArr = ema12.map((v,i) => v - ema26[i]);
-
-        const vwapVal = MathEngine.sma(c, 90);
-        const risk = Math.min(100, Math.round((Math.abs(cur-vwapVal)/vwapVal * 500) + ((h[last]-l[last])/curATR * 15)));
-        if(tf==='15m') { 
-            const rEl = document.getElementById(`risk-${sym}`); 
-            if(rEl) {
-                rEl.textContent = `插針風險 ${risk}%`; 
-                rEl.className = `risk-tag ${risk>80?'risk-high':''}`; 
+            const vals = box.querySelectorAll('.sg-val');
+            
+            if(riskLevel === 'overbought' || riskLevel === 'oversold') {
+                box.className='strat-box strat-wait';
+                title.innerHTML = riskLevel === 'overbought' ? '<span>乖離過大 (勿追高)</span>' : '<span>乖離過大 (勿殺跌)</span>';
+                vals.forEach(e=>e.classList.add('blur-text'));
+                document.getElementById(`kelly-${sym}-${tf}`).textContent='Wait';
+            } else if(dec==='long') {
+                box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-long';
+                let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢反彈 (高風險)</span>` : `<span class="s-long">建議做多</span>`;
+                title.innerHTML = titleText;
+                document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
+                document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyL*100).toFixed(1)+'%';
+                document.getElementById(`sl-${sym}-${tf}`).textContent=f(slL);
+                document.getElementById(`tp1-${sym}-${tf}`).textContent=f(tpL1); 
+                document.getElementById(`tp2-${sym}-${tf}`).textContent=f(tpL2); 
+                vals.forEach(e=>e.classList.remove('blur-text'));
+            } else if(dec==='short') {
+                box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-short';
+                let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢回調 (高風險)</span>` : `<span class="s-short">建議做空</span>`;
+                title.innerHTML = titleText;
+                document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
+                document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyS*100).toFixed(1)+'%';
+                document.getElementById(`sl-${sym}-${tf}`).textContent=f(slS);
+                document.getElementById(`tp1-${sym}-${tf}`).textContent=f(tpS1); 
+                document.getElementById(`tp2-${sym}-${tf}`).textContent=f(tpS2); 
+                vals.forEach(e=>e.classList.remove('blur-text'));
+            } else {
+                box.className='strat-box '+(dec=='chop'?'strat-chop':'strat-wait'); 
+                title.innerHTML = (dec=='chop' ? '<span class="s-chop">⚠️ 盤整 (ADX低)</span>' : '<span>觀望</span>');
+                vals.forEach(e=>e.classList.add('blur-text'));
+                document.getElementById(`kelly-${sym}-${tf}`).textContent='---';
             }
-        }
-        
-        if(tf==='1h') {
-            const v = klines.map(d=>parseFloat(d[5]));
-            let maxV=0, wallP=0; 
-            for(let i=last-50;i<=last;i++){ if(v[i]>maxV){ maxV=v[i]; wallP=c[i]; } } 
-        }
-
-        const sigs={ r_b:[], r_s:[], e_b:[], e_s:[], m_b:[], m_s:[], v_b:[], v_s:[], b_b:[], b_s:[] };
-        for(let i=50; i<=last; i++) {
-            sigs.r_b[i]=rsi[i]<40; sigs.r_s[i]=rsi[i]>60;
-            sigs.e_b[i]=c[i]>ema[i]; sigs.e_s[i]=c[i]<ema[i];
-            sigs.m_b[i]=macdArr[i]>0; sigs.m_s[i]=macdArr[i]<0;
-            sigs.v_b[i]=c[i]>vwapArr[i]; sigs.v_s[i]=c[i]<vwapArr[i];
-            sigs.b_b[i]=c[i]>bb.upper; sigs.b_s[i]=c[i]<bb.lower;
-        }
-        
-        const wrR = { l: MathEngine.getRealisticWinRate(sigs.r_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.r_s,c,h,l,atrs,'short') };
-        const wrE = { l: MathEngine.getRealisticWinRate(sigs.e_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.e_s,c,h,l,atrs,'short') };
-        const wrM = { l: MathEngine.getRealisticWinRate(sigs.m_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.m_s,c,h,l,atrs,'short') };
-        const wrV = { l: MathEngine.getRealisticWinRate(sigs.v_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.v_s,c,h,l,atrs,'short') };
-        const wrB = { l: MathEngine.getRealisticWinRate(sigs.b_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.b_s,c,h,l,atrs,'short') };
-
-        const listEl = document.getElementById(`list-${sym}-${tf}`);
-        let lW=0, sW=0, cnt=0;
-        const addInd = (n,v,d,w) => {
-            const lc=d=='l'?'active-side':'w-l', sc=d=='s'?'active-side':'w-s', col=d=='l'?'var(--green)':d=='s'?'var(--red)':'#666';
-            if(w.l>0) lW+=w.l; if(w.s>0) sW+=w.s; cnt++;
-            return `<div class="ind-item"><div style="color:#aaa;">${n} <span style="color:${col};font-weight:bold;">${v}</span></div><div class="win-dual"><span class="${lc}">多${w.l}%</span>|<span class="${sc}">空${w.s}%</span></div></div>`;
-        };
-        
-        listEl.innerHTML = 
-            addInd('RSI', rsi[last].toFixed(1), rsi[last]>55?'l':rsi[last]<45?'s':'n', wrR) +
-            addInd('EMA', cur>ema[last]?'上':'下', cur>ema[last]?'l':'s', wrE) +
-            addInd('MACD', macdArr[last].toFixed(2), macdArr[last]>0?'l':'s', wrM) +
-            addInd('VWAP', cur>vwapArr[last]?'上':'下', cur>vwapArr[last]?'l':'s', wrV) +
-            addInd('BOLL', cur>bb.upper?'破':cur<bb.lower?'破':'區', cur>bb.upper?'l':cur<bb.lower?'s':'n', wrB);
-
-        let wTrend = curAdx > 25 ? 2.0 : 0.5;
-        let wOsc = curAdx > 25 ? 0.5 : 2.0;
-
-        const metricsL = [[wrR.l, wOsc], [wrE.l, wTrend], [wrM.l, wTrend], [wrV.l, 1], [wrB.l, wOsc]];
-        const metricsS = [[wrR.s, wOsc], [wrE.s, wTrend], [wrM.s, wTrend], [wrV.s, 1], [wrB.s, wOsc]];
-        
-        let avgL = MathEngine.calcSmartScore(metricsL);
-        let avgS = MathEngine.calcSmartScore(metricsS);
-
-        if(isHighCorr && btcTrendMultiplier !== 1.0) {
-            if(btcTrendMultiplier < 1.0) avgL *= 0.8;
-            if(btcTrendMultiplier > 1.0) avgS *= 0.8;
-        }
-
-        document.getElementById(`bar-l-${sym}-${tf}`).style.width = `${Math.min(100, avgL)}%`;
-        document.getElementById(`bar-s-${sym}-${tf}`).style.width = `${Math.min(100, avgS)}%`;
-        document.getElementById(`wr-l-${sym}-${tf}`).textContent = `多${Math.round(avgL)}%`;
-        document.getElementById(`wr-s-${sym}-${tf}`).textContent = `空${Math.round(avgS)}%`;
-        document.getElementById(`wr-avg-${sym}-${tf}`).textContent = `${Math.round(avgL)}% / ${Math.round(avgS)}%`;
-
-        const box = document.getElementById(`strat-${sym}-${tf}`), title = document.getElementById(`act-${sym}-${tf}`), f = v => v<10?v.toFixed(4):v.toFixed(2);
-        
-        let dynamicTP_Mult = curAdx > 25 ? 3.0 : 1.2;
-        let dynamicSL_Mult = curAdx > 25 ? 1.5 : 1.0;
-        let finalAvgL = curAdx < 25 ? avgL * 0.9 : avgL;
-        let finalAvgS = curAdx < 25 ? avgS * 0.9 : avgS;
-
-        const slL = cur - curATR * dynamicSL_Mult;
-        const tpL1 = cur + curATR * 1.0; 
-        const tpL2 = cur + curATR * 3.0; 
-        
-        const slS = cur + curATR * dynamicSL_Mult;
-        const tpS1 = cur - curATR * 1.0; 
-        const tpS2 = cur - curATR * 3.0; 
-
-        const RR = dynamicTP_Mult / dynamicSL_Mult;
-        const kellyL = MathEngine.kelly(finalAvgL, RR);
-        const kellyS = MathEngine.kelly(finalAvgS, RR);
-
-        let dec = 'wait';
-        let riskLevel = 'normal';
-
-        if(kellyL > 0 && finalAvgL > 50 && finalAvgL > finalAvgS) dec = 'long';
-        else if(kellyS > 0 && finalAvgS > 50 && finalAvgS > finalAvgL) dec = 'short';
-
-        if(curAdx < 20) dec = 'chop'; 
-
-        if(dec === 'long') {
-            if(cur < ema[last] || macdArr[last] < 0) { riskLevel = 'risky'; if(tf === '4h') dec = 'wait'; }
-            if(bias > (tf==='4h'?3.0:1.5)) { 
-                dec = 'wait';
-                riskLevel = 'overbought';
-            }
-        }
-        
-        if(dec === 'short') {
-            if(cur > ema[last] || macdArr[last] > 0) { riskLevel = 'risky'; if(tf === '4h') dec = 'wait'; }
-            if(bias < (tf==='4h'?-3.0:-1.5)) {
-                dec = 'wait';
-                riskLevel = 'oversold';
-            }
-        }
-
-        if(!store[sym]) store[sym] = {};
-        store[sym][tf] = { 
-            decision: dec, 
-            risk: riskLevel, 
-            kelly: Math.round(Math.max(kellyL, kellyS) * 100),
-            setup: {
-                long: { sl: slL, tp1: tpL1, tp2: tpL2 },
-                short: { sl: slS, tp1: tpS1, tp2: tpS2 }
-            }
-        };
-
-        if(tf === '15m') {
-            const badge = document.getElementById(`badge-15m-${sym}`);
-            if(riskLevel === 'overbought') {
-                badge.className='signal-badge sb-wait'; badge.textContent='⚠️ 超買回調';
-            } else if (riskLevel === 'oversold') {
-                badge.className='signal-badge sb-wait'; badge.textContent='⚠️ 超賣反彈';
-            } else if(dec==='long') { 
-                badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-long';
-                badge.textContent = riskLevel === 'risky' ? `險多 (K:${(kellyL*100).toFixed(0)}%)` : `做多 (K:${(kellyL*100).toFixed(0)}%)`;
-            } else if(dec==='short') { 
-                badge.className = riskLevel === 'risky' ? 'signal-badge sb-chop' : 'signal-badge sb-short';
-                badge.textContent = riskLevel === 'risky' ? `險空 (K:${(kellyS*100).toFixed(0)}%)` : `做空 (K:${(kellyS*100).toFixed(0)}%)`;
-            } else if(dec==='chop') { badge.className='signal-badge sb-chop'; badge.textContent='⚠️ 盤整'; }
-            else { badge.className='signal-badge sb-wait'; badge.textContent='觀望'; }
-        }
-
-        const vals = box.querySelectorAll('.sg-val');
-        
-        if(riskLevel === 'overbought' || riskLevel === 'oversold') {
-            box.className='strat-box strat-wait';
-            title.innerHTML = riskLevel === 'overbought' ? '<span>乖離過大 (勿追高)</span>' : '<span>乖離過大 (勿殺跌)</span>';
-            vals.forEach(e=>e.classList.add('blur-text'));
-            document.getElementById(`kelly-${sym}-${tf}`).textContent='Wait';
-        } else if(dec==='long') {
-            box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-long';
-            let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢反彈 (高風險)</span>` : `<span class="s-long">建議做多</span>`;
-            title.innerHTML = titleText;
-            document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
-            document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyL*100).toFixed(1)+'%';
-            document.getElementById(`sl-${sym}-${tf}`).textContent=f(slL);
-            document.getElementById(`tp1-${sym}-${tf}`).textContent=f(tpL1); 
-            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(tpL2); 
-            vals.forEach(e=>e.classList.remove('blur-text'));
-        } else if(dec==='short') {
-            box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-short';
-            let titleText = riskLevel === 'risky' ? `<span class="s-chop">逆勢回調 (高風險)</span>` : `<span class="s-short">建議做空</span>`;
-            title.innerHTML = titleText;
-            document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
-            document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyS*100).toFixed(1)+'%';
-            document.getElementById(`sl-${sym}-${tf}`).textContent=f(slS);
-            document.getElementById(`tp1-${sym}-${tf}`).textContent=f(tpS1); 
-            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(tpS2); 
-            vals.forEach(e=>e.classList.remove('blur-text'));
-        } else {
-            box.className='strat-box '+(dec=='chop'?'strat-chop':'strat-wait'); 
-            title.innerHTML = (dec=='chop' ? '<span class="s-chop">⚠️ 盤整 (ADX低)</span>' : '<span>觀望</span>');
-            vals.forEach(e=>e.classList.add('blur-text'));
-            document.getElementById(`kelly-${sym}-${tf}`).textContent='---';
-        }
+        } catch(e) { console.error(`Error in processTimeframe for ${sym} ${tf}`, e); }
     }
 
     function calculateVolume(sym, klines) { 
@@ -830,7 +727,6 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
         const r=cur/(sum/20);
         if(!store[sym]) store[sym] = {};
         store[sym]['vol_ratio'] = r;
-
         const el=document.getElementById(`vol-status-${sym}`);
         document.getElementById(`vol-ratio-${sym}`).textContent = `x${r.toFixed(1)}`;
         if(r>=2){el.textContent="🔥 爆量";el.className="vol-tag v-high";} else if(r>=1.2){el.textContent="📈 放量";el.className="vol-tag v-norm";} else if(r<=0.6){el.textContent="💤 縮量";el.className="vol-tag v-low";} else{el.textContent="⚖️ 正常";el.className="vol-tag v-norm";}
