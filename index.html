@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V71 邏輯修復版)</title>
+    <title>全維度戰情室 (V72 終極除錯版)</title>
     <style>
-        /* V71: 嚴格保留 V60/V68 UI */
+        /* V72: 嚴格保留 V60/V68 UI */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -146,7 +146,7 @@
 <div class="header">
     <div class="header-top">
         <div>
-            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V71 邏輯修復版)</h1>
+            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V72 終極除錯版)</h1>
             <div class="btc-bar" style="margin-top:5px;">
                 <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
                 <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -172,7 +172,7 @@
     // ==========================================
     // ⚙️ 設定區域
     // ==========================================
-    const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1465999617937248321/oW1PzIAY4KXSbAT8XBk-iK3yO_n8huZtXhgDKM88_pc5dGRs9O74SAouMGP3NuPpDbjl"; 
+    const DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"; 
     // ==========================================
 
     const TFS = ['15m', '1h', '4h'];
@@ -215,8 +215,7 @@
         { "decision": "看漲/看跌/觀望", "confidence": 60, "comment": "量能不足，小心假突破" }
         `;
 
-        // 🏆 改回最穩定的 gemini-2.0-flash-lite-001
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
@@ -334,7 +333,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
         for (const sym of activeSymbols) {
             if (!store[sym] || !store[sym]['data_packet']) continue;
             const data = store[sym]['data_packet'];
-            // V71: 只要是 S, A, B 級都自動觸發
+            // V72: 只要是 S, A, B 級都自動觸發
             if (['S', 'A', 'B'].includes(data.tier)) {
                 console.log(`🚀 自動觸發: ${sym} (${data.tier}級)`);
                 await triggerManualAI(sym, true); 
@@ -353,7 +352,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
     }
 
     function testDiscord() {
-        sendDiscordAlert("✅ **戰情室 V71 連線成功**\n模式：邏輯修復 + 嚴格風控 + 時間同步。");
+        sendDiscordAlert("✅ **戰情室 V72 連線成功**\n模式：語法錯誤修復完成。");
         alert("已發送測試訊息。");
     }
 
@@ -653,8 +652,8 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
             const atrs = MathEngine.atrArray(h,l,c);
             const curATR = atrs[atrs.length-1];
             const rsi = MathEngine.rsiArray(c);
-            const adx = MathEngine.adx(h,l,c);
-            const curAdx = adx.length > 0 ? adx[adx.length-1] : 0; 
+            const adxArr = MathEngine.adx(h,l,c);
+            const curAdx = adxArr.length > 0 ? adxArr[adxArr.length-1] : 0; 
 
             const bb = MathEngine.bollinger(c);
             let bbState = 'normal';
@@ -812,12 +811,11 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
             // --- [修復重點] 先計算等級 (Tier)，再更新 UI ---
             let tier = '';
             const vol = Math.abs(store[sym]['vol_ratio'] || 0);
-            const adx = curAdx;
             const trend1h = store[sym]['1h'].decision || 'wait';
 
             // 嚴格分級邏輯 (V70版)
             if (dec !== 'wait' && dec === trend1h) {
-                if (vol > 1.2 && adx > 25) {
+                if (vol > 1.2 && curAdx > 25) {
                     tier = 'S'; 
                 } else if (vol > 0.8) {
                     tier = 'A'; 
@@ -834,7 +832,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
                 d15: dec,
                 d1h: trend1h,
                 vol: vol.toFixed(2),
-                adx: adx.toFixed(1),
+                adx: curAdx.toFixed(1),
                 bb: bbState,
                 k15: store[sym]['15m'].kelly,
                 strategy: dec === 'long' ? '建議做多' : (dec === 'short' ? '建議做空' : '觀望'),
