@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V56 指揮官重製版)</title>
+    <title>全維度戰情室 (V56 直連版)</title>
     <style>
         /* =========================================
-           V56 原版樣式復刻 (High Density UI)
+           V56 指揮官視覺樣式 (High Density / Dark)
            ========================================= */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
@@ -16,22 +16,21 @@
             --gold: #ffd700; --gold-bg: rgba(255, 215, 0, 0.25);
             --silver: #e0e0e0; --silver-bg: rgba(224, 224, 224, 0.15);
             --bronze: #ffad5e; --bronze-bg: rgba(255, 173, 94, 0.15);
-            --blue: #2979ff; --blue-bg: rgba(41, 121, 255, 0.15);
             --purple: #bf5af2; --purple-bg: rgba(191, 90, 242, 0.2);
             --border: #2b3139; --modal-bg: #1e2329;
         }
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
 
-        /* Header & Status */
+        /* Header */
         .header { border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .btc-bar { background: #1e2329; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--yellow); font-size: 11px; display: flex; gap: 15px; align-items: center; }
         .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
         .timer-bar-fill { height: 100%; background: var(--yellow); width: 0%; transition: width 0.5s linear; }
 
-        /* Grid Layout */
+        /* Grid */
         #grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 10px; }
 
-        /* Card Styles */
+        /* Card */
         .coin-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; transition: all 0.2s ease; }
         .coin-card.expanded { border-color: #666; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         .card-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #1e2329; border-bottom: 1px solid transparent; }
@@ -41,42 +40,38 @@
         .sym-name { font-size: 16px; font-weight: 900; color: #fff; width: 80px; }
         .sym-price { font-family: 'Roboto Mono'; font-weight: bold; font-size: 15px; width: 85px; }
         .up { color: var(--green); } .down { color: var(--red); }
-        
         .ch-right { display: flex; align-items: center; gap: 10px; }
         .risk-tag { font-size: 10px; padding: 2px 5px; border-radius: 3px; background: #333; color: #888; }
         .risk-high { background: var(--red-bg); color: var(--red); font-weight: bold; animation: blink 1s infinite; }
         
-        /* 徽章 */
+        /* Badges */
         .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; display: none; margin-left:5px; }
         .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); animation: pulse 2s infinite; }
         .tier-a { background: var(--silver-bg); color: var(--silver); border: 1px solid var(--silver); display: inline-block; }
         .tier-b { background: var(--bronze-bg); color: var(--bronze); border: 1px solid var(--bronze); display: inline-block; }
-        .tier-q { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple); display: inline-block; animation: pulse 2s infinite; }
         .tier-z { background: #333; color: #666; border: 1px dashed #555; display: inline-block; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* Card Body Layout */
+        /* Content */
         .card-body { display: none; padding: 10px; background: #111; grid-template-columns: 120px 1fr 1fr 1fr; gap: 5px; }
         .coin-card.expanded .card-body { display: grid; }
 
-        /* Columns */
         .col-info { padding: 5px; border-right: 1px dashed #333; display: flex; flex-direction: column; gap: 8px; font-size: 11px; }
         .col-tf { padding: 5px; border-right: 1px dashed #333; display: flex; flex-direction: column; }
         .col-tf:last-child { border-right: none; }
         .tf-header { margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 3px; display: flex; justify-content: space-between; font-weight: bold; color: #fff; }
 
-        /* 勝率條 */
+        /* Win Rate Bar */
         .wr-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px; }
         .wr-bar-long { height: 100%; background: var(--green); transition: width 0.5s; }
         .wr-bar-short { height: 100%; background: var(--red); transition: width 0.5s; }
         .wr-text { font-size: 9px; display: flex; justify-content: space-between; color: #888; margin-bottom: 5px; }
 
-        /* 指標列表 */
+        /* Indicators */
         .ind-list { display: grid; grid-template-columns: 1fr; gap: 2px; margin-bottom: 8px; }
         .ind-item { display: flex; justify-content: space-between; font-size: 10px; padding: 2px 4px; background: rgba(255,255,255,0.03); border-radius: 2px; }
-        .active-side { font-weight: bold; text-decoration: underline; }
 
-        /* 戰術六宮格 */
+        /* Strategy Box (六宮格) */
         .strat-box { margin-top: auto; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid transparent; background: #1a1a1a; }
         .strat-long { background: var(--green-bg); border-color: var(--green); }
         .strat-short { background: var(--red-bg); border-color: var(--red); }
@@ -88,21 +83,20 @@
         .sg-trailing { color: var(--blue); font-weight: bold; }
         .sg-profit { color: var(--gold); font-weight: bold; }
 
-        /* Volume & Flow */
+        /* Vol & Flow */
         .vol-box { padding-top: 5px; border-top: 1px dashed #333; }
         .flow-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; display: flex; margin-bottom: 2px; }
         .flow-buy { height: 100%; background: var(--green); } .flow-sell { height: 100%; background: var(--red); }
         .vol-tag { padding: 1px 4px; border-radius: 2px; font-weight: bold; font-size: 10px; display: inline-block; margin-top: 2px;}
         .v-high { background: var(--yellow); color: #000; } .v-norm { background: #444; color: #ccc; } .v-low { background: #222; color: #666; }
 
-        /* Loading Overlay */
+        /* Loading */
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999; display:flex; flex-direction:column; justify-content:center; align-items:center; color: #fff; }
         
         @media (max-width: 900px) { 
             .card-body { grid-template-columns: 1fr; gap: 10px; } 
             .col-info { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 10px; flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
             .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 10px 0; }
-            .ind-list { grid-template-columns: 1fr 1fr; gap: 5px; }
         }
     </style>
 </head>
@@ -110,19 +104,21 @@
 
 <div id="loading" class="loading-overlay">
     <h2>🚀 V56 指揮官系統啟動中</h2>
-    <p>正在計算全市場回測數據與指標...</p>
-    <div style="margin-top:10px; font-size:12px; color:#aaa;" id="loading-detail">初始化隊列...</div>
+    <p>正在直連幣安 API 計算全市場數據...</p>
+    <div style="margin-top:10px; font-size:12px; color:#aaa; text-align:center;">
+        <span id="loading-detail">初始化防封鎖隊列...</span><br>
+        <span style="color:#f6465d; font-size:10px;">(若卡住請安裝 Allow CORS 插件)</span>
+    </div>
 </div>
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 <span style="font-size:12px; color:var(--yellow); border:1px solid var(--yellow); padding:2px 5px; border-radius:3px;">V56 COMMANDER</span></h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 <span style="font-size:12px; color:var(--yellow); border:1px solid var(--yellow); padding:2px 5px; border-radius:3px;">V56 DIRECT</span></h1>
     </div>
     <div class="btc-bar">
         <span>BTC 錨定: <strong id="btc-trend" style="color:#888;">...</strong></span>
         <span>權重: <strong id="btc-weight">x1.0</strong></span>
         <div class="timer-bar-bg" title="刷新倒數"><div class="timer-bar-fill" id="timer-bar"></div></div>
-        <button onclick="testDiscord()" style="background:#5865F2; border:none; color:#fff; cursor:pointer; font-size:10px; padding:2px 6px; border-radius:3px;">測試通知</button>
     </div>
 </div>
 
@@ -133,14 +129,12 @@
     // ⚙️ 設定區域
     // ==========================================
     const CONFIG = {
-        DISCORD_WEBHOOK: "", // 填入 Webhook
-       
-        BAN_DELAY: 400, // 防封鎖延遲 (ms)
-        LIMIT: 500 // K線回測長度
+        BAN_DELAY: 400, // 請求間隔 (ms) - 即使直連也要防 Ban
+        LIMIT: 500      // K線長度
     };
 
     // ==========================================
-    // 🚦 核心: 防封鎖 API 隊列
+    // 🚦 核心: 防封鎖 API 隊列 (無 Proxy)
     // ==========================================
     const API_QUEUE = {
         items: [],
@@ -168,10 +162,16 @@
         }
     };
 
+    // 直連 Fetch (移除 CORS Proxy 邏輯)
     async function safeFetch(url) {
-        return API_QUEUE.add(() => fetch(encodeURIComponent(url)).then(r => {
-            if(!r.ok) throw new Error(r.status);
+        return API_QUEUE.add(() => fetch(url).then(r => {
+            if(!r.ok) throw new Error(`HTTP ${r.status}`);
             return r.json();
+        }).catch(err => {
+            console.error("Fetch Error:", err);
+            // 提示用戶可能的 CORS 問題
+            document.getElementById('loading-detail').innerText = "連線失敗: 請檢查 CORS 插件是否開啟";
+            throw err;
         }));
     }
 
@@ -213,7 +213,6 @@
             const std = Math.sqrt(c.slice(-p).map(x=>Math.pow(x-sma,2)).reduce((a,b)=>a+b)/p);
             return { upper: sma+mult*std, lower: sma-mult*std, mid: sma, width: sma===0?0:(mult*std*2)/sma };
         },
-        // 回測引擎：計算真實勝率
         getRealisticWinRate: (signals, closes, highs, lows, atrs, direction) => {
             let wins=0, trades=0;
             if(signals.length < 50) return 50;
@@ -233,11 +232,6 @@
             }
             return trades<3 ? 50 : Math.round((wins/trades)*100);
         },
-        calcSmartScore: (metrics) => {
-            let total=0, weight=0;
-            for(let m of metrics) { if(m[0]>0) { total += m[0]*m[1]; weight += m[1]; } }
-            return weight===0 ? 50 : total/weight;
-        },
         kelly: (winRate, riskReward=2.0) => {
             const w = winRate / 100;
             return (w * riskReward - (1 - w)) / riskReward;
@@ -248,27 +242,25 @@
     // 🧠 系統狀態與邏輯
     // ==========================================
     let activeSymbols = new Set();
-    let btcHistory = [];
     let btcTrendMultiplier = 1.0;
     let wss = null;
-    let store = {}; // 存放所有計算結果
+    let store = {};
 
-    // 啟動點
     async function init() {
         await checkBTC();
-        await updateTop10(); // 抓前10
+        await updateTop10();
         document.getElementById('loading').style.display = 'none';
         
-        setInterval(updateTop10, 5 * 60 * 1000); // 5分鐘更新榜單
-        setInterval(refreshAll, 60 * 1000); // 1分鐘刷新數據
+        setInterval(updateTop10, 5 * 60 * 1000);
+        setInterval(refreshAll, 60 * 1000);
         startTimer();
     }
 
     async function checkBTC() {
         try {
             const data = await safeFetch('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=50');
-            btcHistory = data.map(d=>parseFloat(d[4]));
-            const last=btcHistory[btcHistory.length-1], prev=btcHistory[btcHistory.length-2];
+            const c = data.map(d=>parseFloat(d[4]));
+            const last=c[c.length-1], prev=c[c.length-2];
             const change = (last-prev)/prev;
             const el = document.getElementById('btc-trend');
             if(change > 0.003) { el.innerText="🚀 上漲"; el.style.color="var(--green)"; btcTrendMultiplier=1.2; }
@@ -278,9 +270,8 @@
         } catch(e){}
     }
 
-    // 抓成交量前10 (包含過濾穩定幣)
     async function updateTop10() {
-        document.getElementById('loading-detail').innerText = "掃描成交量榜單...";
+        document.getElementById('loading-detail').innerText = "掃描成交量榜單 (前10名)...";
         try {
             const data = await safeFetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
             const blackList = ['USDCUSDT', 'USDPUSDT', 'TUSDUSDT', 'FDUSDUSDT', 'DAIUSDT'];
@@ -288,7 +279,6 @@
             pairs.sort((a,b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
             const newTop10 = new Set(pairs.slice(0, 10).map(t => t.symbol));
 
-            // Diffing
             for(let s of activeSymbols) if(!newTop10.has(s)) removeCard(s);
             for(let s of newTop10) if(!activeSymbols.has(s)) { createCard(s); await initSymbol(s); }
             
@@ -300,9 +290,8 @@
     function createCard(sym) {
         const c = document.getElementById('grid-container');
         const d = document.createElement('div');
-        d.className = 'coin-card expanded'; // 預設展開
+        d.className = 'coin-card expanded';
         d.id = `card-${sym}`;
-        // 原汁原味的 V56 HTML 結構
         d.innerHTML = `
             <div class="card-header" onclick="this.parentElement.classList.toggle('expanded')">
                 <div class="ch-left"><span class="sym-name">${sym.replace('USDT','')}</span><span class="tier-badge" id="tier-${sym}"></span><span class="sym-price" id="price-${sym}">--.--</span></div>
@@ -315,7 +304,7 @@
                         <span id="vt-${sym}" class="vol-tag v-norm">...</span>
                     </div>
                     <div style="margin-top:5px;">
-                        <div style="color:#aaa; margin-bottom:2px;">主動買賣(1H)</div>
+                        <div style="color:#aaa; margin-bottom:2px;">買賣力道(1H)</div>
                         <div class="flow-bar-bg"><div class="flow-buy" id="fb-${sym}" style="width:50%"></div><div class="flow-sell" id="fs-${sym}" style="width:50%"></div></div>
                         <div style="display:flex; justify-content:space-between; font-size:9px;"><span id="fbv-${sym}" style="color:var(--green)">--</span><span id="fsv-${sym}" style="color:var(--red)">--</span></div>
                     </div>
@@ -350,18 +339,15 @@
 
     function removeCard(sym) { const el=document.getElementById(`card-${sym}`); if(el) el.remove(); }
 
-    // 初始化單一幣種數據 (這是最重的地方)
     async function initSymbol(sym) {
         if(!store[sym]) store[sym] = {};
         
-        // 抓資金費率
         safeFetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`).then(d => {
             const r = parseFloat(d.lastFundingRate)*100;
             const el = document.getElementById(`fr-${sym}`);
             if(el) { el.innerText = r.toFixed(4)+'%'; el.style.color = r>0.01?'var(--red)':r<-0.01?'var(--green)':'#888'; }
         });
 
-        // 依序抓 K 線 (15m, 1h, 4h)
         for(let tf of ['15m', '1h', '4h']) {
             try {
                 const klines = await safeFetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=${tf}&limit=${CONFIG.LIMIT}`);
@@ -376,25 +362,18 @@
         for(let sym of activeSymbols) await initSymbol(sym);
     }
 
-    // ==========================================
-    // ⚙️ 核心運算邏輯 (包含所有指標與回測)
-    // ==========================================
     function processTimeframe(sym, tf, klines) {
-        // 準備數據
         const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3])), v=klines.map(d=>parseFloat(d[5]));
         const last = c.length-1, price = c[last];
 
-        // 1. 基礎指標計算
         const rsi = MathEngine.rsiArray(c);
         const atr = MathEngine.atrArray(h,l,c);
         const bb = MathEngine.bollinger(c);
         const ema50 = MathEngine.emaArray(c, 50);
         const adx = MathEngine.adx(h,l,c);
-        const vwapArr = MathEngine.emaArray(c, 90); // 簡化模擬
+        const vwapArr = MathEngine.emaArray(c, 90);
         
-        // 2. 特殊狀態 (1H)
         if(tf==='1h') {
-            // 放量/縮量
             const smaV = MathEngine.sma(v, 20);
             const r = v[last]/smaV;
             document.getElementById(`vr-${sym}`).innerText = `x${r.toFixed(1)}`;
@@ -404,7 +383,6 @@
             else if(r<0.6) { vt.innerText="💤縮量"; vt.className="vol-tag v-low"; }
             else { vt.innerText="⚖️正常"; vt.className="vol-tag v-norm"; }
 
-            // 資金流 (Taker Buy)
             const buyVol = parseFloat(klines[last][9]);
             const buyRatio = (buyVol / v[last]) * 100;
             document.getElementById(`fb-${sym}`).style.width = `${buyRatio}%`;
@@ -412,12 +390,10 @@
             document.getElementById(`fbv-${sym}`).innerText = `買${buyRatio.toFixed(0)}%`;
             document.getElementById(`fsv-${sym}`).innerText = `賣${(100-buyRatio).toFixed(0)}%`;
 
-            // ADX 與 風險
             const adxEl = document.getElementById(`adx-${sym}`);
             adxEl.innerText = adx.toFixed(1);
             adxEl.style.color = adx>25 ? 'var(--yellow)' : '#666';
 
-            // Risk: 價格偏離 VWAP 程度 + 波動率
             const dev = Math.abs(price - vwapArr[last]) / vwapArr[last] * 100;
             const risk = Math.min(99, Math.round(dev * 10 + (atr[last]/price*100)*5));
             const rEl = document.getElementById(`risk-${sym}`);
@@ -425,57 +401,46 @@
             rEl.className = `risk-tag ${risk>70?'risk-high':''}`;
         }
 
-        // 3. 回測模擬 (產生信號)
         const sigs = {
             rsi: { b: c.map((p,i)=>rsi[i]<35), s: c.map((p,i)=>rsi[i]>65) },
             ema: { b: c.map((p,i)=>p>ema50[i]), s: c.map((p,i)=>p<ema50[i]) },
             boll: { b: c.map((p,i)=>p>bb.upper), s: c.map((p,i)=>p<bb.lower) }
         };
         
-        // 計算真實勝率
         const wrR = { l: MathEngine.getRealisticWinRate(sigs.rsi.b,c,h,l,atr,'long'), s: MathEngine.getRealisticWinRate(sigs.rsi.s,c,h,l,atr,'short') };
         const wrE = { l: MathEngine.getRealisticWinRate(sigs.ema.b,c,h,l,atr,'long'), s: MathEngine.getRealisticWinRate(sigs.ema.s,c,h,l,atr,'short') };
         const wrB = { l: MathEngine.getRealisticWinRate(sigs.boll.b,c,h,l,atr,'long'), s: MathEngine.getRealisticWinRate(sigs.boll.s,c,h,l,atr,'short') };
 
-        // 綜合評分
         let scoreL = (wrR.l + wrE.l + wrB.l) / 3;
         let scoreS = (wrR.s + wrE.s + wrB.s) / 3;
         
-        // 如果 BTC 趨勢不好，做多扣分
         if(btcTrendMultiplier < 1.0) scoreL *= 0.9;
         if(btcTrendMultiplier > 1.0) scoreS *= 0.9;
 
-        // 更新 UI: 勝率條
         document.getElementById(`wbl-${sym}-${tf}`).style.width = `${Math.min(100, scoreL)}%`;
         document.getElementById(`wbs-${sym}-${tf}`).style.width = `${Math.min(100, scoreS)}%`;
         document.getElementById(`wtl-${sym}-${tf}`).innerText = `多${scoreL.toFixed(0)}%`;
         document.getElementById(`wts-${sym}-${tf}`).innerText = `空${scoreS.toFixed(0)}%`;
 
-        // 更新 UI: 指標列表 (復刻原版)
         const addI = (n, v, cond) => `<div class="ind-item"><span>${n}</span><span style="font-weight:bold; color:${cond==='l'?'var(--green)':cond==='s'?'var(--red)':'#888'}">${v}</span></div>`;
         const listHtml = 
             addI('RSI', rsi[last].toFixed(1), rsi[last]>60?'s':rsi[last]<40?'l':'n') +
             addI('EMA', price>ema50[last]?'之上':'之下', price>ema50[last]?'l':'s') +
-            addI('BB', (bb.width*100).toFixed(2)+'%', bb.width<0.05?'n':'n'); // 簡化
+            addI('BB', (bb.width*100).toFixed(2)+'%', bb.width<0.05?'n':'n'); 
         document.getElementById(`list-${sym}-${tf}`).innerHTML = listHtml;
 
-        // 4. 戰術六宮格計算
         const curAtr = atr[last];
         const slDist = curAtr * 1.5;
         const tpDist = curAtr * 2.5;
         let dir = 'wait';
         
-        // 簡單的決策邏輯
         if (scoreL > 55 && scoreL > scoreS && adx > 20) dir = 'long';
         else if (scoreS > 55 && scoreS > scoreL && adx > 20) dir = 'short';
 
-        // 儲存決策供 Tier 判斷
         store[sym][tf] = { dir, score: Math.max(scoreL, scoreS), adx };
 
         const box = document.getElementById(`sb-${sym}-${tf}`);
         const stTitle = document.getElementById(`st-${sym}-${tf}`);
-        
-        // 填充數據
         const p = (v) => v.toFixed(price<1?4:2);
         
         if (dir === 'long') {
@@ -501,7 +466,6 @@
         } else {
             box.className = 'strat-box strat-wait';
             stTitle.innerText = "觀望";
-            // 觀望也要顯示參考值
             document.getElementById(`en-${sym}-${tf}`).innerText = p(price);
             document.getElementById(`sl-${sym}-${tf}`).innerText = "---";
         }
@@ -518,8 +482,6 @@
         if (d15 !== 'wait' && d15 === d1h && d1h === d4h) tier = 'S';
         else if (d15 !== 'wait' && d15 === d1h) tier = 'A';
         else if (d15 !== 'wait') tier = 'B';
-        
-        // 擠壓判斷 (BB Squeeze) - 需從 store 取，這裡簡化處理
         if (adx < 15) tier = 'Z';
 
         const b = document.getElementById(`tier-${sym}`);
@@ -532,9 +494,6 @@
         }
     }
 
-    // ==========================================
-    // 📡 WebSocket & Timer
-    // ==========================================
     function connectWSS(symbols) {
         if(wss) wss.close();
         const streams = symbols.map(s => `${s.toLowerCase()}@ticker`).join('/');
@@ -557,12 +516,8 @@
         setTimeout(() => b.style.width = '0%', 100);
         b.style.transition = 'width 60s linear';
     }
-    
-    function testDiscord() { alert("通知功能需配置後端轉發，GitHub Pages 暫不支援直接發送以保護 Key。"); }
 
-    // Start
     init();
-
 </script>
 </body>
 </html>
