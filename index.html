@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V53 系統重啟版)</title>
+    <title>全維度戰情室 (V54 全景儀表版)</title>
     <style>
-        /* CSS 樣式 */
+        /* CSS 優化：增加資訊密度 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -62,10 +62,12 @@
         .wr-bar-long { height: 100%; background: var(--green); transition: width 0.5s; }
         .wr-bar-short { height: 100%; background: var(--red); transition: width 0.5s; }
         .wr-text { font-size: 10px; display: flex; justify-content: space-between; color: #888; }
+        /* 恢復指標列表顯示 */
         .ind-list { display: grid; grid-template-columns: 1fr; gap: 3px; margin-bottom: 8px; }
         .ind-item { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 5px; background: rgba(255,255,255,0.03); border-radius: 3px; }
         .win-dual { font-family: 'Roboto Mono'; font-size: 10px; }
         .active-side { font-weight: bold; text-decoration: underline; opacity: 1 !important; }
+        
         .strat-box { margin-top: auto; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid transparent; }
         .strat-long { background: var(--green-bg); border-color: var(--green); }
         .strat-short { background: var(--red-bg); border-color: var(--red); }
@@ -110,7 +112,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V53 系統重啟版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V54 全景儀表版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -158,7 +160,7 @@
     }
 
     function testDiscord() {
-        sendDiscordAlert("✅ **戰情室 V53 上線**\n狀態：修復指標顯示，重啟監控。");
+        sendDiscordAlert("✅ **戰情室 V54 上線**\n狀態：全數據顯示，無隱藏濾網。");
         alert("已發送測試訊息。");
     }
 
@@ -280,7 +282,6 @@
         
         for (const sym of activeSymbols) {
             if (!store[sym] || !store[sym]['15m'] || !store[sym]['1h'] || !store[sym]['4h']) continue;
-            // 確保所有週期都處理完畢才通知
             if (!store[sym]['15m'].decision) continue;
 
             const d15 = store[sym]['15m'].decision;
@@ -346,7 +347,7 @@
                 if (now - lastSentTime > COOLDOWN) {
                     sTierAlerts.set(alertKey, now); 
                     const msg = `
-${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會** ${emoji}
+${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會 (V54)** ${emoji}
 **${sym.toUpperCase().replace('USDT','')}**
 💰 **現價**: ${priceStr}
 🛑 **止損**: ${sl.toFixed(4)}
@@ -420,7 +421,6 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
 
             results.forEach((data, i) => {
                 const tf = TFS[i]; 
-                // data.pop(); // 移除這行，避免數據不足導致計算錯誤
                 updateCountdown(sym, tf);
                 processTimeframe(sym, tf, data, isHighCorr);
                 if(tf === '1h') { calculateFlow(sym, data); calculateVolume(sym, data); }
@@ -532,7 +532,6 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3]));
             const last=c.length-1, cur=c[last];
             
-            // 安全性檢查：如果 K 線過少，填充預設值
             if(c.length < 50) { 
                 document.getElementById(`list-${sym}-${tf}`).innerHTML = '<div style="color:#666;">數據不足</div>';
                 return;
@@ -542,7 +541,7 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             const curATR = atrs[atrs.length-1];
             const rsi = MathEngine.rsiArray(c);
             const adx = MathEngine.adx(h,l,c);
-            const curAdx = adx.length > 0 ? adx[adx.length-1] : 0; // 防止 undefined
+            const curAdx = adx.length > 0 ? adx[adx.length-1] : 0; 
 
             const bb = MathEngine.bollinger(c);
             let bbState = 'normal';
@@ -595,6 +594,7 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             const wrV = { l: MathEngine.getRealisticWinRate(sigs.v_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.v_s,c,h,l,atrs,'short') };
             const wrB = { l: MathEngine.getRealisticWinRate(sigs.b_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.b_s,c,h,l,atrs,'short') };
 
+            // 🔥 [V54] 強制刷新指標列表，不隱藏
             const listEl = document.getElementById(`list-${sym}-${tf}`);
             let lW=0, sW=0, cnt=0;
             const addInd = (n,v,d,w) => {
