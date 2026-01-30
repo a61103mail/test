@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V76 最終邏輯修正)</title>
+    <title>全維度戰情室 (V76 邏輯修正版)</title>
     <style>
-        /* [UI] 完全保留你提供的 V75 樣式，未做任何修改 */
+        /* [UI] 100% 保留 V56/V75 樣式，未做任何修改 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -20,8 +20,7 @@
             --border: #2b3139; --modal-bg: #1e2329; --header-hover: #20252b;
         }
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
-        .header { border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .header { border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         .btn-filter { background: #2b3139; color: #fff; border: 1px solid #444; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; }
         .btc-bar { background: #1e2329; padding: 6px 12px; border-radius: 4px; border-left: 4px solid var(--yellow); font-size: 11px; display: flex; gap: 15px; margin-bottom: 10px; align-items: center; }
         .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; margin-left: 15px; overflow: hidden; }
@@ -30,7 +29,7 @@
         .api-input-box { display: flex; gap: 10px; align-items: center; background: #1e2329; padding: 5px 10px; border-radius: 4px; border: 1px solid #333; }
         .api-input { background: transparent; border: none; color: var(--gold); width: 200px; font-family: 'Roboto Mono'; font-size: 12px; outline: none; }
 
-        /* 徽章系統 */
+        /* 徽章 */
         .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: none; }
         .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); animation: pulse 2s infinite; }
         .tier-a { background: var(--silver-bg); color: var(--silver); border: 1px solid var(--silver); display: inline-block; }
@@ -38,13 +37,13 @@
         .tier-q { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple); display: inline-block; animation: pulse 2s infinite; }
         .tier-z { background: #333; color: #666; border: 1px dashed #555; display: inline-block; }
 
-        /* AI 狀態與按鈕 */
+        /* AI 狀態 */
         .ai-status { font-size: 11px; color: var(--ai-color); margin-left: 10px; font-weight: bold; display: none; }
         .ai-thinking { animation: blink 1s infinite; }
         .ai-error { color: var(--red); animation: none; }
         .ai-box { margin-top: 8px; padding: 8px; background: var(--ai-bg); border: 1px solid var(--ai-color); border-radius: 4px; font-size: 11px; display: none; }
         .ai-head { display: flex; justify-content: space-between; font-weight: bold; color: var(--ai-color); margin-bottom: 4px; border-bottom: 1px dashed var(--ai-color); padding-bottom: 2px; }
-        
+
         .btn-ai-manual { 
             background: linear-gradient(135deg, #00e676, #00a854); 
             color: #000; border: none; padding: 2px 8px; 
@@ -145,7 +144,7 @@
 <div class="header">
     <div class="header-top">
         <div>
-            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V76 最終修正版)</h1>
+            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V76 邏輯修正版)</h1>
             <div class="btc-bar" style="margin-top:5px;">
                 <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
                 <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -156,7 +155,7 @@
         <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;">
             <div class="api-input-box">
                 <span style="font-size:10px; color:#888;">Gemini API:</span>
-                <input type="password" id="gemini-key" class="api-input" placeholder="貼上你的 API Key" onchange="saveKey()">
+                <input type="password" id="gemini-key" class="api-input" placeholder="貼上你的 API Key (qvvl...)" onchange="saveKey()">
             </div>
             <button class="btn-filter" onclick="openModal()"><span>➕</span> 篩選</button>
         </div>
@@ -192,7 +191,7 @@
     document.getElementById('gemini-key').value = localStorage.getItem('gemini_key') || '';
     function saveKey() { localStorage.setItem('gemini_key', document.getElementById('gemini-key').value); }
 
-    // --- AI 邏輯核心 (Gemini 2.5) ---
+    // --- AI 邏輯核心 ---
     async function askGemini(symbol, data) {
         const apiKey = localStorage.getItem('gemini_key');
         if (!apiKey) return null;
@@ -204,7 +203,7 @@
         回傳 JSON: { "decision": "看漲/看跌/觀望", "confidence": 85, "comment": "簡評" }
         `;
 
-        // 鎖定 gemini-2.5-flash
+        // [重要] 使用你指定的 2.5 flash
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         try {
@@ -223,7 +222,7 @@
         }
     }
 
-    // --- 觸發器 (修復按鈕顯示邏輯) ---
+    // --- 觸發器 (手動 + 自動) ---
     window.triggerManualAI = async function(sym, isAuto = false) {
         const aiStatusEl = document.getElementById(`ai-status-${sym}`);
         const aiBoxEl = document.getElementById(`ai-box-${sym}`);
@@ -259,7 +258,7 @@
         }
     }
 
-    // --- 自動化 (時間同步: 00/15/30/45) ---
+    // --- 自動化 (00/15/30/45 分) ---
     setInterval(() => {
         const now = new Date();
         if (now.getMinutes() % 15 === 0 && now.getSeconds() < 5) autoScan();
@@ -269,10 +268,10 @@
     async function autoScan() {
         if (Date.now() - lastAuto < 60000) return;
         lastAuto = Date.now();
-        console.log("⏰ 自動掃描...");
+        console.log("⏰ K線收盤，自動掃描...");
         for (const sym of activeSymbols) {
             if (!store[sym]?.['data_packet']) continue;
-            // 只要有分級 (S/A/B) 就觸發
+            // 只要有 Tier (S/A/B) 就自動觸發
             if (store[sym]['data_packet'].tier) {
                 await triggerManualAI(sym, true);
                 await new Promise(r => setTimeout(r, 2000));
@@ -455,11 +454,34 @@
             const beta = MathEngine.correlation(closes, btcHistory);
             const isHighCorr = beta > 0.7;
 
+            // [重要] 先算 1H 數據，確保 15m 邏輯能用到
+            let vol1hRatio = 1.0;
+            let trend1h = 'wait';
+            
+            if (results[1]) {
+                // 計算 1H 趨勢
+                const c1h = results[1].map(d=>parseFloat(d[4]));
+                const sma1h = MathEngine.sma(c1h, 20);
+                trend1h = c1h[c1h.length-1] > sma1h ? 'long' : 'short';
+                store[sym]['1h'] = { decision: trend1h };
+
+                // 計算 1H 量能
+                const v1h = results[1].map(d=>parseFloat(d[5]));
+                const vLen = v1h.length;
+                if (vLen > 21) {
+                    const vCur = v1h[vLen-1];
+                    const vAvg = v1h.slice(vLen-21, vLen-1).reduce((a,b)=>a+b)/20;
+                    vol1hRatio = vCur / (vAvg || 1);
+                    store[sym]['vol_ratio'] = vol1hRatio;
+                }
+            }
+
+            // [重要] 這裡傳入剛算好的 vol1hRatio 和 trend1h，避免讀到 undefined
             results.forEach((data, i) => {
                 const tf = TFS[i]; 
                 updateCountdown(sym, tf);
-                processTimeframe(sym, tf, data, isHighCorr);
-                if(tf === '1h') { calculateFlow(sym, data); calculateVolume(sym, data); }
+                processTimeframe(sym, tf, data, isHighCorr, vol1hRatio, trend1h);
+                if(tf === '1h') { calculateFlow(sym, data); updateVolumeUI(sym, vol1hRatio); }
             });
         } catch(e) { console.error("Init Error", e); }
     }
@@ -563,7 +585,8 @@
         }
     };
 
-    function processTimeframe(sym, tf, klines, isHighCorr) {
+    // [修正] 增加 vol1hRatio 和 trend1h 參數，直接使用
+    function processTimeframe(sym, tf, klines, isHighCorr, vol1hRatio, trend1h) {
         try {
             const c = klines.map(d=>parseFloat(d[4])), h=klines.map(d=>parseFloat(d[2])), l=klines.map(d=>parseFloat(d[3]));
             const last=c.length-1, cur=c[last];
@@ -732,18 +755,16 @@
                 vals.forEach(e=>e.classList.add('blur-text'));
             }
 
-            // --- Tier 邏輯 (修正版) ---
+            // --- [V76 邏輯修正] ---
             let tier = '';
-            const trend1h = store[sym]['1h'].decision || 'wait';
-            
+            // 使用傳入的 vol1hRatio，不再讀取可能為空的 store
+            const vol = Math.abs(vol1hRatio || 0); 
+
             // 1. 保底邏輯：只要有方向，最少就是 B 級 (按鈕一定出)
             if (dec !== 'wait') {
                 tier = 'B';
                 
                 // 2. 升級 A 級：方向一致且量能及格
-                // 注意：vol_ratio 來自 calculateVolume，但可能尚未計算，這裡做個防呆
-                const vol = Math.abs(store[sym]['vol_ratio'] || 0);
-                
                 if (dec === trend1h && vol > 0.8) {
                     tier = 'A';
                     // 3. 升級 S 級：量能超強且 ADX 強
@@ -756,8 +777,7 @@
             // 存儲數據
             store[sym]['data_packet'] = {
                 price: cur, d15: dec, d1h: trend1h,
-                vol: (store[sym]['vol_ratio'] || 0).toFixed(2), 
-                adx: curAdx.toFixed(1),
+                vol: vol.toFixed(2), adx: curAdx.toFixed(1),
                 bb: bbState, k15: store[sym]['15m'].kelly,
                 strategy: dec === 'long' ? '建議做多' : (dec === 'short' ? '建議做空' : '觀望'),
                 tier: tier, emoji: dec === 'long' ? '📈' : '📉',
@@ -767,7 +787,7 @@
                 pnl: potProfit.toFixed(2)
             };
 
-            // --- 更新 UI (確保按鈕出現) ---
+            // --- 更新 UI ---
             const tierBadge = document.getElementById(`tier-${sym}`);
             const aiBtn = document.querySelector(`#card-${sym} .btn-ai-manual`);
             
@@ -786,16 +806,18 @@
         } catch(e) { console.error(`Error in processTimeframe for ${sym} ${tf}`, e); }
     }
 
-    function calculateVolume(sym, klines) { 
-        const len=klines.length, cur=parseFloat(klines[len-1][5]);
-        let sum=0; for(let i=len-21;i<len-1;i++) sum+=parseFloat(klines[i][5]);
-        const r=cur/(sum/20);
-        if(!store[sym]) store[sym] = {};
-        store[sym]['vol_ratio'] = r;
-        const el=document.getElementById(`vol-status-${sym}`);
-        document.getElementById(`vol-ratio-${sym}`).textContent = `x${r.toFixed(1)}`;
-        if(r>=2){el.textContent="🔥 爆量";el.className="vol-tag v-high";} else if(r>=1.2){el.textContent="📈 放量";el.className="vol-tag v-norm";} else if(r<=0.6){el.textContent="💤 縮量";el.className="vol-tag v-low";} else{el.textContent="⚖️ 正常";el.className="vol-tag v-norm";}
+    function updateVolumeUI(sym, ratio) {
+        const el = document.getElementById(`vol-status-${sym}`);
+        const rEl = document.getElementById(`vol-ratio-${sym}`);
+        if(rEl) rEl.textContent = `x${ratio.toFixed(1)}`;
+        if(el) {
+            if(ratio>=2){el.textContent="🔥 爆量";el.className="vol-tag v-high";} 
+            else if(ratio>=1.2){el.textContent="📈 放量";el.className="vol-tag v-norm";} 
+            else if(ratio<=0.6){el.textContent="💤 縮量";el.className="vol-tag v-low";} 
+            else{el.textContent="⚖️ 正常";el.className="vol-tag v-norm";}
+        }
     }
+
     function calculateFlow(sym, klines) {
         const rec=klines.slice(-24); let t=0,b=0; rec.forEach(k=>{t+=parseFloat(k[5]);b+=parseFloat(k[9]);});
         const bp=(b/t)*100; document.getElementById(`flow-b-${sym}`).style.width=`${bp}%`; document.getElementById(`flow-s-${sym}`).style.width=`${100-bp}%`;
