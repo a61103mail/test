@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V60-LogicMod 時間狙擊版)</title>
+    <title>全維度戰情室 (V70 嚴格風控版)</title>
     <style>
-        /* 嚴格保留原本 V60 樣式，完全未動 */
+        /* V70: 嚴格保留 V68 UI，完全未動 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -47,7 +47,7 @@
         .ai-box { margin-top: 8px; padding: 8px; background: var(--ai-bg); border: 1px solid var(--ai-color); border-radius: 4px; font-size: 11px; display: none; }
         .ai-head { display: flex; justify-content: space-between; font-weight: bold; color: var(--ai-color); margin-bottom: 4px; border-bottom: 1px dashed var(--ai-color); padding-bottom: 2px; }
 
-        /* 手動按鈕樣式 (配合你的要求增加的) */
+        /* 手動按鈕 */
         .btn-ai-manual { 
             background: linear-gradient(135deg, #00e676, #00a854); 
             color: #000; border: none; padding: 2px 8px; 
@@ -150,7 +150,7 @@
 <div class="header">
     <div class="header-top">
         <div>
-            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V60-LogicMod)</h1>
+            <h1 style="margin:0; font-size:20px;">全維度戰情室 (V70 嚴格風控)</h1>
             <div class="btc-bar" style="margin-top:5px;">
                 <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
                 <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -197,33 +197,30 @@
     document.getElementById('gemini-key').value = localStorage.getItem('gemini_key') || '';
     function saveKey() { localStorage.setItem('gemini_key', document.getElementById('gemini-key').value); }
 
-    // --- [修改] AI 連線函數 (保留你原本的 askGemini，只改模型名稱為你可用的) ---
+    // --- [V70] AI 呼叫 - 增加懲罰指令 ---
     async function askGemini(symbol, data) {
         const apiKey = localStorage.getItem('gemini_key');
         if (!apiKey) return null;
 
         const prompt = `
-        你是一名極速交易員 (Scalper)。針對 ${symbol} (15m級別) 進行分析。
+        你是一名極速交易員。針對 ${symbol} (15m級別) 進行分析。
+        【數據】價格:${data.price}, 趨勢:${data.d15}, 量能:x${data.vol}, ADX:${data.adx}, 布林:${data.bb}, 1H走勢:${data.d1h}。
         
-        【數據】
-        - 價格: ${data.price}
-        - 15m 趨勢: ${data.d15} (Kelly: ${data.k15}%)
-        - 1H 趨勢: ${data.d1h}
-        - 量能: x${data.vol} (RVOL)
-        - ADX: ${data.adx}
-        - 布林: ${data.bb}
+        【評分鐵律】
+        1. ⚠️ **嚴重警告**：若量能 (Vol) < 0.8，信心分數 **不得超過 60**。
+        2. 若量能 < 0.5，視為殭屍盤，建議 WAIT，信心 < 50。
+        3. 只有當 趨勢一致 + 量能 > 1.2 + ADX > 25 時，才允許給出 > 80 的高信心。
         
         【任務】
         1. 判斷真突破還是假突破。
-        2. 給出 0-100 信心分數。
+        2. 給出 0-100 信心分數 (嚴格遵守鐵律)。
         3. 20字內簡短操作建議。
         
         請回傳嚴格的 JSON 格式:
-        { "decision": "看漲/看跌/觀望", "confidence": 85, "comment": "簡評" }
+        { "decision": "看漲/看跌/觀望", "confidence": 60, "comment": "量能不足，小心假突破" }
         `;
 
-        // 🏆 使用你清單中的 gemini-2.0-flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(url, {
@@ -251,12 +248,11 @@
         }
     }
 
-    // [修改] 手動/自動 AI 觸發器
-    // 增加 isAuto 參數，如果是自動觸發，不要跳 alert 阻擋流程
+    // 手動/自動 AI 觸發器
     window.triggerManualAI = async function(sym, isAuto = false) {
         const aiStatusEl = document.getElementById(`ai-status-${sym}`);
         const aiBoxEl = document.getElementById(`ai-box-${sym}`);
-        const data = store[sym]['data_packet']; // 使用存儲的數據包
+        const data = store[sym]['data_packet']; 
         
         if (!data) {
             if(!isAuto) alert("數據尚未準備好");
@@ -269,7 +265,6 @@
             return;
         }
 
-        // UI 狀態更新
         if(aiStatusEl) {
             aiStatusEl.style.display = 'inline';
             aiStatusEl.textContent = '🤖 分析中...';
@@ -297,13 +292,11 @@
                 aiStatusEl.textContent = `🤖 AI: ${aiRes.decision} (${aiRes.confidence}%)`;
                 aiStatusEl.className = 'ai-status';
             }
-            // 將結果填入 AI 專屬框框
             if(aiBoxEl) {
                 aiBoxEl.style.display = 'block';
                 aiBoxEl.innerHTML = `<div class="ai-head"><span>🤖 戰術參謀</span><span>信心: ${aiRes.confidence}%</span></div><div>${aiRes.comment}</div>`;
             }
             
-            // 發送 Discord (手動自動都發)
             const msg = `
 ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會偵測** ${data.emoji}
 **${sym.toUpperCase().replace('USDT','')}**
@@ -312,6 +305,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
 🛡️ **移動止損**: ${data.sl}
 🌊 **潛在獲利**: ${data.pnl}%
 **策略**: ${data.strategy}
+(Vol: x${data.vol} | ADX: ${data.adx})
 
 🤖 **AI 參謀**: ${aiComment} (信心: ${aiConf}%)
             `.trim();
@@ -325,13 +319,11 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
         }
     }
 
-    // [新增] 時間同步監聽器 (核心邏輯修改)
+    // 時間同步監聽器
     setInterval(() => {
         const now = new Date();
         const m = now.getMinutes();
         const s = now.getSeconds();
-        
-        // 邏輯：在 00, 15, 30, 45 分的 0-5 秒之間觸發自動掃描
         if (m % 15 === 0 && s < 5) {
             autoScanAndSend();
         }
@@ -339,7 +331,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
 
     let lastAutoTime = 0;
     async function autoScanAndSend() {
-        if (Date.now() - lastAutoTime < 60000) return; // 防止一分鐘內重複
+        if (Date.now() - lastAutoTime < 60000) return;
         lastAutoTime = Date.now();
         
         console.log("⏰ K線收盤，開始自動掃描 B 級以上...");
@@ -347,12 +339,10 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
         for (const sym of activeSymbols) {
             if (!store[sym] || !store[sym]['data_packet']) continue;
             const data = store[sym]['data_packet'];
-            
-            // 邏輯：有 B 級以上 (S, A, B) 就自動發送
+            // V70: 只有 B 級或以上才會觸發 (且 B 級現在條件更嚴格了)
             if (['S', 'A', 'B'].includes(data.tier)) {
                 console.log(`🚀 自動觸發: ${sym} (${data.tier}級)`);
                 await triggerManualAI(sym, true); 
-                // 稍微延遲避免瞬間併發過高
                 await new Promise(r => setTimeout(r, 2000));
             }
         }
@@ -368,7 +358,7 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
     }
 
     function testDiscord() {
-        sendDiscordAlert("✅ **戰情室 V60 連線成功**\n模式：B級以上自動發送 (15分K同步)。");
+        sendDiscordAlert("✅ **戰情室 V70 連線成功**\n模式：嚴格量能風控 + 時間同步自動發送。");
         alert("已發送測試訊息。");
     }
 
@@ -496,7 +486,8 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
                 <div class="ch-left">
                     <span class="sym-name">${sym.toUpperCase().replace('USDT','')}</span>
                     <span class="tier-badge" id="tier-${sym}"></span>
-                    <span id="ai-status-${sym}" class="ai-status"></span> <span class="sym-price" id="price-${sym}">--.--</span>
+                    <span id="ai-status-${sym}" class="ai-status"></span>
+                    <span class="sym-price" id="price-${sym}">--.--</span>
                     <button class="btn-ai-manual" onclick="event.stopPropagation(); triggerManualAI('${sym}')">🤖 AI</button>
                 </div>
                 <div class="ch-right"><span class="risk-tag" id="risk-${sym}">風險評估</span><span class="signal-badge sb-wait" id="badge-15m-${sym}">分析中...</span><span class="arrow-icon">▼</span></div>
@@ -823,23 +814,31 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
                 vals.forEach(e=>e.classList.add('blur-text'));
             }
 
-            // [新增] 存儲數據包供 AI 使用 (同時做分級)
+            // --- [V70] 嚴格分級邏輯 ---
             let tier = '';
-            // 這裡使用簡單的規則來賦予 tier，你原本的代碼中似乎遺漏了 tier 的顯式賦值，所以我補上
-            if (store[sym]['15m'].decision !== 'wait' && store[sym]['1h'].decision === store[sym]['15m'].decision) {
-                tier = 'S';
-            } else if (store[sym]['15m'].decision !== 'wait' && Math.abs(store[sym]['vol_ratio']) > 1.2) {
-                tier = 'A';
-            } else if (store[sym]['15m'].decision !== 'wait') {
-                tier = 'B';
+            const vol = Math.abs(store[sym]['vol_ratio'] || 0);
+            const adx = curAdx;
+            const trend1h = store[sym]['1h'].decision || 'wait';
+
+            // 只有當 15m 與 1H 方向一致才考慮分級
+            if (dec !== 'wait' && dec === trend1h) {
+                if (vol > 1.2 && adx > 25) {
+                    tier = 'S'; // 黃金機會：量能充足 + 趨勢強
+                } else if (vol > 0.8) {
+                    tier = 'A'; // 標準機會：量能及格
+                } else {
+                    tier = 'B'; // 弱勢機會：量能不足 (如 x0.2)
+                }
+            } else if (dec !== 'wait') {
+                tier = 'B'; // 方向不一致但有短線訊號
             }
 
             store[sym]['data_packet'] = {
                 price: cur,
                 d15: dec,
-                d1h: store[sym]['1h'].decision || 'wait',
-                vol: store[sym]['vol_ratio'] || 1.0,
-                adx: curAdx,
+                d1h: trend1h,
+                vol: vol.toFixed(2),
+                adx: adx.toFixed(1),
                 bb: bbState,
                 k15: store[sym]['15m'].kelly,
                 strategy: dec === 'long' ? '建議做多' : (dec === 'short' ? '建議做空' : '觀望'),
@@ -851,15 +850,18 @@ ${data.tier === 'S' ? '🏆 **S級**' : (data.tier === 'A' ? '🥈 **A級**' : '
                 pnl: potProfit.toFixed(2)
             };
 
-            // 更新 UI 上的 Tier 顯示 (如果有的話)
+            // 更新 UI 徽章
             const tierBadge = document.getElementById(`tier-${sym}`);
-            if (tierBadge && tier) {
+            const aiBtn = document.querySelector(`#card-${sym} .btn-ai-manual`);
+            
+            if (tier) {
                 tierBadge.style.display = 'inline-block';
                 tierBadge.textContent = `${tier} 級`;
                 tierBadge.className = `tier-badge tier-${tier.toLowerCase()}`;
-                // 顯示手動按鈕
-                const aiBtn = document.querySelector(`#card-${sym} .btn-ai-manual`);
                 if(aiBtn) aiBtn.style.display = 'inline-block';
+            } else {
+                tierBadge.style.display = 'none';
+                if(aiBtn) aiBtn.style.display = 'none';
             }
 
         } catch(e) { console.error(`Error in processTimeframe for ${sym} ${tf}`, e); }
