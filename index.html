@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全維度戰情室 (V50 動能掠奪版)</title>
+    <title>全維度戰情室 (V51 終極防禦版)</title>
     <style>
-        /* CSS 樣式 */
+        /* CSS 樣式微調 */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
             --green: #0ecb81; --green-bg: rgba(14, 203, 129, 0.15);
@@ -14,6 +14,7 @@
             --gold: #ffd700; --gold-bg: rgba(255, 215, 0, 0.2);
             --silver: #c0c0c0; --silver-bg: rgba(192, 192, 192, 0.2);
             --bronze: #cd7f32; --bronze-bg: rgba(205, 127, 50, 0.2);
+            --purple: #bf5af2; --purple-bg: rgba(191, 90, 242, 0.2); /* 擠壓 */
             --border: #2b3139; --modal-bg: #1e2329; --header-hover: #20252b;
         }
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; margin: 0; padding: 15px; font-size: 13px; }
@@ -23,12 +24,12 @@
         .timer-bar-bg { width: 100px; height: 4px; background: #333; border-radius: 2px; margin-left: 15px; overflow: hidden; }
         .timer-bar-fill { height: 100%; background: var(--yellow); width: 100%; transition: width 1s linear; }
         
-        /* 徽章樣式 */
         .tier-badge { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 10px; display: none; }
-        .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; animation: pulse 2s infinite; }
+        .tier-s { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); display: inline-block; animation: pulse 1s infinite; }
         .tier-a { background: var(--silver-bg); color: var(--silver); border: 1px solid var(--silver); display: inline-block; }
         .tier-b { background: var(--bronze-bg); color: var(--bronze); border: 1px solid var(--bronze); display: inline-block; }
-        .tier-z { background: #333; color: #666; border: 1px dashed #555; display: inline-block; } /* 殭屍盤 */
+        .tier-z { background: #333; color: #666; border: 1px dashed #555; display: inline-block; } 
+        .tier-q { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple); display: inline-block; animation: pulse 2s infinite; } /* Squeeze */
         
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
@@ -85,6 +86,8 @@
         .flow-buy { height: 100%; background: var(--green); } .flow-sell { height: 100%; background: var(--red); }
         .vol-tag { padding: 1px 4px; border-radius: 2px; font-weight: bold; }
         .v-high { background: var(--yellow); color: #000; } .v-norm { background: #444; color: #ccc; } .v-low { background: #222; color: #666; }
+        .countdown-text { font-family: 'Roboto Mono'; font-size: 10px; color: #aaa; margin-left: 5px; }
+        
         @keyframes blink { 50% { opacity: 0.3; } }
         @media (max-width: 900px) { .card-body { grid-template-columns: 1fr; gap: 0; } .col-info { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 10px; } .col-tf { border-right: none; border-bottom: 1px dashed #333; padding: 10px 0; } .ind-list { grid-template-columns: 1fr 1fr; gap: 5px; } .ind-item { flex-direction: column; align-items: flex-start; } }
     </style>
@@ -109,7 +112,7 @@
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V50 動能掠奪版)</h1>
+        <h1 style="margin:0; font-size:20px;">全維度戰情室 (V51 終極防禦版)</h1>
         <div class="btc-bar" style="margin-top:5px;">
             <span>BTC 錨定: <strong id="btc-trend">監控中...</strong></span>
             <span>權重: <strong id="btc-weight">x1.0</strong></span>
@@ -154,7 +157,7 @@
 
         const payload = {
             content: message,
-            username: "動能指揮官",
+            username: "戰情室指揮官",
             avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"
         };
 
@@ -168,7 +171,7 @@
     }
 
     function testDiscord() {
-        sendDiscordAlert("✅ **戰情室 V50 上線**\n邏輯：動能掠奪 (Kinetic Scalping)。\n重點：有量就衝，無量避險。");
+        sendDiscordAlert("✅ **系統連線成功**\nV51 模式：BB擠壓偵測 + 雙重止盈 (TP1/TP2)。");
         alert("已發送測試訊息。");
     }
 
@@ -291,7 +294,7 @@
         connectWSS(Array.from(activeSymbols));
     }
 
-    // [V50] 動能平衡邏輯 (Kinetic Balance)
+    // [V51] 終極防禦通知邏輯 (含擠壓偵測)
     function checkResonanceAndAlert() {
         const now = Date.now();
         const COOLDOWN = 15 * 60 * 1000; 
@@ -307,14 +310,30 @@
             const priceStr = priceVal > 0 ? priceVal.toFixed(4) : "--.--";
             const tradeSetup = store[sym]['15m'].setup; 
             const k15 = store[sym]['15m'].kelly || 0;
+            
+            // [V51] 獲取布林帶狀態
+            const bbState = store[sym]['1h'].bb_state; // 用 1H 看擠壓最準
 
             let tier = '';
             let direction = '';
             let emoji = '';
             let strategyText = '';
-            let sl = 0, tp = 0;
+            let sl = 0, tp1 = 0, tp2 = 0;
 
-            // [V50] 殭屍盤檢查 (Time Cost Filter)
+            // [V51] 1. 擠壓預警 (最高優先級)
+            if (bbState === 'squeeze') {
+                const badge = document.getElementById(`tier-${sym}`);
+                if(badge) {
+                    badge.textContent = '💥 蓄力中'; 
+                    badge.className = 'tier-badge tier-q';
+                    badge.style.display = 'inline-block';
+                }
+                // Squeeze 不一定發通知，除非同時有動能，否則容易是無效波動
+                // 但如果想埋伏，可以自己看面板
+                continue; 
+            }
+
+            // [V51] 2. 殭屍盤過濾
             if (vol < 0.8 && adx < 20) {
                 const badge = document.getElementById(`tier-${sym}`);
                 if(badge) {
@@ -322,7 +341,7 @@
                     badge.className = 'tier-badge tier-z';
                     badge.style.display = 'inline-block';
                 }
-                continue; // 跳過此幣種，不發通知
+                continue;
             }
 
             if (d15 === 'long' || d15 === 'short') {
@@ -332,27 +351,27 @@
                 
                 if(tradeSetup) {
                     sl = isLong ? tradeSetup.long.sl : tradeSetup.short.sl;
-                    tp = isLong ? tradeSetup.long.tp : tradeSetup.short.tp;
+                    tp1 = isLong ? tradeSetup.long.tp1 : tradeSetup.short.tp1; // TP1
+                    tp2 = isLong ? tradeSetup.long.tp2 : tradeSetup.short.tp2; // TP2
                 }
 
-                // [V50] 新分級邏輯
-                const isShortResonance = (d15 === d1h); // 15m 與 1H 共振
-                const isVolume = (vol >= 1.2);          // 有量 (提高標準)
-                const isSurge = (vol >= 1.5);           // 爆量
-                const isTrend = (adx > 25);             // 有趨勢
+                const isShortResonance = (d15 === d1h); 
+                const isVolume = (vol >= 1.2);          
+                const isSurge = (vol >= 1.5);           
+                const isTrend = (adx > 25);             
 
                 if (isShortResonance && isVolume && isTrend) {
                     tier = 'S'; 
-                    strategyText = '完美風暴 (趨勢+動能共振)';
+                    strategyText = '🔥 完美風暴 (共振+量)';
                 } else if (isSurge && !isShortResonance) {
                     tier = 'A'; 
-                    strategyText = '短線爆破 (爆量突破/無共振)';
+                    strategyText = '🚀 短線爆破 (純動能)';
                 } else if (isShortResonance) {
                     tier = 'B';
-                    strategyText = '穩健波動 (動能普通)';
+                    strategyText = '🌊 穩健波動 (動能普)';
                 } else {
                     tier = 'B'; 
-                    strategyText = '逆勢/喝湯單 (輕倉)';
+                    strategyText = '⚠️ 逆勢喝湯 (輕倉快跑)';
                 }
 
                 const badge = document.getElementById(`tier-${sym}`);
@@ -370,11 +389,12 @@
                     sTierAlerts.set(alertKey, now); 
                     
                     const msg = `
-${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會 (快訊)** ${emoji}
+${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B級**')} **機會 (V51)** ${emoji}
 **${sym.toUpperCase().replace('USDT','')}**
 💰 **現價**: ${priceStr}
 🛑 **止損**: ${sl.toFixed(4)}
-🎯 **止盈**: ${tp.toFixed(4)}
+🎯 **TP1 (減倉)**: ${tp1.toFixed(4)}
+🎯 **TP2 (貪婪)**: ${tp2.toFixed(4)}
 **策略**: ${strategyText}
 (Kelly: ${k15}% | ADX: ${adx.toFixed(1)} | Vol: x${vol.toFixed(1)})
                     `.trim();
@@ -433,7 +453,9 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             store[sym][tf] = {}; 
             html += `
             <div class="col-tf">
-                <div class="tf-header"><span class="tf-title">${TRANS[tf]}</span><span id="wr-avg-${sym}-${tf}" style="font-size:10px;">--%</span></div>
+                <div class="tf-header">
+                    <span class="tf-title">${TRANS[tf]}</span>
+                    <span id="timer-${sym}-${tf}" class="countdown-text">--:--</span> </div>
                 <div style="margin-bottom:5px;">
                     <div class="wr-bar-bg"><div class="wr-bar-long" id="bar-l-${sym}-${tf}" style="width:50%"></div><div class="wr-bar-short" id="bar-s-${sym}-${tf}" style="width:50%"></div></div>
                     <div class="wr-text"><span id="wr-l-${sym}-${tf}">多--%</span><span id="wr-s-${sym}-${tf}">空--%</span></div>
@@ -444,9 +466,7 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
                     <div class="strat-grid">
                         <div>En <span class="sg-val" id="en-${sym}-${tf}">---</span></div>
                         <div>Kelly <span class="sg-val" id="kelly-${sym}-${tf}">---</span></div>
-                        <div>SL <span class="sg-val" id="sl-${sym}-${tf}">---</span></div>
-                        <div>TP <span class="sg-val" id="tp-${sym}-${tf}">---</span></div>
-                    </div>
+                        <div>TP1 <span class="sg-val" id="tp1-${sym}-${tf}">---</span></div> <div>TP2 <span class="sg-val" id="tp2-${sym}-${tf}">---</span></div> </div>
                 </div>
             </div>`;
         });
@@ -471,10 +491,38 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
 
             results.forEach((data, i) => {
                 const tf = TFS[i]; data.pop();
+                
+                // [V51] 計算倒數時間 (簡易版：基於當前時間戳)
+                updateCountdown(sym, tf);
+
                 processTimeframe(sym, tf, data, isHighCorr);
                 if(tf === '1h') { calculateFlow(sym, data); calculateVolume(sym, data); }
             });
         } catch(e) {}
+    }
+
+    // [V51] K線倒數計算
+    function updateCountdown(sym, tf) {
+        const el = document.getElementById(`timer-${sym}-${tf}`);
+        if(!el) return;
+        
+        const now = Date.now();
+        let intervalMs = 0;
+        if(tf === '15m') intervalMs = 15 * 60 * 1000;
+        else if(tf === '1h') intervalMs = 60 * 60 * 1000;
+        else intervalMs = 4 * 60 * 60 * 1000;
+
+        const nextClose = Math.ceil(now / intervalMs) * intervalMs;
+        const diff = nextClose - now;
+        
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        el.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        
+        // 顏色提醒
+        if(m < 3) el.style.color = '#f6465d'; // 快收盤了，注意變盤
+        else el.style.color = '#aaa';
     }
 
     const MathEngine = {
@@ -522,6 +570,12 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
                 dx.push(sum===0?0:(diff/sum)*100);
             }
             return smooth(dx, p);
+        },
+        // [V51] 計算布林帶 (用於擠壓偵測)
+        bollinger: (c, p=20, mult=2) => {
+            const sma = c.slice(-p).reduce((a,b)=>a+b,0)/p;
+            const std = Math.sqrt(c.slice(-p).map(x=>Math.pow(x-sma,2)).reduce((a,b)=>a+b)/p);
+            return { upper: sma + mult*std, lower: sma - mult*std, mid: sma, width: (mult*std*2)/sma };
         },
         getRealisticWinRate: (signals, closes, highs, lows, atrs, direction) => { 
             let wins=0, trades=0;
@@ -577,9 +631,15 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
         const adx = MathEngine.adx(h,l,c);
         const curAdx = adx[adx.length-1];
 
+        // [V51] 偵測布林帶擠壓 (BB Squeeze)
+        const bb = MathEngine.bollinger(c);
+        let bbState = 'normal';
+        if (bb.width < 0.02) bbState = 'squeeze'; // 頻寬小於 2% 視為擠壓
+
         if(tf === '1h') {
             if(!store[sym]) store[sym] = {};
             store[sym]['adx_val'] = curAdx;
+            store[sym]['bb_state'] = bbState; // 存儲擠壓狀態
 
             const adxEl = document.getElementById(`adx-${sym}`);
             if(adxEl) {
@@ -591,8 +651,6 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
         const ema = MathEngine.emaArray(c, 50);
         const bias = (cur - ema[last]) / ema[last] * 100;
 
-        const sma20=MathEngine.sma(c,20), std=Math.sqrt(c.slice(-20).map(x=>Math.pow(x-sma20,2)).reduce((a,b)=>a+b)/20);
-        const upper=sma20+2*std, lower=sma20-2*std;
         const vwapArr = MathEngine.emaArray(c, 90); 
         
         let ema12 = MathEngine.emaArray(c, 12);
@@ -621,7 +679,7 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             sigs.e_b[i]=c[i]>ema[i]; sigs.e_s[i]=c[i]<ema[i];
             sigs.m_b[i]=macdArr[i]>0; sigs.m_s[i]=macdArr[i]<0;
             sigs.v_b[i]=c[i]>vwapArr[i]; sigs.v_s[i]=c[i]<vwapArr[i];
-            sigs.b_b[i]=c[i]>upper[i]; sigs.b_s[i]=c[i]<lower[i];
+            sigs.b_b[i]=c[i]>bb.upper; sigs.b_s[i]=c[i]<bb.lower;
         }
         
         const wrR = { l: MathEngine.getRealisticWinRate(sigs.r_b,c,h,l,atrs,'long'), s: MathEngine.getRealisticWinRate(sigs.r_s,c,h,l,atrs,'short') };
@@ -643,7 +701,7 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             addInd('EMA', cur>ema[last]?'上':'下', cur>ema[last]?'l':'s', wrE) +
             addInd('MACD', macdArr[last].toFixed(2), macdArr[last]>0?'l':'s', wrM) +
             addInd('VWAP', cur>vwapArr[last]?'上':'下', cur>vwapArr[last]?'l':'s', wrV) +
-            addInd('BOLL', cur>upper?'破':cur<lower?'破':'區', cur>upper?'l':cur<lower?'s':'n', wrB);
+            addInd('BOLL', cur>bb.upper?'破':cur<bb.lower?'破':'區', cur>bb.upper?'l':cur<bb.lower?'s':'n', wrB);
 
         let wTrend = curAdx > 25 ? 2.0 : 0.5;
         let wOsc = curAdx > 25 ? 0.5 : 2.0;
@@ -673,9 +731,13 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
         let finalAvgS = curAdx < 25 ? avgS * 0.9 : avgS;
 
         const slL = cur - curATR * dynamicSL_Mult;
-        const tpL = cur + curATR * dynamicTP_Mult;
+        const tpL1 = cur + curATR * 1.0; // TP1 快速落袋
+        const tpL2 = cur + curATR * 3.0; // TP2 貪婪
+        
         const slS = cur + curATR * dynamicSL_Mult;
-        const tpS = cur - curATR * dynamicTP_Mult;
+        const tpS1 = cur - curATR * 1.0; // TP1
+        const tpS2 = cur - curATR * 3.0; // TP2
+
         const RR = dynamicTP_Mult / dynamicSL_Mult;
         const kellyL = MathEngine.kelly(finalAvgL, RR);
         const kellyS = MathEngine.kelly(finalAvgS, RR);
@@ -710,8 +772,8 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             risk: riskLevel, 
             kelly: Math.round(Math.max(kellyL, kellyS) * 100),
             setup: {
-                long: { sl: slL, tp: tpL },
-                short: { sl: slS, tp: tpS }
+                long: { sl: slL, tp1: tpL1, tp2: tpL2 },
+                short: { sl: slS, tp1: tpS1, tp2: tpS2 }
             }
         };
 
@@ -745,7 +807,8 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
             document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyL*100).toFixed(1)+'%';
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(slL);
-            document.getElementById(`tp-${sym}-${tf}`).textContent=f(tpL); 
+            document.getElementById(`tp1-${sym}-${tf}`).textContent=f(tpL1); 
+            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(tpL2); 
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else if(dec==='short') {
             box.className = riskLevel === 'risky' ? 'strat-box strat-chop' : 'strat-box strat-short';
@@ -754,7 +817,8 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             document.getElementById(`en-${sym}-${tf}`).textContent=f(cur);
             document.getElementById(`kelly-${sym}-${tf}`).textContent=(kellyS*100).toFixed(1)+'%';
             document.getElementById(`sl-${sym}-${tf}`).textContent=f(slS);
-            document.getElementById(`tp-${sym}-${tf}`).textContent=f(tpS);
+            document.getElementById(`tp1-${sym}-${tf}`).textContent=f(tpS1); 
+            document.getElementById(`tp2-${sym}-${tf}`).textContent=f(tpS2); 
             vals.forEach(e=>e.classList.remove('blur-text'));
         } else {
             box.className='strat-box '+(dec=='chop'?'strat-chop':'strat-wait'); 
@@ -763,35 +827,3 @@ ${tier === 'S' ? '🏆 **S級**' : (tier === 'A' ? '🥈 **A級**' : '🥉 **B�
             document.getElementById(`kelly-${sym}-${tf}`).textContent='---';
         }
     }
-
-    function calculateVolume(sym, klines) { 
-        const len=klines.length, cur=parseFloat(klines[len-1][5]);
-        let sum=0; for(let i=len-21;i<len-1;i++) sum+=parseFloat(klines[i][5]);
-        const r=cur/(sum/20);
-        if(!store[sym]) store[sym] = {};
-        store[sym]['vol_ratio'] = r;
-
-        const el=document.getElementById(`vol-status-${sym}`);
-        document.getElementById(`vol-ratio-${sym}`).textContent = `x${r.toFixed(1)}`;
-        if(r>=2){el.textContent="🔥 爆量";el.className="vol-tag v-high";} else if(r>=1.2){el.textContent="📈 放量";el.className="vol-tag v-norm";} else if(r<=0.6){el.textContent="💤 縮量";el.className="vol-tag v-low";} else{el.textContent="⚖️ 正常";el.className="vol-tag v-norm";}
-    }
-    function calculateFlow(sym, klines) {
-        const rec=klines.slice(-24); let t=0,b=0; rec.forEach(k=>{t+=parseFloat(k[5]);b+=parseFloat(k[9]);});
-        const bp=(b/t)*100; document.getElementById(`flow-b-${sym}`).style.width=`${bp}%`; document.getElementById(`flow-s-${sym}`).style.width=`${100-bp}%`;
-        document.getElementById(`flow-bv-${sym}`).textContent=`買${bp.toFixed(0)}%`; document.getElementById(`flow-sv-${sym}`).textContent=`賣${(100-bp).toFixed(0)}%`;
-    }
-
-    window.toggleCard = function(sym) { document.getElementById(`card-${sym}`).classList.toggle('expanded'); };
-    function removeCard(sym) { activeSymbols.delete(sym); document.getElementById(`card-${sym}`).remove(); }
-    function connectWSS(symbols) {
-        wss = new WebSocket(`wss://fstream.binance.com/stream?streams=${symbols.map(s => `${s}@ticker`).join('/')}`);
-        wss.onmessage = (e) => {
-            const m = JSON.parse(e.data).data; const el = document.getElementById(`price-${m.s.toLowerCase()}`);
-            if(el) { el.textContent = parseFloat(m.c); el.className = `sym-price ${parseFloat(m.P)>=0?'up':'down'}`; }
-        };
-    }
-
-    initSystem();
-</script>
-</body>
-</html>
