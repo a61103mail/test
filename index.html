@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全維度戰情室 (V85 終極修正版)</title>
+    <title>全維度戰情室 (V85 Math Fix)</title>
     <style>
         /* =========================================
-           V85：UI 100% 還原 + 數據補完 + 數學核心
+           V85 UI：完全保留原樣，未做任何視覺更動
            ========================================= */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
@@ -41,7 +41,7 @@
         .tier-b { background: #333; color: #aaa; border: 1px solid #555; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        /* 三欄佈局 (100% 還原) */
+        /* 三欄佈局 */
         .card-body { display: grid; grid-template-columns: 320px 1fr 1fr 1fr; gap: 2px; background: var(--border); }
         .col-section { background: var(--card); padding: 15px; display: flex; flex-direction: column; gap: 8px; }
 
@@ -51,7 +51,7 @@
         .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 11px; color: #aaa; }
         .score-item span:last-child { float: right; font-weight: bold; }
         
-        /* 額外資訊區 (Kelly/Beta/Funding) */
+        /* 額外資訊區 */
         .info-group { background: rgba(41, 121, 255, 0.05); border: 1px solid #333; border-radius: 4px; padding: 8px; margin-bottom: 10px; }
         .info-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
 
@@ -67,17 +67,17 @@
         .wr-l { background:var(--green); height:100%; }
         .wr-s { background:var(--red); height:100%; }
 
-        /* 五大指標行 (5 Rows) */
+        /* 五大指標行 */
         .ind-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 6px; background: rgba(255,255,255,0.02); border-radius: 3px; margin-bottom: 2px; }
         .ind-name { color: #888; } .ind-val { font-family: 'Roboto Mono'; font-weight: bold; }
 
-        /* 策略框 (Entry/SL/TP1/TP2) */
+        /* 策略框 */
         .strat-box { margin-top: auto; background: #111; border: 1px solid #444; border-radius: 6px; padding: 8px; }
         .strat-long { background: rgba(14, 203, 129, 0.1); border-color: var(--green); }
         .strat-short { background: rgba(246, 70, 93, 0.1); border-color: var(--red); }
         .strat-status { text-align: center; font-weight: bold; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #444; font-size: 13px; }
         
-        /* 四宮格顯示 TP1/TP2 */
+        /* 四宮格 */
         .four-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 11px; }
         .sg-cell { display: flex; justify-content: space-between; }
         .sg-label { color: #666; } .sg-val { font-family: 'Roboto Mono'; font-weight: bold; color: #eee; }
@@ -89,7 +89,7 @@
 
 <div class="header">
     <div style="display:flex; align-items:center;">
-        <h1>全維度戰情室 <span class="version-tag">V85 Final Corrected</span></h1>
+        <h1>全維度戰情室 <span class="version-tag">V85 Math Fix</span></h1>
     </div>
     <div class="btc-bar">
         <span>BTC: <strong id="btc-price" style="color:#fff;">...</strong></span>
@@ -113,18 +113,31 @@
     };
 
     // ==========================================
-    // 🧮 數學核心 (保留你要的數學基底)
+    // 🧮 數學核心 (已修正)
     // ==========================================
     const MathCore = {
         mean: d => d.reduce((a,b)=>a+b,0)/d.length,
         stdDev: (d,m) => Math.sqrt(d.reduce((a,b)=>a+Math.pow(b-m,2),0)/d.length),
         zScore: (p,h) => { const m=MathCore.mean(h); const s=MathCore.stdDev(h,m); return s===0?0:(p-m)/s; },
+        
+        // [修正] 新增對數收益率計算
+        getLogReturns: (data) => {
+            let returns = [];
+            for(let i=1; i<data.length; i++) {
+                returns.push(Math.log(data[i] / data[i-1]));
+            }
+            return returns;
+        },
+
+        // [修正] 相關性現在應該傳入 LogReturns 陣列
         correlation: (A,B) => {
             if(A.length!==B.length) return 0;
             let num=0, dA=0, dB=0; const mA=MathCore.mean(A), mB=MathCore.mean(B);
             for(let i=0;i<A.length;i++){ num+=(A[i]-mA)*(B[i]-mB); dA+=Math.pow(A[i]-mA,2); dB+=Math.pow(B[i]-mB,2); }
-            return num/Math.sqrt(dA*dB);
+            const res = num/Math.sqrt(dA*dB);
+            return isNaN(res) ? 0 : res;
         },
+
         ema: (d,p) => { let k=2/(p+1), e=[d[0]]; for(let i=1;i<d.length;i++) e.push(d[i]*k+e[i-1]*(1-k)); return e; },
         rsi: (c,p=14) => {
             let gains=0, losses=0;
@@ -141,11 +154,16 @@
             const move = Math.abs(c[c.length-1]-c[c.length-p]);
             return Math.min(100, (move/(tr*p))*100*2.0); 
         },
-        kelly: (win, odds) => Math.max(0, (win*(1+odds)-1)/odds * 100)
+        
+        // Kelly: win=勝率(0-1), odds=賠率(盈虧比)
+        kelly: (win, odds) => {
+            const k = (win * (1 + odds) - 1) / odds;
+            return Math.max(0, k * 100); // 回傳百分比
+        }
     };
 
     // ==========================================
-    // 📡 即時引擎 (WebSocket)
+    // 📡 即時引擎 (WebSocket) - 保持不變
     // ==========================================
     const WS_Engine = {
         socket: null,
@@ -177,14 +195,14 @@
     };
 
     // ==========================================
-    // 🧠 系統核心 (System)
+    // 🧠 系統核心 (System) - 邏輯修正
     // ==========================================
     const System = {
         btcHistory: [],
         btcTrend: 'NEUTRAL',
 
         init: async function() {
-            document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px; color:#666;">⏳ 系統重置中：恢復完整數據面板...</div>';
+            document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px; color:#666;">⏳ 系統重置中：恢復完整數據面板 (Math Corrected)...</div>';
             await this.updateBTC();
             const targets = await this.scanTopVolume();
             document.getElementById('grid-container').innerHTML = '';
@@ -228,9 +246,16 @@
             const c1h = k1h.c;
             const price = c1h[c1h.length-1];
             
-            // 數學計算
+            // 數學計算 - [修正] 改用 Log Returns 計算相關性
             const zScore = MathCore.zScore(price, c1h.slice(-50));
-            const corr = MathCore.correlation(this.btcHistory.slice(-50), c1h.slice(-50));
+            
+            // 準備數據計算相關性：取最後 50 根，轉為 log returns
+            const btcRets = MathCore.getLogReturns(this.btcHistory.slice(-51)); // 取多一根以確保長度匹配
+            const coinRets = MathCore.getLogReturns(c1h.slice(-51));
+            // 確保長度一致 (取最小長度)
+            const minLen = Math.min(btcRets.length, coinRets.length);
+            const corr = MathCore.correlation(btcRets.slice(-minLen), coinRets.slice(-minLen));
+
             const fr = parseFloat(prem.lastFundingRate)*100;
             const atr1h = MathCore.atr(k1h.h, k1h.l, k1h.c);
             
@@ -239,7 +264,7 @@
             const ind1h = this.calcInd(k1h);
             const ind4h = this.calcInd(k4h);
 
-            // 綜合評分
+            // 綜合評分與策略
             const scoreData = this.evaluate(zScore, corr, fr, price, atr1h, this.btcTrend, ind1h.volRatio);
 
             // 渲染
@@ -266,12 +291,13 @@
             let checks = { trend:false, rsi:false, adx:false, vol:false, loc:false, str:false };
             let score = 0;
 
-            if(btcState === 'BULL' && corr > 0.3) { checks.trend = true; score += 20; }
+            // 評分邏輯 (稍微調整權重以符合修正後的 corr)
+            if(btcState === 'BULL' && corr > 0.5) { checks.trend = true; score += 20; } // Log return corr 通常較低，門檻微調
             if(z > 0 && z < 2) { checks.rsi = true; score += 15; }
             if(Math.abs(fr) < 0.02) { checks.adx = true; score += 15; } 
             if(volRatio > 1.2) { checks.vol = true; score += 15; }
             if(z < 1.0) { checks.loc = true; score += 20; }
-            if(corr < 0.8) { checks.str = true; score += 15; }
+            if(corr < 0.7) { checks.str = true; score += 15; }
 
             let tier = 'B';
             if(score >= 80) tier = 'S';
@@ -281,12 +307,28 @@
             if(score >= 60) type = 'LONG';
             if(z > 2.5) type = 'SHORT (超買)';
 
-            const kelly = MathCore.kelly(0.55, 2.0);
-            
-            // 計算 TP1, TP2, SL
+            // [修正] 動態 Kelly 計算
+            // 1. 設定盈虧比 (Odds)
             const slDist = atr * 1.5;
-            const tp1Dist = atr * 2.0;
+            const tp1Dist = atr * 2.0; 
             const tp2Dist = atr * 3.5;
+            const odds = tp1Dist / slDist; // 約等於 1.33
+
+            // 2. 估算勝率 (Win Rate Proxy based on Score)
+            // 基礎勝率 50% (Score 60)，每增加 1 分微幅增加信心，最高限制在 70% 避免過度自信
+            let estimatedWinRate = 0.45; // 默認低於隨機
+            if (score >= 60) {
+                estimatedWinRate = 0.50 + ((score - 60) * 0.005); 
+            }
+            estimatedWinRate = Math.min(estimatedWinRate, 0.70); // Cap at 70%
+
+            // 3. 套用 Kelly
+            let kelly = MathCore.kelly(estimatedWinRate, odds);
+            
+            // 安全性修正：如果分數太低，強制倉位為 0
+            if(score < 60) kelly = 0;
+            // 實戰修正：Full Kelly 風險太大，通常使用 Half Kelly
+            kelly = kelly * 0.5; 
 
             return {
                 score, tier, checks, type, kelly,
@@ -336,7 +378,6 @@
 
                     ${['15m','1h','4h'].map(tf => {
                         const d = inds[tf];
-                        // 恢復進度條 (用 Z-Score 模擬視覺)
                         const zPct = Math.min(Math.max((d.rsi-30)/70 * 100, 0), 100); 
                         
                         return `
