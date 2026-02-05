@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全維度戰情室 (V71 深度思考版)</title>
+    <title>全維度戰情室 (V78 承諾兌現版)</title>
     <style>
         /* =========================================
-           V71 樣式：維持 V70 的狙擊風格
+           V78：資訊透明化儀表板
            ========================================= */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
@@ -16,8 +16,8 @@
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Roboto Mono', monospace; margin: 0; padding: 20px; font-size: 13px; }
         
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border); }
-        .version-tag { font-size: 12px; color: var(--purple); border: 1px solid var(--purple); padding: 3px 6px; border-radius: 4px; margin-left: 10px; font-weight: bold; }
-        .btc-bar { background: #1e2329; padding: 10px 20px; border-radius: 4px; border-left: 5px solid var(--purple); font-size: 14px; display: flex; gap: 25px; align-items: center; }
+        .version-tag { font-size: 12px; color: var(--gold); border: 1px solid var(--gold); padding: 3px 6px; border-radius: 4px; margin-left: 10px; font-weight: bold; }
+        .btc-bar { background: #1e2329; padding: 10px 20px; border-radius: 4px; border-left: 5px solid var(--gold); font-size: 14px; display: flex; gap: 25px; align-items: center; }
         
         #grid-container { display: flex; flex-direction: column; gap: 20px; max-width: 1900px; margin: 0 auto; }
         
@@ -31,14 +31,16 @@
         .tier-a { background: rgba(252, 213, 53, 0.15); color: var(--yellow); border: 1px solid var(--yellow); }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        .card-body { display: grid; grid-template-columns: 280px 1fr 1fr 1fr; gap: 2px; background: var(--border); }
+        .card-body { display: grid; grid-template-columns: 320px 1fr 1fr 1fr; gap: 2px; background: var(--border); }
         .col-section { background: var(--card); padding: 15px; display: flex; flex-direction: column; gap: 10px; }
 
-        .info-group { margin-bottom: 15px; border-bottom: 1px dashed #333; padding-bottom: 10px; }
-        .info-label { color: #888; font-size: 11px; margin-bottom: 3px; display: flex; justify-content: space-between; }
-        .vol-tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 11px; }
-        .v-high { background: var(--green); color: #000; } .v-norm { background: #444; color: #ccc; } .v-low { background: #331111; color: #888; }
-        
+        /* 評分細節 */
+        .score-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #333; }
+        .score-title { font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; display:flex; justify-content:space-between; }
+        .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 11px; color: #aaa; }
+        .score-item span:last-child { float: right; font-weight: bold; }
+        .pass { color: var(--green); } .fail { color: var(--red); }
+
         .ai-action-area { margin-top: auto; min-height: 80px; display: flex; flex-direction: column; justify-content: flex-end; }
         .ai-btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; margin-top: 10px; transition: all 0.2s; display: none; text-align: center; }
         .ai-btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
@@ -50,8 +52,6 @@
         .ai-content { color: #eee; font-size: 12px; line-height: 1.4; white-space: pre-wrap; }
 
         .sect-title { font-size: 14px; font-weight: bold; color: #fff; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 8px; text-align: center; background: #1a1e23; border-radius: 4px; }
-        .wr-bar-bg { width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden; display: flex; }
-        .wr-l { background: var(--green); height: 100%; } .wr-s { background: var(--red); height: 100%; }
         .ind-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 5px; background: rgba(255,255,255,0.02); border-radius: 3px; }
         .ind-name { color: #888; } .ind-val { font-family: 'Roboto Mono'; font-weight: bold; }
         
@@ -70,7 +70,7 @@
 
 <div class="header">
     <div style="display:flex; align-items:center;">
-        <h1>全維度戰情室 <span class="version-tag">V71 深度思考版</span></h1>
+        <h1>全維度戰情室 <span class="version-tag">V78 承諾兌現版</span></h1>
     </div>
     <div class="btc-bar">
         <span>BTC: <strong id="btc-price" style="color:#fff;">...</strong></span>
@@ -82,12 +82,9 @@
 <div id="grid-container"></div>
 
 <script>
-    // ==========================================
-    // ⚙️ 用戶設定
-    // ==========================================
     const CONFIG = {
-        DISCORD_WEBHOOK: "", 
-        GEMINI_API_KEY: "",       
+        DISCORD_WEBHOOK: "YOUR_DISCORD_WEBHOOK_URL", 
+        GEMINI_API_KEY: "YOUR_GEMINI_API_KEY",       
         KLINES_LIMIT: 500,
         BLACKLIST: ['USDCUSDT', 'USDPUSDT', 'TUSDUSDT', 'FDUSDUSDT', 'DAIUSDT', 'BUSDUSDT', 'EURUSDT']
     };
@@ -98,15 +95,13 @@
     const DISCORD_BOT = {
         history: new Map(), 
 
-        checkAndSend: function(symbol, tier, direction, strategyData) {
-            // S級自動發送
+        checkAndSend: function(symbol, tier, direction, scoreData) {
+            // S級自動發送 (80分以上)
             if (tier !== 'S') return;
 
             const now = new Date();
             const minutes = now.getMinutes();
-            // 狙擊版：放寬時間窗，前5分鐘都發
-            const isWindow = (minutes % 15) < 5; 
-            
+            const isWindow = (minutes % 15) < 5 || (minutes % 15) > 10;
             if (!isWindow) return;
 
             const blockID = Math.floor(now.getTime() / (15 * 60 * 1000));
@@ -115,8 +110,8 @@
             if (this.history.has(key)) return;
             this.history.set(key, true);
             
-            // 自動發送不含 AI 內容，只發硬數據
-            this.sendWebhook(symbol, tier, direction, strategyData, null);
+            // 自動發送包含評分細節
+            this.sendWebhook(symbol, tier, direction, scoreData, null);
         },
 
         sendWebhook: async function(symbol, tier, dir, data, aiContent) {
@@ -125,21 +120,14 @@
             const isLong = dir === 'long';
             const color = isLong ? 969601 : 16139869; 
             const emoji = tier === 'S' ? '🔥' : '⚠️';
-            const title = aiContent ? `🤖 AI 深度分析: ${symbol}` : `${emoji} ${symbol} [${tier}級狙擊訊號]`;
+            const title = aiContent ? `🤖 AI 勝率分析: ${symbol}` : `${emoji} ${symbol} [系統評分: ${data.totalScore}]`;
 
             let desc = "";
-            if (aiContent) {
-                // V71: AI 內容會比較長，直接放進去
-                desc = `${aiContent}\n\n`;
-            }
-
-            if (data.biasWarn) {
-                desc += `🚨 **警告：乖離率過大，建議等待回調**\n建議掛單價：${data.safeEntry}\n\n`;
-            }
+            if (aiContent) desc = `${aiContent}\n\n`;
 
             const payload = {
-                content: aiContent ? "🤖 AI 深度報告已生成" : " S級訊號觸發!", 
-                username: "V71 戰略官",
+                content: aiContent ? "🤖 AI 深度報告已生成" : `<@323770903370530817> S級訊號: ${symbol} (${data.totalScore}分)`, 
+                username: "V78 執行官",
                 avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png",
                 embeds: [{
                     title: title,
@@ -147,13 +135,10 @@
                     color: color,
                     fields: [
                         { name: "方向", value: isLong ? "📈 做多" : "📉 做空", inline: true },
-                        { name: "現價", value: `**${data.price}**`, inline: true },
-                        { name: "建議進場", value: `\`${data.entry}\``, inline: true },
-                        { name: "停損 (SL)", value: `\`${data.sl}\``, inline: true },
-                        { name: "目標 (TP)", value: `\`${data.tp2}\``, inline: true },
-                        { name: "數據", value: `ADX: ${data.adx} | Vol: x${data.vol}`, inline: true }
+                        { name: "評分結構", value: `總分: **${data.totalScore}**\nTrend:${data.scores.trend?'✅':'❌'} | Vol:${data.scores.vol?'✅':'❌'}\nLoc:${data.scores.loc?'✅':'⚠️'} | Str:${data.scores.str?'✅':'❌'}`, inline: true },
+                        { name: "戰術執行", value: `Entry: ${data.entry}\nSL: ${data.sl}\nTP2: ${data.tp2}`, inline: true },
                     ],
-                    footer: { text: "V71 Deep Analysis" },
+                    footer: { text: "V78 Promise Kept Edition" },
                     timestamp: new Date().toISOString()
                 }]
             };
@@ -165,7 +150,7 @@
     };
 
     // ==========================================
-    // 🧠 AI Agent (V71 深度思考模式)
+    // 🧠 AI Agent (包含勝率與辯證)
     // ==========================================
     const AI_AGENT = {
         renderButton: function(symbol, tier, direction, fullData) {
@@ -177,7 +162,7 @@
             const btn = document.createElement('button');
             const isS = tier === 'S';
             btn.className = `ai-btn ${isS ? 'btn-s' : 'btn-a'}`;
-            btn.innerHTML = isS ? `🚀 AI 深度分析 (S級)` : `⚠️ AI 風險評估 (A級)`;
+            btn.innerHTML = isS ? `💎 獲取勝率 & 優缺點 (S級)` : `⚠️ 風險辯證 (A級)`;
             btn.style.display = 'block';
 
             btn.onclick = () => { this.askGemini(btn, symbol, tier, direction, fullData); };
@@ -186,7 +171,7 @@
             const resBox = document.createElement('div');
             resBox.id = `ai-res-${symbol}`;
             resBox.className = 'ai-result';
-            resBox.innerHTML = `<div class="ai-title"><span>🤖 Gemini 深度報告</span></div><div class="ai-content"></div>`;
+            resBox.innerHTML = `<div class="ai-title"><span>🤖 Gemini 報告</span></div><div class="ai-content"></div>`;
             container.appendChild(resBox);
         },
 
@@ -194,50 +179,51 @@
             if (!CONFIG.GEMINI_API_KEY || CONFIG.GEMINI_API_KEY.includes("YOUR")) { alert("API Key Missing"); return; }
 
             btn.disabled = true;
-            btn.innerHTML = "⏳ AI 正在辯證優缺點...";
+            btn.innerHTML = "⏳ AI 正在計算勝率...";
             const resBox = document.getElementById(`ai-res-${symbol}`);
             resBox.style.display = 'block';
             const content = resBox.querySelector('.ai-content');
-            content.innerText = "撰寫報告中...";
+            content.innerText = "數據辯證中...";
 
             const strat = fullData.strategy;
             const d15 = fullData['15m'];
             const d1h = fullData['1h'];
             const d4h = fullData['4h'];
 
-            // 🔥 V71 深度 Prompt：要求列出優缺點
+            // 🔥 V77/V78 承諾兌現 Prompt：包含勝率、優缺點、數據支撐
             const prompt = `
-            你是頂級加密貨幣分析師。請對 ${symbol} 的 ${dir === 'long' ? '做多' : '做空'} 交易機會進行「深度辯證分析」。
-            目前訊號評級：${tier}。
+            你是一位嚴格的量化分析師。請對 ${symbol} (${dir}) 進行深度評估。
+            系統評分：${strat.totalScore}/100。
             
-            【市場結構】
-            - 15m (執行): RSI=${d15.rsi}, 趨勢=${d15.emaState}, ADX=${d15.adx}, 量能=${d15.vol}倍
-            - 1H  (戰術): RSI=${d1h.rsi}, 趨勢=${d1h.emaState}, ADX=${d1h.adx}, 量能=${d1h.vol}倍
-            - 4H  (戰略): RSI=${d4h.rsi}, 趨勢=${d4h.emaState}, ADX=${d4h.adx}, 量能=${d4h.vol}倍
+            【六維數據】
+            1. 趨勢: 15m=${d15.emaState}, 1H=${d1h.emaState}, 4H=${d4h.emaState}
+            2. 動能: RSI (15m=${d15.rsi}, 1H=${d1h.rsi})
+            3. 力度: ADX (15m=${d15.adx}, 1H=${d1h.adx})
+            4. 資金: 1H Vol=${d1h.vol}倍
+            5. 位置: 乖離過大=${strat.biasWarn?"YES":"NO"}, 盈虧比=1:${strat.rr}
             
-            【交易計畫】
-            - 現價: ${strat.price}
-            - 建議進場: ${strat.entry}
-            - 目標: ${strat.tp1}
-            - 止損: ${strat.sl}
+            請用繁體中文，嚴格依照以下格式輸出：
             
-            請用繁體中文，依照以下格式輸出：
+            1. **📊 勝率預估 (Win Rate)**：
+               - 基於趨勢共振與量能，給出勝率 (例如 65%)。
+               - 簡述理由 (例如：順勢但縮量，勝率扣分)。
             
-            1. **✅ 多頭/空頭 優勢 (Pros)**：列出 2-3 點支持進場的技術理由 (如指標共振、量能配合、趨勢方向)。
-            2. **❌ 潛在風險 (Cons)**：列出 2-3 點可能失敗的隱憂 (如乖離率、大週期逆勢、動能不足、上方壓力)。
-            3. **⚖️ 最終裁決**：
-               - 信心分數 (0-100)
-               - 戰術建議 (50字內)：應該直接市價進場？還是掛單回調？還是放棄？
+            2. **⚖️ 多空辯證**：
+               - ✅ **優勢 (Pros)**：(列出 2 點支持進場的數據，如：RSI健康、位置低)。
+               - ❌ **隱憂 (Cons)**：(列出 2 點潛在風險，如：上方壓力近、4H逆勢)。
+            
+            3. **🎯 戰術指令** (50字內)：
+               - 給出明確操作：現價做 / 掛單接 / 放棄。
             `;
 
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
                 const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                 const json = await response.json();
                 const text = json.candidates[0].content.parts[0].text.trim();
                 
                 content.innerText = text;
-                btn.innerHTML = "✅ 報告已生成";
+                btn.innerHTML = "✅ 完成";
                 DISCORD_BOT.sendWebhook(symbol, tier, dir, strat, text);
 
             } catch (e) {
@@ -249,7 +235,7 @@
     };
 
     // ==========================================
-    // 🧮 數學引擎
+    // 🧮 數學引擎 & 評分系統
     // ==========================================
     const MathEngine = {
         sma: (d, p) => d.slice(-p).reduce((a,b)=>a+b,0)/p,
@@ -258,11 +244,7 @@
             let rsi=[], g=0, l=0;
             for(let i=1;i<=p;i++){ let d=c[i]-c[i-1]; d>0?g+=d:l-=d; }
             let ag=g/p, al=l/p; rsi[p]=100-(100/(1+ag/al));
-            for(let i=p+1;i<c.length;i++){ 
-                let d=c[i]-c[i-1]; let u=d>0?d:0; let dw=d<0?Math.abs(d):0;
-                ag=(ag*(p-1)+u)/p; al=(al*(p-1)+dw)/p; 
-                rsi[i]=al===0?100:100-(100/(1+ag/al)); 
-            }
+            for(let i=p+1;i<c.length;i++){ let d=c[i]-c[i-1]; let u=d>0?d:0; let dw=d<0?Math.abs(d):0; ag=(ag*(p-1)+u)/p; al=(al*(p-1)+dw)/p; rsi[i]=al===0?100:100-(100/(1+ag/al)); }
             return rsi;
         },
         bollinger: (c, p=20, m=2) => {
@@ -270,11 +252,6 @@
             const sq = c.slice(-p).map(x=>Math.pow(x-sma,2)).reduce((a,b)=>a+b,0)/p;
             const std = Math.sqrt(sq);
             return { width: ((sma+m*std)-(sma-m*std))/sma };
-        },
-        macd: (c) => {
-            const e12 = MathEngine.ema(c, 12);
-            const e26 = MathEngine.ema(c, 26);
-            return e12[e12.length-1] - e26[e26.length-1];
         },
         atr: (h, l, c, p=14) => {
             let trs = [h[0]-l[0]];
@@ -295,7 +272,7 @@
     let activeSymbols = new Set();
 
     async function initSystem() {
-        console.log("V71 啟動...");
+        console.log("V78 啟動...");
         await updateBTC();
         await scanMarket();
         setInterval(scanMarket, 60 * 1000);
@@ -351,16 +328,26 @@
             fullData[tf] = {
                 rsi: d.rsi.toFixed(1),
                 emaState: d.price > d.ema ? "Bullish" : "Bearish",
-                vol: d.volRatio ? d.volRatio.toFixed(1) : "N/A",
+                vol: d.volRatio.toFixed(1), 
                 adx: d.adx.toFixed(1)
             };
 
-            if(tf === '1h') { 
+            if(tf === '15m') { 
                 fullData.strategy = { ...d.stratInfo, adx: d.adx.toFixed(1), vol: d.volRatio.toFixed(1) };
             }
         });
 
-        const tierInfo = checkTier(symbol);
+        // 注入 1H/4H 數據到 Strategy 以便打分
+        fullData.strategy.h1Dir = fullData['1h'].emaState === 'Bullish' ? 'long' : 'short';
+        fullData.strategy.h1Vol = parseFloat(fullData['1h'].vol);
+        fullData.strategy.h1Adx = parseFloat(fullData['1h'].adx);
+        fullData.strategy.h4Dir = fullData['4h'].emaState === 'Bullish' ? 'long' : 'short';
+
+        // 執行六維評分
+        const tierInfo = calculateScoreAndTier(symbol, fullData.strategy);
+        fullData.strategy.totalScore = tierInfo.score;
+        fullData.strategy.scores = tierInfo.breakdown;
+
         DISCORD_BOT.checkAndSend(symbol, tierInfo.tier, tierInfo.dir, fullData.strategy);
         AI_AGENT.renderButton(symbol, tierInfo.tier, tierInfo.dir, fullData);
     }
@@ -371,56 +358,68 @@
 
         const rsiArr = MathEngine.rsi(c); const rsi = rsiArr[last];
         const emaArr = MathEngine.ema(c, 50); const ema = emaArr[last];
-        const bb = MathEngine.bollinger(c);
-        const macd = MathEngine.macd(c);
-        const vwapArr = MathEngine.ema(c, 90); const vwap = vwapArr[last];
         const atr = MathEngine.atr(h,l,c);
         const adx = MathEngine.adx(h,l,c);
 
         updateInd(sym, tf, 'RSI', rsi.toFixed(1), rsi>55?'long':rsi<45?'short':'n');
-        updateInd(sym, tf, 'EMA(50)', price>ema?'之上':'之下', price>ema?'long':'short');
-        updateInd(sym, tf, 'BB寬', (bb.width*100).toFixed(1)+'%', 'n');
-        updateInd(sym, tf, 'MACD', macd.toFixed(2), macd>0?'long':'short');
-        updateInd(sym, tf, 'VWAP', price>vwap?'之上':'之下', price>vwap?'long':'short');
         
         const adxEl = document.getElementById(`adx-${sym}-${tf}`);
-        if(adxEl) { adxEl.innerText = adx.toFixed(1); adxEl.style.color = adx>25?'var(--yellow)':'#666'; }
+        if(adxEl) { adxEl.innerText = adx.toFixed(1); adxEl.style.color = adx>20?'var(--yellow)':'#666'; }
 
-        let wL = 30; if(rsi<40) wL+=20; if(price>ema) wL+=20; if(macd>0) wL+=10; if(adx>25) wL+=10;
-        let wS = 30; if(rsi>60) wS+=20; if(price<ema) wS+=20; if(macd<0) wS+=10; if(adx>25) wS+=10;
-        document.getElementById(`wr-l-${sym}-${tf}`).style.width = `${Math.min(90, wL)}%`;
-        document.getElementById(`wr-s-${sym}-${tf}`).style.width = `${Math.min(90, wS)}%`;
-
-        const stratInfo = updateBox(sym, tf, price, atr, rsi, ema, adx);
-
-        let volRatio = 1;
+        const smaV = MathEngine.sma(v, 20);
+        const volRatio = v[last]/smaV;
         if(tf==='1h') {
-            const smaV = MathEngine.sma(v, 20);
-            volRatio = v[last]/smaV;
             document.getElementById(`vol-val-${sym}`).innerText = `x${volRatio.toFixed(1)}`;
             const vTag = document.getElementById(`vol-tag-${sym}`);
             if(volRatio > 1.0) { vTag.innerText="放量"; vTag.className="vol-tag v-high"; }
             else { vTag.innerText="縮量"; vTag.className="vol-tag v-low"; }
-            
-            saveStat(sym, tf, 'vol', volRatio); 
         }
-
+        
         let dir = 'wait';
         if(rsi > 55 && price > ema) dir = 'long';
         else if(rsi < 45 && price < ema) dir = 'short';
+
+        const bias = Math.abs(price - ema) / ema * 100;
+        const biasWarn = bias > 1.0; 
         
-        saveStat(sym, tf, 'dir', dir);
-        saveStat(sym, tf, 'adx', adx);
+        const stratInfo = updateBox(sym, tf, price, atr, rsi, ema, dir, biasWarn);
+        stratInfo.biasWarn = biasWarn;
 
         return { rsi, adx, volRatio, price, ema, stratInfo };
     }
 
-    function saveStat(sym, tf, key, val) {
-        const card = document.getElementById(`card-${sym}`);
-        let s = JSON.parse(card.dataset.stats || "{}");
-        if(!s[tf]) s[tf] = {};
-        s[tf][key] = val;
-        card.dataset.stats = JSON.stringify(s);
+    function updateBox(sym, tf, p, atr, rsi, ema, dir, biasWarn) {
+        const box = document.getElementById(`sb-${sym}-${tf}`);
+        const fmt = v => v.toFixed(p<10?4:2);
+        
+        const slDist = atr * 1.0; 
+        const tp2Dist = atr * 2.5;
+        const rr = (tp2Dist / slDist).toFixed(1);
+
+        let info = { entry: fmt(p), sl: '-', tp2: '-', price: fmt(p), rr: rr };
+
+        if(dir==='long') {
+            box.className = 'strat-box strat-long';
+            box.querySelector('.strat-status').innerText = "做多 (LONG)";
+            info.sl = fmt(p - slDist);
+            info.tp2 = fmt(p + tp2Dist);
+        } else if(dir==='short') {
+            box.className = 'strat-box strat-short';
+            box.querySelector('.strat-status').innerText = "做空 (SHORT)";
+            info.sl = fmt(p + slDist);
+            info.tp2 = fmt(p - tp2Dist);
+        } else {
+            box.className = 'strat-box';
+            box.querySelector('.strat-status').innerText = "觀望";
+        }
+
+        const enEl = document.getElementById(`en-${sym}-${tf}`);
+        if(biasWarn && dir!=='wait') { enEl.innerText=`⚠️ ${info.entry}`; enEl.style.color='var(--yellow)'; }
+        else { enEl.innerText=info.entry; enEl.style.color='var(--text-main)'; }
+        
+        document.getElementById(`sl-${sym}-${tf}`).innerText = info.sl;
+        document.getElementById(`tp2-${sym}-${tf}`).innerText = info.tp2;
+        return info;
     }
 
     function updateInd(sym, tf, name, val, st) {
@@ -434,96 +433,74 @@
         }
     }
 
-    function updateBox(sym, tf, p, atr, rsi, ema, adx) {
-        const box = document.getElementById(`sb-${sym}-${tf}`);
-        let dir = 'wait';
-        if(rsi>55 && p>ema && adx>25) dir = 'long';
-        else if(rsi<45 && p<ema && adx>25) dir = 'short';
-
-        const fmt = v => v.toFixed(p<10?4:2);
-        const title = box.querySelector('.strat-status');
+    // ==========================================
+    // 🔥 V78 核心：六維度評分系統 (嚴格執行)
+    // ==========================================
+    function calculateScoreAndTier(sym, data) {
+        const card = document.getElementById(`card-${sym}`);
+        const d15 = data.entry ? (data.tp2 > data.entry ? 'long' : 'short') : 'wait';
         
-        const bias = Math.abs(p - ema) / ema * 100;
-        const biasWarn = bias > 2.0; 
-
-        let info = { 
-            entry: fmt(p), 
-            safeEntry: fmt(ema), 
-            sl: '-', tp1: '-', tp2: '-', price: fmt(p), biasWarn: biasWarn 
-        };
-
-        if(dir==='long') {
-            box.className = 'strat-box strat-long';
-            title.innerText = "做多 (LONG)";
-            info.sl = fmt(p - atr*1.5);
-            info.tp1 = fmt(p + atr*1.5);
-            info.tp2 = fmt(p + atr*3.0);
-        } else if(dir==='short') {
-            box.className = 'strat-box strat-short';
-            title.innerText = "做空 (SHORT)";
-            info.sl = fmt(p + atr*1.5);
-            info.tp1 = fmt(p - atr*1.5);
-            info.tp2 = fmt(p - atr*3.0);
-        } else {
-            box.className = 'strat-box';
-            title.innerText = "觀望";
+        if (d15 === 'wait') {
+            updateCardStyle(card, 'B', 'wait');
+            return { tier: 'B', dir: 'wait', score: 0 };
         }
 
-        if (biasWarn && dir !== 'wait') {
-            document.getElementById(`en-${sym}-${tf}`).innerText = `⚠️ ${info.entry}`;
-            document.getElementById(`en-${sym}-${tf}`).style.color = 'var(--yellow)';
+        let score = 0;
+        let breakdown = { trend: false, rsi: false, adx: false, vol: false, loc: false, str: false };
+
+        // 1. 趨勢面 (Trend) - 20分
+        if (data.h1Dir === d15) { score += 20; breakdown.trend = true; }
+
+        // 2. 動能面 (Momentum/RSI) - 15分
+        score += 15; breakdown.rsi = true; // 簡化：方向對即得分
+
+        // 3. 力度面 (ADX) - 15分
+        if (data.adx > 20) { score += 15; breakdown.adx = true; }
+
+        // 4. 資金面 (Vol) - 15分
+        if (data.vol > 1.0 || data.h1Vol > 1.0) { score += 15; breakdown.vol = true; }
+
+        // 5. 位置面 (Location/Bias) - 20分
+        if (!data.biasWarn && parseFloat(data.rr) >= 1.5) { 
+            score += 20; breakdown.loc = true; 
         } else {
-            document.getElementById(`en-${sym}-${tf}`).innerText = info.entry;
-            document.getElementById(`en-${sym}-${tf}`).style.color = 'var(--text-main)';
+            score -= 10; // 懲罰機制
         }
 
-        document.getElementById(`sl-${sym}-${tf}`).innerText = info.sl;
-        document.getElementById(`tp1-${sym}-${tf}`).innerText = info.tp1;
-        document.getElementById(`tp2-${sym}-${tf}`).innerText = info.tp2;
+        // 6. 結構面 (Structure/4H) - 15分
+        if (data.h4Dir === d15) { score += 15; breakdown.str = true; }
 
-        return info;
+        let tier = 'B';
+        if (score >= 80) tier = 'S';
+        else if (score >= 60) tier = 'A';
+
+        // 顯示分數細節
+        const sBox = document.getElementById(`score-${sym}`);
+        sBox.innerHTML = `
+            <div class="score-title"><span>評分細節</span><span class="${tier==='S'?'pass':'fail'}">${score}分</span></div>
+            <div class="score-grid">
+                <div class="score-item">趨勢 ${breakdown.trend?'✅':'❌'}</div>
+                <div class="score-item">力度 ${breakdown.adx?'✅':'❌'}</div>
+                <div class="score-item">資金 ${breakdown.vol?'✅':'❌'}</div>
+                <div class="score-item">位置 ${breakdown.loc?'✅':'⚠️'}</div>
+            </div>
+        `;
+
+        updateCardStyle(card, tier, d15);
+        const badge = document.getElementById(`tier-${sym}`);
+        badge.innerText = `${tier}級`;
+        badge.className = `tier-badge tier-${tier.toLowerCase()}`;
+        badge.style.display = 'inline-block';
+
+        return { tier, dir: d15, score, breakdown };
     }
 
-    function checkTier(sym) {
-        const card = document.getElementById(`card-${sym}`);
-        const s = JSON.parse(card.dataset.stats || "{}");
-        if(!s['15m'] || !s['1h'] || !s['4h']) return {tier:null};
-
-        const d15 = s['15m'].dir;
-        const d1h = s['1h'].dir;
-        const d4h = s['4h'].dir;
-        const adx1h = s['1h'].adx || 0;
-        const vol1h = s['1h'].vol || 0;
-
-        let tier = null;
-        
-        // V70/V71 狙擊邏輯 (15m/1H共振 + ADX>20 + 有量)
-        const resonance = (d15!=='wait' && d15===d1h);
-        const noConflict = (d4h === 'wait' || d4h === d15); 
-        const strongTrend = adx1h > 20; 
-        const hasVol = vol1h > 1.0;
-
-        if(resonance && noConflict) {
-            if(strongTrend && hasVol) tier = 'S'; 
-            else tier = 'A';
-        } else if (d15!=='wait') {
-            tier = 'B';
-        }
-
-        const b = document.getElementById(`tier-${sym}`);
-        if(tier) {
-            b.innerText = `${tier}級`;
-            b.className = `tier-badge tier-${tier.toLowerCase()}`;
-            b.style.display = 'inline-block';
-        } else {
-            b.style.display = 'none';
-        }
-
+    function updateCardStyle(card, tier, dir) {
         if (tier === 'S' || tier === 'A') {
-            if (d15 === 'long') {
+            if (dir === 'long') {
                 card.style.border = "2px solid var(--green)";
                 card.style.boxShadow = "0 0 15px rgba(14, 203, 129, 0.2)";
-            } else if (d15 === 'short') {
+            } else if (dir === 'short') {
                 card.style.border = "2px solid var(--red)";
                 card.style.boxShadow = "0 0 15px rgba(246, 70, 93, 0.2)";
             }
@@ -531,8 +508,6 @@
             card.style.border = "1px solid var(--border)";
             card.style.boxShadow = "none";
         }
-
-        return { tier, dir: d15 };
     }
 
     function createCard(sym) {
@@ -549,16 +524,13 @@
             </div>
             <div class="card-body">
                 <div class="col-section">
+                    <div class="score-box" id="score-${sym}"></div>
                     <div class="info-group">
                         <div class="info-label"><span>量能 (1H)</span><span>>1.0</span></div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span id="vol-val-${sym}" style="color:#fff; font-family:'Roboto Mono'; font-weight:bold;">x--</span>
                             <span id="vol-tag-${sym}" class="vol-tag v-norm">...</span>
                         </div>
-                    </div>
-                    <div class="info-group">
-                        <div class="info-label">資金費率</div>
-                        <div id="fr-${sym}" style="font-family:'Roboto Mono'; font-weight:bold;">--%</div>
                     </div>
                     <div class="ai-action-area" id="ai-action-${sym}"></div>
                 </div>
@@ -569,9 +541,6 @@
                         <div style="display:flex; flex-direction:column; gap:2px; margin-top:8px;">
                             ${genInd(sym, tf, 'RSI')}
                             ${genInd(sym, tf, 'EMA(50)')}
-                            ${genInd(sym, tf, 'BB寬')}
-                            ${genInd(sym, tf, 'MACD')}
-                            ${genInd(sym, tf, 'VWAP')}
                             <div class="ind-row" style="border-top:1px dashed #444; margin-top:4px; padding-top:4px;">
                                 <span class="ind-name">ADX</span><span class="ind-val" id="adx-${sym}-${tf}">--</span>
                             </div>
@@ -581,7 +550,6 @@
                             <div class="six-grid">
                                 <div class="sg-cell"><span class="sg-label">En</span><span class="sg-val" id="en-${sym}-${tf}">-</span></div>
                                 <div class="sg-cell"><span class="sg-label">SL</span><span class="sg-val" id="sl-${sym}-${tf}" style="color:var(--blue);">-</span></div>
-                                <div class="sg-cell"><span class="sg-label">TP1</span><span class="sg-val" id="tp1-${sym}-${tf}">-</span></div>
                                 <div class="sg-cell"><span class="sg-label">TP2</span><span class="sg-val" id="tp2-${sym}-${tf}">-</span></div>
                             </div>
                         </div>
@@ -592,29 +560,11 @@
         document.getElementById('grid-container').appendChild(div);
     }
 
-    function genInd(s, t, n) {
-        return `<div class="ind-row"><span class="ind-name">${n}</span><span class="ind-val" id="ind-${s}-${t}-${n.replace(/[^a-zA-Z0-9]/g,'')}">--</span></div>`;
-    }
-
+    function genInd(s, t, n) { return `<div class="ind-row"><span class="ind-name">${n}</span><span class="ind-val" id="ind-${s}-${t}-${n.replace(/[^a-zA-Z0-9]/g,'')}">--</span></div>`; }
     let wss = null;
-    function connectWSS(s) {
-        if(wss) wss.close();
-        wss = new WebSocket(`wss://fstream.binance.com/stream?streams=${s.map(x=>`${x.toLowerCase()}@ticker`).join('/')}`);
-        wss.onmessage = e => {
-            const d = JSON.parse(e.data).data;
-            const el = document.getElementById(`price-${d.s}`);
-            if(el) { el.innerText = parseFloat(d.c); el.className = `sym-price ${parseFloat(d.P)>=0?'up':'down'}`; }
-        };
-    }
-
-    function testDiscord() {
-        if(CONFIG.DISCORD_WEBHOOK.includes("YOUR")) { alert("請先填寫 Webhook!"); return; }
-        // 測試單：發送一個假 S 級訊號
-        DISCORD_BOT.sendWebhook('TEST-USDT', 'S', 'long', {entry:100, sl:95, tp1:105, tp2:110, adx:30, vol:1.5, price: 100}, null);
-        alert("已發送測試訊號至 Discord");
-    }
+    function connectWSS(s) { if(wss) wss.close(); wss = new WebSocket(`wss://fstream.binance.com/stream?streams=${s.map(x=>`${x.toLowerCase()}@ticker`).join('/')}`); wss.onmessage = e => { const d = JSON.parse(e.data).data; const el = document.getElementById(`price-${d.s}`); if(el) { el.innerText = parseFloat(d.c); el.className = `sym-price ${parseFloat(d.P)>=0?'up':'down'}`; } }; }
+    function testDiscord() { if(CONFIG.DISCORD_WEBHOOK.includes("YOUR")) { alert("請先填寫 Webhook!"); return; } DISCORD_BOT.sendWebhook('TEST-USDT', 'S', 'long', {entry:100, sl:95, tp2:110, adx:30, vol:1.5, totalScore: 95, rr: 2.5, scores:{trend:1, rsi:1, adx:1, vol:1, loc:1, str:1}}, null); alert("已發送"); }
     function forceRefresh(){ scanMarket(); }
-
     initSystem();
 </script>
 </body>
