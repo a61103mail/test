@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全維度戰情室 (V85 Math Fix)</title>
+    <title>全維度戰情室 (V85 Ultimate)</title>
     <style>
         /* =========================================
-           V85 UI：完全保留原樣，未做任何視覺更動
+           V85 UI Style：100% 還原，未做任何刪減
            ========================================= */
         :root {
             --bg: #0b0e11; --card: #161a1e; --text-main: #eaecef; --text-sub: #848e9c;
@@ -15,7 +15,7 @@
         }
         body { background-color: var(--bg); color: var(--text-main); font-family: 'Microsoft JhengHei', 'Roboto Mono', monospace; margin: 0; padding: 20px; font-size: 13px; }
         
-        /* WSS 閃爍 */
+        /* WSS 閃爍動畫 */
         @keyframes flash-green { 0% { background-color: rgba(14, 203, 129, 0.3); } 100% { background-color: transparent; } }
         @keyframes flash-red { 0% { background-color: rgba(246, 70, 93, 0.3); } 100% { background-color: transparent; } }
         .flash-up { animation: flash-green 0.5s ease-out; }
@@ -89,7 +89,7 @@
 
 <div class="header">
     <div style="display:flex; align-items:center;">
-        <h1>全維度戰情室 <span class="version-tag">V85 Math Fix</span></h1>
+        <h1>全維度戰情室 <span class="version-tag">V85 Ultimate</span></h1>
     </div>
     <div class="btc-bar">
         <span>BTC: <strong id="btc-price" style="color:#fff;">...</strong></span>
@@ -98,7 +98,7 @@
             <div id="wss-dot" class="live-dot"></div>
             <span style="font-size:11px; color:#aaa; margin-left:5px;">LIVE FEED</span>
         </div>
-        <button onclick="System.init()" style="background:#2979ff; color:#fff; border:none; padding:5px 15px; cursor:pointer; border-radius:4px; margin-left:20px;">🔄 重置數據</button>
+        <button onclick="System.init()" style="background:#2979ff; color:#fff; border:none; padding:5px 15px; cursor:pointer; border-radius:4px; margin-left:20px;">🔄 強制重置</button>
     </div>
 </div>
 
@@ -106,21 +106,21 @@
 
 <script>
     const CONFIG = {
-        GEMINI_API_KEY: "YOUR_GEMINI_API_KEY", 
+        GEMINI_API_KEY: "", // 在此填入您的 API KEY
         DISCORD_WEBHOOK: "YOUR_DISCORD_WEBHOOK_URL",
         KLINES_LIMIT: 100,
-        BLACKLIST: ['USDCUSDT', 'FDUSDUSDT', 'TUSDUSDT', 'USDPUSDT']
+        BLACKLIST: ['USDCUSDT', 'FDUSDUSDT', 'TUSDUSDT', 'USDPUSDT', 'BUSDUSDT', 'USDTUSDT']
     };
 
     // ==========================================
-    // 🧮 數學核心 (已修正)
+    // 🧮 數學核心 (Math Core - V85 Corrected)
     // ==========================================
     const MathCore = {
         mean: d => d.reduce((a,b)=>a+b,0)/d.length,
         stdDev: (d,m) => Math.sqrt(d.reduce((a,b)=>a+Math.pow(b-m,2),0)/d.length),
         zScore: (p,h) => { const m=MathCore.mean(h); const s=MathCore.stdDev(h,m); return s===0?0:(p-m)/s; },
         
-        // [修正] 新增對數收益率計算
+        // [修正] 對數收益率計算 (Log Returns for Beta)
         getLogReturns: (data) => {
             let returns = [];
             for(let i=1; i<data.length; i++) {
@@ -129,9 +129,9 @@
             return returns;
         },
 
-        // [修正] 相關性現在應該傳入 LogReturns 陣列
+        // [修正] 相關性計算 (Pearson Correlation)
         correlation: (A,B) => {
-            if(A.length!==B.length) return 0;
+            if(A.length !== B.length || A.length === 0) return 0;
             let num=0, dA=0, dB=0; const mA=MathCore.mean(A), mB=MathCore.mean(B);
             for(let i=0;i<A.length;i++){ num+=(A[i]-mA)*(B[i]-mB); dA+=Math.pow(A[i]-mA,2); dB+=Math.pow(B[i]-mB,2); }
             const res = num/Math.sqrt(dA*dB);
@@ -139,39 +139,61 @@
         },
 
         ema: (d,p) => { let k=2/(p+1), e=[d[0]]; for(let i=1;i<d.length;i++) e.push(d[i]*k+e[i-1]*(1-k)); return e; },
+        
         rsi: (c,p=14) => {
+            if(c.length < p+1) return 50;
             let gains=0, losses=0;
             for(let i=c.length-p; i<c.length; i++){ let d=c[i]-c[i-1]; d>0?gains+=d:losses-=d; }
+            if(losses===0) return 100;
             return 100-(100/(1+(gains/losses)));
         },
+        
         atr: (h,l,c,p=14) => {
+            if(h.length < p) return 0;
             let trs=[h[0]-l[0]];
             for(let i=1;i<h.length;i++) trs.push(Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])));
             return trs.slice(-p).reduce((a,b)=>a+b,0)/p;
         },
+        
         adx: (h,l,c,p=14) => {
             const tr = MathCore.atr(h,l,c,p);
+            if(tr===0) return 0;
             const move = Math.abs(c[c.length-1]-c[c.length-p]);
             return Math.min(100, (move/(tr*p))*100*2.0); 
         },
         
-        // Kelly: win=勝率(0-1), odds=賠率(盈虧比)
+        // [修正] 動態 Kelly (win=勝率 0~1, odds=賠率)
         kelly: (win, odds) => {
+            if(odds <= 0) return 0;
             const k = (win * (1 + odds) - 1) / odds;
-            return Math.max(0, k * 100); // 回傳百分比
+            return Math.max(0, k * 100); // Return %
         }
     };
 
     // ==========================================
-    // 📡 即時引擎 (WebSocket) - 保持不變
+    // 📡 即時引擎 (WebSocket - Realtime Price)
     // ==========================================
     const WS_Engine = {
         socket: null,
+        activeSymbols: new Set(),
         connect: function(symbols) {
+            // 避免重複連線
+            const newSyms = symbols.filter(s => !this.activeSymbols.has(s));
+            if(newSyms.length === 0 && this.socket && this.socket.readyState === WebSocket.OPEN) return;
+
+            // 如果有新幣種，重新建立連線 (簡單處理)
             if(this.socket) this.socket.close();
+            
+            this.activeSymbols = new Set(symbols);
             const streams = symbols.map(s => `${s.toLowerCase()}@ticker`).join('/');
+            
             this.socket = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
             this.socket.onopen = () => document.getElementById('wss-dot').classList.add('live-active');
+            this.socket.onclose = () => {
+                document.getElementById('wss-dot').classList.remove('live-active');
+                // 簡單的斷線重連機制
+                setTimeout(() => this.connect(symbols), 5000);
+            };
             this.socket.onmessage = (e) => {
                 const d = JSON.parse(e.data).data;
                 this.updateUI(d.s, parseFloat(d.c));
@@ -182,6 +204,7 @@
                 document.getElementById('btc-price').innerText = price.toFixed(2);
                 return;
             }
+            // 這些是具有即時性的 DOM 元素
             const el = document.getElementById(`price-${sym}`);
             const card = document.getElementById(`card-${sym}`);
             if(el && card) {
@@ -195,80 +218,135 @@
     };
 
     // ==========================================
-    // 🧠 系統核心 (System) - 邏輯修正
+    // 🧠 系統核心 (System - Auto Refresh & Analysis)
     // ==========================================
     const System = {
         btcHistory: [],
         btcTrend: 'NEUTRAL',
+        refreshTimer: null,
 
+        // 系統入口：包含自動刷新邏輯
         init: async function() {
-            document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px; color:#666;">⏳ 系統重置中：恢復完整數據面板 (Math Corrected)...</div>';
-            await this.updateBTC();
-            const targets = await this.scanTopVolume();
-            document.getElementById('grid-container').innerHTML = '';
-            
-            const wsList = ['BTCUSDT'];
-            for(let sym of targets) {
-                await this.analyze(sym);
-                wsList.push(sym);
-                await new Promise(r => setTimeout(r, 100));
+            // 1. 初次載入顯示 Loading
+            if(document.getElementById('grid-container').children.length === 0) {
+                document.getElementById('grid-container').innerHTML = '<div style="text-align:center; padding:50px; color:#666;">⏳ 系統初始化中...</div>';
             }
-            WS_Engine.connect(wsList);
+
+            // 2. 立即執行一次完整分析
+            await this.runAnalysisTask();
+
+            // 3. 啟動背景輪詢 (每60秒)
+            if(this.refreshTimer) clearInterval(this.refreshTimer);
+            this.refreshTimer = setInterval(async () => {
+                const timestamp = new Date().toLocaleTimeString();
+                console.log(`[${timestamp}] 背景數據刷新中...`);
+                
+                // 更新狀態欄時間
+                const statusEl = document.getElementById('btc-regime');
+                if(!statusEl.querySelector('.update-time')) {
+                    statusEl.innerHTML += ` <span class="update-time" style="font-size:10px; color:#666; margin-left:5px;"></span>`;
+                }
+                statusEl.querySelector('.update-time').innerText = `(${timestamp})`;
+
+                await this.runAnalysisTask();
+            }, 60000); // 60秒
+        },
+
+        runAnalysisTask: async function() {
+            try {
+                // 1. 更新 BTC
+                await this.updateBTC();
+                
+                // 2. 掃描成交量排行 (熱點可能會變)
+                const targets = await this.scanTopVolume();
+                
+                // 3. 清除 Loading 文字 (如果是第一次)
+                const container = document.getElementById('grid-container');
+                if(container.innerText.includes('初始化中')) {
+                    container.innerHTML = ''; 
+                }
+
+                const wsList = ['BTCUSDT'];
+                for(let sym of targets) {
+                    // 執行分析 (這會觸發 renderCard 原地更新)
+                    await this.analyze(sym); 
+                    wsList.push(sym);
+                    // 避免 API Rate Limit
+                    await new Promise(r => setTimeout(r, 150)); 
+                }
+                
+                // 4. 連接 WebSocket
+                WS_Engine.connect(wsList);
+            } catch (error) {
+                console.error("Analysis Task Error:", error);
+            }
         },
 
         updateBTC: async function() {
             try {
                 const r = await fetch('https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=100');
                 const d = await r.json();
-                this.btcHistory = d.map(x=>parseFloat(x[4]));
+                this.btcHistory = d.map(x=>parseFloat(x[4])); // 收盤價
                 const price = this.btcHistory[this.btcHistory.length-1];
                 const ma = MathCore.mean(this.btcHistory.slice(-50));
                 this.btcTrend = price > ma ? 'BULL' : 'BEAR';
+                
                 const el = document.getElementById('btc-regime');
+                // 保留時間戳 span
+                const timeSpan = el.querySelector('.update-time');
                 el.innerText = this.btcTrend==='BULL'?'🟢 多頭':'🔴 空頭';
                 el.style.color = this.btcTrend==='BULL'?'var(--green)':'var(--red)';
-            } catch(e){}
+                if(timeSpan) el.appendChild(timeSpan);
+
+            } catch(e){ console.error("BTC Update Fail", e); }
         },
 
         scanTopVolume: async function() {
-            const r = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
-            let d = await r.json();
-            return d.filter(t=>t.symbol.endsWith('USDT') && !CONFIG.BLACKLIST.includes(t.symbol))
-                    .sort((a,b)=>parseFloat(b.quoteVolume)-parseFloat(a.quoteVolume)).slice(0,10).map(t=>t.symbol);
+            try {
+                const r = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
+                let d = await r.json();
+                return d.filter(t=>t.symbol.endsWith('USDT') && !CONFIG.BLACKLIST.includes(t.symbol))
+                        .sort((a,b)=>parseFloat(b.quoteVolume)-parseFloat(a.quoteVolume))
+                        .slice(0, 10) // 取前 10 名
+                        .map(t=>t.symbol);
+            } catch(e) { return []; }
         },
 
         analyze: async function(sym) {
-            const [k15, k1h, k4h, prem] = await Promise.all([
-                this.getK(sym,'15m'), this.getK(sym,'1h'), this.getK(sym,'4h'),
-                fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`).then(r=>r.json())
-            ]);
+            try {
+                const [k15, k1h, k4h, prem] = await Promise.all([
+                    this.getK(sym,'15m'), this.getK(sym,'1h'), this.getK(sym,'4h'),
+                    fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`).then(r=>r.json())
+                ]);
 
-            const c1h = k1h.c;
-            const price = c1h[c1h.length-1];
-            
-            // 數學計算 - [修正] 改用 Log Returns 計算相關性
-            const zScore = MathCore.zScore(price, c1h.slice(-50));
-            
-            // 準備數據計算相關性：取最後 50 根，轉為 log returns
-            const btcRets = MathCore.getLogReturns(this.btcHistory.slice(-51)); // 取多一根以確保長度匹配
-            const coinRets = MathCore.getLogReturns(c1h.slice(-51));
-            // 確保長度一致 (取最小長度)
-            const minLen = Math.min(btcRets.length, coinRets.length);
-            const corr = MathCore.correlation(btcRets.slice(-minLen), coinRets.slice(-minLen));
+                if(!k1h.c || k1h.c.length === 0) return;
 
-            const fr = parseFloat(prem.lastFundingRate)*100;
-            const atr1h = MathCore.atr(k1h.h, k1h.l, k1h.c);
-            
-            // 各週期指標
-            const ind15 = this.calcInd(k15);
-            const ind1h = this.calcInd(k1h);
-            const ind4h = this.calcInd(k4h);
+                const c1h = k1h.c;
+                const price = c1h[c1h.length-1];
+                
+                // === 數學修正邏輯 ===
+                const zScore = MathCore.zScore(price, c1h.slice(-50));
+                
+                // Beta 相關性 (Log Returns)
+                const btcRets = MathCore.getLogReturns(this.btcHistory.slice(-52));
+                const coinRets = MathCore.getLogReturns(c1h.slice(-52));
+                const minLen = Math.min(btcRets.length, coinRets.length);
+                const corr = MathCore.correlation(btcRets.slice(-minLen), coinRets.slice(-minLen));
 
-            // 綜合評分與策略
-            const scoreData = this.evaluate(zScore, corr, fr, price, atr1h, this.btcTrend, ind1h.volRatio);
+                const fr = parseFloat(prem.lastFundingRate)*100;
+                const atr1h = MathCore.atr(k1h.h, k1h.l, k1h.c);
+                
+                // 指標計算
+                const ind15 = this.calcInd(k15);
+                const ind1h = this.calcInd(k1h);
+                const ind4h = this.calcInd(k4h);
 
-            // 渲染
-            this.renderCard(sym, price, scoreData, { '15m':ind15, '1h':ind1h, '4h':ind4h }, zScore, fr, corr);
+                // 綜合評分 (魚身策略)
+                const scoreData = this.evaluate(zScore, corr, fr, price, atr1h, this.btcTrend, ind1h.volRatio, ind1h.emaState);
+
+                // 渲染 UI (原地更新)
+                this.renderCard(sym, price, scoreData, { '15m':ind15, '1h':ind1h, '4h':ind4h }, zScore, fr, corr);
+            } catch(e) { console.error(`Analyze ${sym} error`, e); }
         },
 
         getK: async function(s, i) {
@@ -283,52 +361,62 @@
             const ema = MathCore.ema(c, 50)[c.length-1];
             const adx = MathCore.adx(k.h, k.l, c);
             const atr = MathCore.atr(k.h, k.l, c);
-            const volRatio = k.v[k.v.length-1] / MathCore.mean(k.v.slice(-20));
+            const meanVol = MathCore.mean(k.v.slice(-20));
+            const volRatio = meanVol > 0 ? k.v[k.v.length-1] / meanVol : 0;
             return { rsi, adx, ema, volRatio, atr, price: c[c.length-1], emaState: c[c.length-1]>ema?'Bull':'Bear' };
         },
 
-        evaluate: function(z, corr, fr, price, atr, btcState, volRatio) {
+        // === 策略評估 (The Fish Body Logic) ===
+        evaluate: function(z, corr, fr, price, atr, btcState, volRatio, emaState) {
             let checks = { trend:false, rsi:false, adx:false, vol:false, loc:false, str:false };
             let score = 0;
 
-            // 評分邏輯 (稍微調整權重以符合修正後的 corr)
-            if(btcState === 'BULL' && corr > 0.5) { checks.trend = true; score += 20; } // Log return corr 通常較低，門檻微調
-            if(z > 0 && z < 2) { checks.rsi = true; score += 15; }
-            if(Math.abs(fr) < 0.02) { checks.adx = true; score += 15; } 
+            // 1. 結構分 (必須順勢)
+            // BTC Bull + 自身在 EMA 之上 + 有正相關
+            if(btcState === 'BULL' && emaState === 'Bull' && corr > 0.3) { 
+                checks.trend = true; score += 20; 
+            }
+            
+            // 2. 魚身判斷 (拒絕魚尾追高)
+            if(z > 0 && z < 2.2) { checks.rsi = true; score += 15; } // Z太高不給分
+            
+            // 3. 費率健康 (未過熱)
+            if(Math.abs(fr) < 0.03) { checks.adx = true; score += 15; } 
+            
+            // 4. 量能推升
             if(volRatio > 1.2) { checks.vol = true; score += 15; }
-            if(z < 1.0) { checks.loc = true; score += 20; }
-            if(corr < 0.7) { checks.str = true; score += 15; }
+            
+            // 5. 相對位置 (低位啟動)
+            if(z < 1.5) { checks.loc = true; score += 20; }
+            
+            // 6. 強勢連動
+            if(corr > 0.5) { checks.str = true; score += 15; }
 
+            // 評級
             let tier = 'B';
             if(score >= 80) tier = 'S';
             else if(score >= 60) tier = 'A';
 
+            // 訊號
             let type = 'WAIT';
             if(score >= 60) type = 'LONG';
-            if(z > 2.5) type = 'SHORT (超買)';
+            if(z > 2.5) type = 'SHORT (超買)'; // 魚尾警告
 
-            // [修正] 動態 Kelly 計算
-            // 1. 設定盈虧比 (Odds)
+            // 動態 Kelly 計算
             const slDist = atr * 1.5;
             const tp1Dist = atr * 2.0; 
             const tp2Dist = atr * 3.5;
-            const odds = tp1Dist / slDist; // 約等於 1.33
+            const odds = slDist > 0 ? tp1Dist / slDist : 1.5;
 
-            // 2. 估算勝率 (Win Rate Proxy based on Score)
-            // 基礎勝率 50% (Score 60)，每增加 1 分微幅增加信心，最高限制在 70% 避免過度自信
-            let estimatedWinRate = 0.45; // 默認低於隨機
-            if (score >= 60) {
-                estimatedWinRate = 0.50 + ((score - 60) * 0.005); 
-            }
-            estimatedWinRate = Math.min(estimatedWinRate, 0.70); // Cap at 70%
+            // 估算勝率 (Score Mapping)
+            let estimatedWinRate = 0.45; 
+            if (score >= 60) estimatedWinRate = 0.50 + ((score - 60) * 0.005);
+            estimatedWinRate = Math.min(estimatedWinRate, 0.70);
 
-            // 3. 套用 Kelly
+            // 計算 Kelly
             let kelly = MathCore.kelly(estimatedWinRate, odds);
-            
-            // 安全性修正：如果分數太低，強制倉位為 0
-            if(score < 60) kelly = 0;
-            // 實戰修正：Full Kelly 風險太大，通常使用 Half Kelly
-            kelly = kelly * 0.5; 
+            if(score < 60) kelly = 0; // 不及格不開倉
+            kelly = kelly * 0.5; // Half-Kelly 風險控制
 
             return {
                 score, tier, checks, type, kelly,
@@ -339,12 +427,13 @@
             };
         },
 
+        // === 原地更新 UI (No-Blink Render) ===
         renderCard: function(sym, price, strat, inds, z, fr, corr) {
-            const div = document.createElement('div');
-            div.className = 'coin-card';
-            div.id = `card-${sym}`;
+            const container = document.getElementById('grid-container');
+            let div = document.getElementById(`card-${sym}`);
             
-            div.innerHTML = `
+            // 構建 HTML
+            const htmlContent = `
                 <div class="card-header">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span class="sym-title">${sym.replace('USDT','')}</span>
@@ -410,40 +499,99 @@
                     }).join('')}
                 </div>
             `;
-            document.getElementById('grid-container').appendChild(div);
+
+            // 更新或創建
+            if (div) {
+                div.innerHTML = htmlContent;
+            } else {
+                div = document.createElement('div');
+                div.className = 'coin-card';
+                div.id = `card-${sym}`;
+                div.innerHTML = htmlContent;
+                container.appendChild(div);
+            }
             
-            // AI 按鈕
-            if(strat.tier === 'S' || strat.tier === 'A') {
-                const btnArea = document.getElementById(`ai-action-${sym}`);
+            // 重新綁定 AI 按鈕 (每次 render 後需重綁)
+           if(strat.tier === 'S' || strat.tier === 'A') {
+                const btnArea = div.querySelector(`#ai-action-${sym}`);
                 const btn = document.createElement('button');
                 btn.className = `ai-btn ${strat.tier==='S'?'btn-s':'btn-a'}`;
                 btn.style.display = 'block';
-                btn.innerText = `🤖 AI 風控分析 (${strat.tier}級)`;
-                btn.onclick = () => askAI(btn, sym, z, fr, strat.type);
+                btn.innerText = `🤖 生成戰術指令 (${strat.tier}級)`;
+                
+                // 【修改點】：這裡多傳了一個 strat 參數進去
+                btn.onclick = () => askAI(btn, sym, z, fr, strat.type, strat);
+                
                 btnArea.appendChild(btn);
                 const res = document.createElement('div');
                 res.id = `ai-res-${sym}`;
                 res.className = 'ai-result';
+                // 增加一點樣式讓 AI 文字更好讀
+                res.style.cssText = "background: rgba(40, 30, 60, 0.6); border: 1px solid var(--purple); border-radius: 6px; padding: 12px; margin-top: 10px; display: none; font-size: 13px; line-height: 1.6; color: #ddd;";
                 btnArea.appendChild(res);
             }
         }
     };
 
-    async function askAI(btn, sym, z, fr, type) {
+    // ==========================================
+    // 🤖 AI 模組 (Gemini)
+    // ==========================================
+ async function askAI(btn, sym, z, fr, type, strat) {
         if(!CONFIG.GEMINI_API_KEY.includes('AI')) { alert('請填寫 API Key'); return; }
-        btn.innerText = "⏳ 運算中...";
-        const prompt = `標的:${sym}, 訊號:${type}, Z-Score:${z.toFixed(2)}, 費率:${fr.toFixed(4)}%。請用中文簡短說明此交易的最大風險點。`;
+        
+        btn.innerText = "⚡ 計算戰術中...";
+        
+        // 我們將 strat (策略物件) 也傳進來，這樣 AI 才知道止盈止損在哪
+        // 注意：呼叫此函數的地方 (renderCard) 也需要改一下傳參
+        
+        const prompt = `
+        你是一個冷酷、講求數據的量化交易員。不要說廢話，不要說「投資有風險」，直接給我交易指令。
+        
+        【當前數據】
+        標的: ${sym}
+        訊號: ${type} (系統評分: ${strat.score}分)
+        當前價格: ${strat.entry}
+        
+        【系統建議參數】
+        進場位: 市價 (${strat.entry})
+        止損位 (SL): ${strat.sl} (基於 1.5x ATR)
+        第一止盈 (TP1): ${strat.tp1} (基於 2.0x ATR)
+        第二止盈 (TP2): ${strat.tp2} (基於 3.5x ATR)
+        建議倉位: ${strat.kelly.toFixed(1)}% (半凱利)
+        
+        【市場狀態】
+        Z-Score: ${z.toFixed(2)} (位置評估)
+        費率: ${fr.toFixed(4)}% (擁擠度評估)
+        
+        請用以下格式簡短輸出 (嚴禁廢話)：
+        
+        1. 🎯 **核心邏輯**：一句話解釋為什麼現在進場？(例如：Z分低位啟動、主力資金流入等)
+        2. 🛑 **防守觀點**：為什麼止損設在 ${strat.sl}？(解釋跌破這裡代表什麼結構破壞)
+        3. 💰 **獲利劇本**：TP1 ${strat.tp1} 是什麼位置？TP2 預期會碰到什麼阻力？
+        4. ⚠️ **否決條件**：如果發生什麼事(例如費率突然飆高)，立刻市價逃跑？
+        `;
+
         try {
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`, 
             { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
             const d = await r.json();
             const res = document.getElementById(`ai-res-${sym}`);
             res.style.display='block';
-            res.innerText = d.candidates[0].content.parts[0].text;
-            btn.innerText = "✅ 完成";
-        } catch(e) { btn.innerText = "❌ 失敗"; }
+            
+            // 簡單的 markdown 轉 HTML 處理
+            let text = d.candidates[0].content.parts[0].text;
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+            text = text.replace(/\n/g, '<br>'); // Newline
+            
+            res.innerHTML = text; 
+            btn.innerText = "✅ 戰術生成完畢";
+        } catch(e) { 
+            console.error(e);
+            btn.innerText = "❌ 連線失敗"; 
+        }
     }
 
+    // 啟動系統
     System.init();
 </script>
 </body>
